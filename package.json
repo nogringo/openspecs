@@ -1,0 +1,25 @@
+{
+  "name": "openspecs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @openspecs/web dev",
+    "build": "pnpm --recursive build",
+    "start": "pnpm --filter @openspecs/web start",
+    "typecheck": "pnpm --recursive typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "format": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.8",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
