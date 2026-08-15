@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/web
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Single architecture on purpose: a multi-platform result cannot be loaded
+      # into the local daemon, and this image exists to be started, not shipped.
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: openspecs-web:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The image built fine on the day the runtime still shipped pnpm, and only
+      # failed once started. Booting it and reading the response is the only way
+      # that class of regression shows up.
+      - name: Boot the image and assert the HTML is server rendered
+        run: |
+          docker run -d --name openspecs-ci -p 3000:3000 openspecs-web:ci
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:3000/ >/dev/null && break
+            sleep 1
+          done
+          html=$(curl -sf --max-time 10 http://localhost:3000/)
+          echo "$html" | grep -q '<title>Open Specs' \
+            || { echo "::error::title missing from the server response, SSR is not producing real HTML"; exit 1; }
+          echo "$html" | grep -q '<h1' \
+            || { echo "::error::no heading in the server response, the page is an empty shell"; exit 1; }
+
+      - name: Container logs
+        if: always()
+        run: docker logs openspecs-ci || true
+
+  # A separate job rather than conditional steps: `needs` makes the gate
+  # structural, so an image that failed the boot probe cannot be published.
+  publish:
+    needs: [checks, docker]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

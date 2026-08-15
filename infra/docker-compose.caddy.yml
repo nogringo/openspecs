@@ -1,0 +1,26 @@
+# Overlay adding Caddy as the TLS terminating reverse proxy, for a host that has
+# no proxy of its own.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
+#
+# Kept out of docker-compose.yml because it claims ports 80 and 443, which
+# collides with whatever proxy most hosts already run.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      OPENSPECS_DOMAIN: ${OPENSPECS_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -80,6 +80,35 @@ pnpm dev
 | `pnpm lint`        | Lint and format check              |
 | `pnpm format`      | Apply lint and format fixes        |
 
+## Deployment
+
+Every push to `main` publishes a multi-architecture image to
+`ghcr.io/nogringo/openspecs/web`, but only after CI has started that image and read its
+response, so a container that does not boot or does not server render never ships.
+
+The compose file is a single service listening on loopback, with no proxy of its own, so
+it drops into whatever stack you already run:
+
+```sh
+cd infra
+cp .env.example .env
+docker compose up -d
+```
+
+Point your existing reverse proxy at `127.0.0.1:3000`, or set `OPENSPECS_BIND` to publish
+the port elsewhere. If the host has no proxy, an overlay adds Caddy with automatic TLS:
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
+```
+
+To build from this checkout instead of pulling the published image, overlay the build
+definition the same way:
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+```
+
 ## Layout
 
 ```

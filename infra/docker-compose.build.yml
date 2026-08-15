@@ -1,0 +1,12 @@
+# Overlay for building the image from this checkout instead of pulling it.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+#
+# Kept out of docker-compose.yml on purpose: a service carrying a build section
+# is built rather than pulled, which would make the published image pointless
+# for anyone who just wants to run Open Specs.
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile

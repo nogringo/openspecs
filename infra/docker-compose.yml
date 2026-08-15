@@ -1,30 +1,18 @@
 services:
   web:
-    build:
-      context: ..
-      dockerfile: infra/Dockerfile
+    image: ghcr.io/nogringo/openspecs/web:${OPENSPECS_TAG:-latest}
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3000
-    expose:
-      - "3000"
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
+    # Bound to loopback by default: this service has no TLS and no auth, so it
+    # expects something in front of it. Set OPENSPECS_BIND to 0.0.0.0:3000 to
+    # publish it, or drop the binding entirely and attach your proxy's network.
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      OPENSPECS_DOMAIN: ${OPENSPECS_DOMAIN:-localhost}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - web
-
-volumes:
-  caddy_data:
-  caddy_config:
+      - "${OPENSPECS_BIND:-127.0.0.1:3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
