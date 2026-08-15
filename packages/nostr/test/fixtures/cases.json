@@ -1,0 +1,71 @@
+{
+  "source": "kind 30817 events collected from public relays",
+  "collectedAt": "2026-08-15",
+  "cases": {
+    "canonical": {
+      "note": "well formed, k tags carrying the human readable name",
+      "ids": [
+        "9736610c5d6ce450ed3ae28069c2da819b6f4a9ee14435216ffb45ff0d1481ff",
+        "c0c5621c956dec810befe9d3d08338f8a5c656846b1e011d28dcc95c2f1659c4"
+      ]
+    },
+    "no-kind-tags": {
+      "note": "a specification unrelated to any event kind, the non-Nostr shape",
+      "ids": [
+        "27de7abb6e8e62e7f11e8bd1ef7e115cca0c494fc345deb2c410cd7ba2dd2765",
+        "912b0581a8838d605825389b5651338c7f3d5e96270c9728efcfc36ba254f7e9"
+      ]
+    },
+    "k-without-name": {
+      "note": "k tag with no name, the majority case in the wild",
+      "ids": [
+        "f66dc18aa7f18bf8eb209d3e98df1c21dc39eb1ae519d5a6253af5e4e9a09bf5",
+        "9f3bc08047603dafdcb82ee5e077ac0e71650f508e5af99c1c946e05105facdc"
+      ]
+    },
+    "k-not-numeric": {
+      "note": "k value is not a kind number, parseInt would produce NaN",
+      "ids": [
+        "560da01af5c9c9680be3fc73b38a282f2b99266c9ca1b93a32fbb33a1a75ab1a",
+        "2c51a04df2a02a892b953c31a60370e29d81f004b490848bbdae9642da0a1511"
+      ]
+    },
+    "kind-collision": {
+      "note": "another application publishing an unrelated schema on kind 30817, must be rejected",
+      "ids": [
+        "fe0f4fdf7618a18c1b53570c799f54b3c6923e3285cb36ad0e75258516e3fd5e",
+        "ab7ab0e49feb3b3e4969fc3269155176cbc522c5476bf1abe808af3f9602bc63"
+      ]
+    },
+    "empty-content": {
+      "note": "real coordinate, nothing to render, must not reach the index",
+      "ids": [
+        "d61673f327145410fcc46b85701ffce7ade81e6c5a881247920704447b2a46da",
+        "7fce8a32dfcdbc7ebc9ee926e5b35c9c07625c794faf2e7987f655674b53199b"
+      ]
+    },
+    "d-not-kebab": {
+      "note": "identifiers carrying colons, uppercase or opaque ids, all of them land in a URL",
+      "ids": [
+        "0c731984fc8061c157513f36660cd926377d39f7e7b2e524d7dcf7eaf7ed5125",
+        "f6f9a3d7e20990a40f04e51c8ae81ee47d8263433757bd01a8957837255a4c04",
+        "576020674e748e3130f403bb4a04ae0fd30fc4d83ffda861ef13767b376a9a19"
+      ]
+    },
+    "same-coordinate-two-revisions": {
+      "note": "one document, two revisions still live on different relays, keep the newest",
+      "ids": [
+        "679ef9c4e5f0c957312c45a6dab25bc9a210daa2443844ce16c75da817d98291",
+        "d7b847c54af131ef8e807029a3bf74f4119df6848ce8688d6c39298cdd00e959",
+        "a5483b70fb21d9cca651717e000a98131b0d61944b0c6b5ace5b95bd0532923b",
+        "0cd874083590a76337cf360203dd1cc7c2d6165e3bff25f714a39f45f845c2f6"
+      ]
+    },
+    "large-document": {
+      "note": "a long specification, for rendering and truncation behaviour",
+      "ids": [
+        "e1a33c93ba555af9aa507ab8c026885914f4ba44d3bd125a3993ec9f0fae5ab4"
+      ]
+    }
+  }
+}

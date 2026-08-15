@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/build", "!**/.react-router", "!**/*.svg"]
+    "includes": ["**", "!**/build", "!**/.react-router", "!**/*.svg", "!**/test/fixtures"]
   },
   "formatter": {
     "enabled": true,
