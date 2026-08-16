@@ -7,7 +7,7 @@ import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
-import { ogImagePath } from "~/lib/paths";
+import { oembedPath, ogImagePath } from "~/lib/paths";
 import { loadSpec, type SpecPage } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
 
@@ -28,6 +28,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const origin = publicOrigin(request);
   return {
     spec,
+    origin,
     canonical: `${origin}${path}`,
     ogImage: `${origin}${ogImagePath(toNpub(pubkey), spec.identifier)}`,
   };
@@ -52,7 +53,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData)
     return [{ title: "Not found | Open Specs" }, { name: "robots", content: "noindex" }];
 
-  const { spec, canonical, ogImage } = loaderData;
+  const { spec, canonical, ogImage, origin } = loaderData;
   const title = `${spec.title} | Open Specs`;
 
   return [
@@ -77,6 +78,13 @@ export function meta({ loaderData }: Route.MetaArgs) {
     { name: "twitter:title", content: spec.title },
     { name: "twitter:description", content: spec.summary },
     { name: "twitter:image", content: ogImage },
+    {
+      tagName: "link",
+      rel: "alternate",
+      type: "application/json+oembed",
+      title: spec.title,
+      href: `${origin}${oembedPath(canonical)}`,
+    },
 
     {
       "script:ld+json": {

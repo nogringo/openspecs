@@ -32,3 +32,7 @@ export const feedTitle = (query: SpecsQuery = {}): string => {
 /** The card an unfurler reads, drawn from the document it addresses. */
 export const ogImagePath = (npub: string, identifier: string): string =>
   `/og/${npub}/${encodeURIComponent(identifier)}`;
+
+/** Where a consumer asks what this site knows about one of its own pages. */
+export const oembedPath = (canonical: string): string =>
+  `/oembed?url=${encodeURIComponent(canonical)}`;

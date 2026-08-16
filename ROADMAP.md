@@ -44,7 +44,7 @@ to render during SSR, which ships an empty skeleton to crawlers and defeats the 
 - [x] Dynamic OpenGraph images (satori, resvg) as a resource route, cached on disk
 - [x] `sitemap.xml` and `robots.txt`
 - [x] RSS and Atom feeds
-- [ ] oEmbed endpoint
+- [x] oEmbed endpoint
 - [ ] Preview cards for external links cited inside specs
 
 Shippable here: read only, no accounts, no database, but properly indexed.
