@@ -88,6 +88,7 @@ export type SpecCard = {
   kinds: SpecKindRef[];
   topics: string[];
   publishedAt: number;
+  revisedAt: number;
 };
 
 const toCard = (spec: Spec): SpecCard => ({
@@ -100,6 +101,7 @@ const toCard = (spec: Spec): SpecCard => ({
   kinds: spec.kinds,
   topics: spec.topics,
   publishedAt: spec.publishedAt,
+  revisedAt: spec.createdAt,
 });
 
 export type SpecFilter = {
