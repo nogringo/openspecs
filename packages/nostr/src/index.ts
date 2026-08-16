@@ -11,6 +11,15 @@ export {
 export { allTags, type NostrEvent, nostrEventSchema, SPEC_KIND, tagValue } from "./event";
 export { deriveSummary, firstHeading, stripInlineMarkdown } from "./markdown";
 export {
+  clearNip05Cache,
+  NIP05_TIMEOUT_MS,
+  type Nip05Address,
+  type Nip05Options,
+  type Nip05Result,
+  parseNip05Address,
+  resolveNip05,
+} from "./nip05";
+export {
   clearRelayListCache,
   fetchRelayList,
   fetchRelayLists,

@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { KeyMark } from "~/components/key-mark";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
+import { PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
 import { loadRecentSpecs, type SpecCard } from "~/lib/specs.server";
 import type { Route } from "./+types/home";
@@ -17,7 +18,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export function headers(_: Route.HeadersArgs) {
-  return { "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=86400" };
+  return PAGE_HEADERS;
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {

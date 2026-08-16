@@ -1,22 +1,19 @@
 import type { MarkdownHeading } from "@openspecs/markdown";
-import { parsePubkey, specPath, toNpub } from "@openspecs/nostr";
-import { data, isRouteErrorResponse, Link, redirect } from "react-router";
+import { parsePubkey, resolveNip05, specPath, toNpub } from "@openspecs/nostr";
+import { data, redirect } from "react-router";
+import { ErrorPage } from "~/components/error-page";
 import { KeyMark } from "~/components/key-mark";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
+import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
 import { loadSpec, type SpecPage } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
 
-/**
- * A missing document must stay cacheable too: a crawler walking dead links would
- * otherwise put a relay query behind every one of them. Kept short, because the
- * document may be published a minute later.
- */
-const NOT_FOUND_HEADERS = { "Cache-Control": "public, max-age=0, s-maxage=30" };
-
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const pubkey = parsePubkey(params.author);
+  // A NIP-05 address is a name a domain owner can reassign, so it addresses the
+  // document but never names it: it is resolved once, then redirected away from.
+  const pubkey = parsePubkey(params.author) ?? (await resolveNip05(params.author))?.pubkey ?? null;
   if (pubkey === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
 
   // One document, one URL: a hex key or an nprofile addresses the same author.
@@ -31,19 +28,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 }
 
 /**
- * Read by the shared cache in front of the app, not by the browser: a reader
- * coming back to a page should see the revision that is live now, while a crawler
- * hitting a popular document should not cost a relay query.
- *
  * The headers a thrown response carries only reach this point through
  * `errorHeaders`, and only because this route owns its own error boundary.
  */
 export function headers({ errorHeaders }: Route.HeadersArgs) {
-  return (
-    errorHeaders ?? {
-      "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=86400",
-    }
-  );
+  return errorHeaders ?? PAGE_HEADERS;
 }
 
 const asIso = (seconds: number): string => new Date(seconds * 1000).toISOString();
@@ -194,29 +183,5 @@ export default function Spec({ loaderData }: Route.ComponentProps) {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  const missing = isRouteErrorResponse(error) && error.status === 404;
-
-  return (
-    <Shell>
-      <div className="mx-auto max-w-5xl px-6 py-24">
-        <p className="font-mono text-xs tracking-wide text-muted">
-          {isRouteErrorResponse(error) ? error.status : "error"}
-        </p>
-        <h1 className="mt-4 font-mono text-3xl font-medium tracking-tight">
-          {missing ? "No document at this address" : "The relays did not answer"}
-        </h1>
-        <p className="mt-4 max-w-xl font-serif text-lg leading-relaxed text-muted">
-          {missing
-            ? "Nothing signed under this key carries this identifier. It may have never been published, or it may live on a relay this server does not read."
-            : "This page is built from relays, and they could not be reached. Reloading in a moment usually works."}
-        </p>
-        <Link
-          to="/"
-          className="mt-8 inline-block font-mono text-xs uppercase tracking-[0.16em] underline underline-offset-4"
-        >
-          Back to Open Specs
-        </Link>
-      </div>
-    </Shell>
-  );
+  return <ErrorPage error={error} />;
 }
