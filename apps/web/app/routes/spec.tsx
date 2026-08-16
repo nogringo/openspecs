@@ -8,6 +8,8 @@ import { SpecTags } from "~/components/spec-tags";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
 import { oembedPath, ogImagePath } from "~/lib/paths";
+import type { LinkPreview } from "~/lib/preview";
+import { loadLinkPreviews } from "~/lib/preview.server";
 import { loadSpec, type SpecPage } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
 
@@ -28,6 +30,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const origin = publicOrigin(request);
   return {
     spec,
+    previews: await loadLinkPreviews(spec.links),
     origin,
     canonical: `${origin}${path}`,
     ogImage: `${origin}${ogImagePath(toNpub(pubkey), spec.identifier)}`,
@@ -173,8 +176,39 @@ const Masthead = ({ spec }: { spec: SpecPage }) => (
   </header>
 );
 
+const CitedLinks = ({ previews }: { previews: LinkPreview[] }) => (
+  <section className="mt-16 border-t border-rule pt-8">
+    <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">
+      Cited links
+    </h2>
+    <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+      {previews.map((preview) => (
+        <li key={preview.url}>
+          <a
+            href={preview.url}
+            rel="nofollow noopener noreferrer"
+            className="group block h-full rounded-sm border border-rule p-4 hover:border-muted"
+          >
+            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">
+              {preview.host}
+            </p>
+            <p className="mt-2 line-clamp-2 font-mono text-sm leading-snug group-hover:underline">
+              {preview.title}
+            </p>
+            {preview.description !== "" && (
+              <p className="mt-2 line-clamp-3 font-serif text-sm leading-snug text-muted">
+                {preview.description}
+              </p>
+            )}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+);
+
 export default function Spec({ loaderData }: Route.ComponentProps) {
-  const { spec } = loaderData;
+  const { spec, previews } = loaderData;
 
   return (
     <Shell>
@@ -183,18 +217,21 @@ export default function Spec({ loaderData }: Route.ComponentProps) {
 
         <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
           <Contents headings={spec.headings} />
-          {spec.isEmpty ? (
-            <p className="max-w-[40rem] font-serif text-lg text-muted">
-              No text yet. Its author published this record without a body.
-            </p>
-          ) : (
-            // Sanitized in the loader, by the same pipeline that produced the markup.
-            <div
-              className="doc max-w-[40rem]"
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: server rendered Markdown
-              dangerouslySetInnerHTML={{ __html: spec.html }}
-            />
-          )}
+          <div className="max-w-[40rem]">
+            {spec.isEmpty ? (
+              <p className="font-serif text-lg text-muted">
+                No text yet. Its author published this record without a body.
+              </p>
+            ) : (
+              // Sanitized in the loader, by the same pipeline that produced the markup.
+              <div
+                className="doc"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: server rendered Markdown
+                dangerouslySetInnerHTML={{ __html: spec.html }}
+              />
+            )}
+            {previews.length > 0 && <CitedLinks previews={previews} />}
+          </div>
         </div>
       </article>
     </Shell>

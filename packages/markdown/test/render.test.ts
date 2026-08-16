@@ -111,6 +111,25 @@ describe("links and images", () => {
   });
 });
 
+describe("cited links", () => {
+  it("reports the addresses a reader could follow, in reading order", () => {
+    const { links } = renderMarkdown("[b](https://b.example) then [a](http://a.example/x)");
+    expect(links).toEqual(["https://b.example", "http://a.example/x"]);
+  });
+
+  it("counts one address once, however often it is cited", () => {
+    const { links } = renderMarkdown("[a](https://a.example) [again](https://a.example)");
+    expect(links).toEqual(["https://a.example"]);
+  });
+
+  it("leaves out what points nowhere outside the document", () => {
+    const { links } = renderMarkdown(
+      "[anchor](#motivation) [mail](mailto:a@b.example) [bad](javascript:alert(1))\n\nText[^1].\n\n[^1]: Note.",
+    );
+    expect(links).toEqual([]);
+  });
+});
+
 it("renders an empty document to nothing", () => {
-  expect(renderMarkdown("")).toEqual({ html: "", headings: [] });
+  expect(renderMarkdown("")).toEqual({ html: "", headings: [], links: [] });
 });

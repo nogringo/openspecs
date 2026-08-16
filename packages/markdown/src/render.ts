@@ -19,6 +19,8 @@ export type MarkdownHeading = {
 export type RenderedMarkdown = {
   html: string;
   headings: MarkdownHeading[];
+  /** Every http address the document points at, once each, in reading order. */
+  links: string[];
 };
 
 export type RenderOptions = {
@@ -80,6 +82,18 @@ const hardenLinks = () => (tree: Root) => {
   });
 };
 
+/**
+ * Only the links a reader could follow: the same address written twice is one
+ * citation, and an anchor into the document itself cites nothing.
+ */
+const collectLinks = (links: Set<string>) => (tree: Root) => {
+  visit(tree, "element", (node: Element) => {
+    if (node.tagName !== "a") return;
+    const href = String(node.properties.href ?? "");
+    if (/^https?:\/\//i.test(href)) links.add(href);
+  });
+};
+
 const collectHeadings = (headings: MarkdownHeading[]) => (tree: Root) => {
   visit(tree, "element", (node: Element) => {
     // The footnote label is generated, not written, and belongs to no section.
@@ -105,6 +119,7 @@ const schema = { ...defaultSchema, clobberPrefix: "" };
  */
 export const renderMarkdown = (content: string, options: RenderOptions = {}): RenderedMarkdown => {
   const headings: MarkdownHeading[] = [];
+  const links = new Set<string>();
   const html = unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -113,10 +128,11 @@ export const renderMarkdown = (content: string, options: RenderOptions = {}): Re
     .use(restructureHeadings, options)
     .use(rehypeSlug)
     .use(collectHeadings, headings)
+    .use(collectLinks, links)
     .use(hardenLinks)
     .use(rehypeStringify)
     .processSync(content)
     .toString();
 
-  return { html, headings };
+  return { html, headings, links: [...links] };
 };

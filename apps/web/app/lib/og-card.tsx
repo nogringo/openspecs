@@ -22,7 +22,7 @@ const MUTED = "#5c6270";
 const RULE = "#e4e3dd";
 
 const clamp = (text: string, max: number): string =>
-  text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}...`;
+  text.length <= max ? text : `${text.slice(0, max - 3).trimEnd()}...`;
 
 const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString().slice(0, 10);
 

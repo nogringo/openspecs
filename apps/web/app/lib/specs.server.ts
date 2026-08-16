@@ -36,6 +36,7 @@ export type SpecPage = {
   isEmpty: boolean;
   html: string;
   headings: MarkdownHeading[];
+  links: string[];
 };
 
 /**
@@ -45,7 +46,7 @@ export type SpecPage = {
  * payload of every page for no reader.
  */
 const toPage = (spec: Spec): SpecPage => {
-  const { html, headings } = renderMarkdown(spec.content, { title: spec.title });
+  const { html, headings, links } = renderMarkdown(spec.content, { title: spec.title });
   return {
     kind: spec.event.kind,
     title: spec.title,
@@ -63,6 +64,7 @@ const toPage = (spec: Spec): SpecPage => {
     isEmpty: spec.isEmpty,
     html,
     headings,
+    links,
   };
 };
 
