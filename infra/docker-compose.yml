@@ -5,6 +5,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      OPENSPECS_PUBLIC_URL: ${OPENSPECS_PUBLIC_URL:-}
     # Bound to loopback by default: this service has no TLS and no auth, so it
     # expects something in front of it. Set OPENSPECS_BIND to 0.0.0.0:3000 to
     # publish it, or drop the binding entirely and attach your proxy's network.

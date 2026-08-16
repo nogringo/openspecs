@@ -29,8 +29,8 @@ ours.
 - [x] Spec detail route: server loader querying relays, in memory LRU, `headers` with
       `s-maxage` and `stale-while-revalidate`
 - [x] Server side Markdown rendering (remark, rehype, rehype-sanitize)
-- [ ] `meta` export: title, description, canonical, OpenGraph, Twitter card
-- [ ] JSON-LD `TechArticle`
+- [x] `meta` export: title, description, canonical, OpenGraph, Twitter card
+- [x] JSON-LD `TechArticle`
 - [ ] Listing and home routes
 - [ ] npub canonical URLs, with NIP-05 and NIP-19 aliases redirecting 301
 

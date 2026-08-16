@@ -2,6 +2,7 @@ import type { MarkdownHeading } from "@openspecs/markdown";
 import { parsePubkey, specPath, toNpub } from "@openspecs/nostr";
 import { data, isRouteErrorResponse, Link, redirect } from "react-router";
 import { KeyMark } from "~/components/key-mark";
+import { publicOrigin } from "~/lib/origin.server";
 import { loadSpec, type SpecPage } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
 
@@ -12,18 +13,19 @@ import type { Route } from "./+types/spec";
  */
 const NOT_FOUND_HEADERS = { "Cache-Control": "public, max-age=0, s-maxage=30" };
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const pubkey = parsePubkey(params.author);
   if (pubkey === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
 
   // One document, one URL: a hex key or an nprofile addresses the same author.
-  if (params.author !== toNpub(pubkey)) {
-    throw redirect(specPath({ pubkey, identifier: params.identifier }), 301);
-  }
+  const path = specPath({ pubkey, identifier: params.identifier });
+  if (params.author !== toNpub(pubkey)) throw redirect(path, 301);
 
   const spec = await loadSpec(pubkey, params.identifier);
   if (spec === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
-  return spec;
+  // Built per request rather than cached with the document: one document can be
+  // served under more than one origin, and only this one is canonical.
+  return { spec, canonical: `${publicOrigin(request)}${path}` };
 }
 
 /**
@@ -42,11 +44,52 @@ export function headers({ errorHeaders }: Route.HeadersArgs) {
   );
 }
 
+const asIso = (seconds: number): string => new Date(seconds * 1000).toISOString();
+
+/**
+ * No `publisher`, and no `og:image` until the images of lot 3 exist. This site
+ * does not publish these documents, their authors do, and claiming otherwise in
+ * structured data would be the one lie the whole design is built to avoid.
+ */
 export function meta({ loaderData }: Route.MetaArgs) {
-  if (!loaderData) return [{ title: "Not found" }];
+  if (!loaderData)
+    return [{ title: "Not found | Open Specs" }, { name: "robots", content: "noindex" }];
+
+  const { spec, canonical } = loaderData;
+  const title = `${spec.title} | Open Specs`;
+
   return [
-    { title: `${loaderData.title} | Open Specs` },
-    { name: "description", content: loaderData.summary },
+    { title },
+    { name: "description", content: spec.summary },
+    { tagName: "link", rel: "canonical", href: canonical },
+
+    { property: "og:type", content: "article" },
+    { property: "og:site_name", content: "Open Specs" },
+    { property: "og:title", content: spec.title },
+    { property: "og:description", content: spec.summary },
+    { property: "og:url", content: canonical },
+    { property: "article:published_time", content: asIso(spec.publishedAt) },
+    { property: "article:modified_time", content: asIso(spec.revisedAt) },
+    ...spec.topics.map((topic) => ({ property: "article:tag", content: topic })),
+
+    { name: "twitter:card", content: "summary" },
+    { name: "twitter:title", content: spec.title },
+    { name: "twitter:description", content: spec.summary },
+
+    {
+      "script:ld+json": {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        headline: spec.title,
+        description: spec.summary,
+        url: canonical,
+        mainEntityOfPage: canonical,
+        datePublished: asIso(spec.publishedAt),
+        dateModified: asIso(spec.revisedAt),
+        author: { "@type": "Person", name: spec.npub, identifier: `nostr:${spec.npub}` },
+        ...(spec.topics.length > 0 && { keywords: spec.topics.join(", ") }),
+      },
+    },
   ];
 }
 
@@ -174,7 +217,7 @@ const Shell = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function Spec({ loaderData }: Route.ComponentProps) {
-  const spec = loaderData;
+  const { spec } = loaderData;
 
   return (
     <Shell>
