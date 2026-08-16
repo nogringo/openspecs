@@ -1,6 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { createLoadCache } from "./cache.server";
+import { createLoadCache, withDeadline } from "./cache.server";
 import { isPrivateAddress } from "./net";
 import { type LinkPreview, parsePreview } from "./preview";
 
@@ -106,24 +106,12 @@ export const loadLinkPreview = (url: string): Promise<LinkPreview | null> =>
   cache.get(url, () => fetchPage(url).catch(() => null));
 
 const SHOWN = 6;
-/**
- * How long a page waits on hosts it does not control. The fetch it started keeps
- * going and fills the cache, so a link missing its card here has one on the next
- * request, and the reader never waits on a slow third party twice.
- */
+/** How long a page waits on hosts it does not control. */
 const DEADLINE_MS = 1000;
-
-const withDeadline = <T>(work: Promise<T>, fallback: T): Promise<T> =>
-  Promise.race([
-    work,
-    new Promise<T>((resolve) => {
-      setTimeout(() => resolve(fallback), DEADLINE_MS).unref();
-    }),
-  ]);
 
 export const loadLinkPreviews = async (urls: string[]): Promise<LinkPreview[]> => {
   const previews = await Promise.all(
-    urls.slice(0, SHOWN).map((url) => withDeadline(loadLinkPreview(url), null)),
+    urls.slice(0, SHOWN).map((url) => withDeadline(loadLinkPreview(url), null, DEADLINE_MS)),
   );
   return previews.filter((preview): preview is LinkPreview => preview !== null);
 };

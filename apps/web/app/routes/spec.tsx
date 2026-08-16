@@ -1,9 +1,9 @@
 import type { MarkdownHeading } from "@openspecs/markdown";
 import { parsePubkey, resolveNip05, specPath, toNpub } from "@openspecs/nostr";
 import { data, redirect } from "react-router";
+import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
 import { ErrorPage } from "~/components/error-page";
-import { KeyMark } from "~/components/key-mark";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
@@ -12,6 +12,8 @@ import { publicOrigin } from "~/lib/origin.server";
 import { eventPath, oembedPath, ogImagePath } from "~/lib/paths";
 import type { LinkPreview } from "~/lib/preview";
 import { loadLinkPreviews } from "~/lib/preview.server";
+import type { Author } from "~/lib/profile";
+import { loadAuthor } from "~/lib/profile.server";
 import { rebroadcastRelays } from "~/lib/relays.server";
 import { loadSpec, type SpecPage } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
@@ -32,10 +34,16 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   // served under more than one origin, and only this one is canonical.
   const origin = publicOrigin(request);
   const spec = cached.page;
+  const [relays, previews, author] = await Promise.all([
+    rebroadcastRelays(pubkey),
+    loadLinkPreviews(spec.links),
+    loadAuthor(pubkey),
+  ]);
   return {
     spec,
-    relays: await rebroadcastRelays(pubkey),
-    previews: await loadLinkPreviews(spec.links),
+    relays,
+    previews,
+    author,
     origin,
     canonical: `${origin}${path}`,
     ogImage: `${origin}${ogImagePath(toNpub(pubkey), spec.identifier)}`,
@@ -61,7 +69,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData)
     return [{ title: "Not found | Open Specs" }, { name: "robots", content: "noindex" }];
 
-  const { spec, canonical, ogImage, origin } = loaderData;
+  const { spec, author, canonical, ogImage, origin } = loaderData;
   const title = `${spec.title} | Open Specs`;
 
   return [
@@ -104,7 +112,14 @@ export function meta({ loaderData }: Route.MetaArgs) {
         mainEntityOfPage: canonical,
         datePublished: asIso(spec.publishedAt),
         dateModified: asIso(spec.revisedAt),
-        author: { "@type": "Person", name: spec.npub, identifier: `nostr:${spec.npub}` },
+        // The key stays the identifier whatever the author calls themselves today.
+        author: {
+          "@type": "Person",
+          name: author?.name || spec.npub,
+          ...(author?.name && { alternateName: spec.npub }),
+          ...(author?.picture && { image: author.picture }),
+          identifier: `nostr:${spec.npub}`,
+        },
         ...(spec.topics.length > 0 && { keywords: spec.topics.join(", ") }),
       },
     },
@@ -152,10 +167,12 @@ const Contents = ({ headings }: { headings: MarkdownHeading[] }) => (
 
 const Masthead = ({
   spec,
+  author,
   canonical,
   relays,
 }: {
   spec: SpecPage;
+  author: Author | null;
   canonical: string;
   relays: string[];
 }) => (
@@ -176,22 +193,30 @@ const Masthead = ({
     </div>
 
     <div className="mt-8 inline-flex max-w-full items-start gap-4 rounded-sm border border-rule px-4 py-3.5">
-      <KeyMark pubkey={spec.pubkey} />
-      <dl className="min-w-0 space-y-1 font-mono text-xs">
-        <Field label="signed by">{shorten(spec.npub, 10, 6)}</Field>
-        <Field label="published">{asDate(spec.publishedAt)}</Field>
-        {spec.revisedAt > spec.publishedAt && (
-          <Field label="revised">{asDate(spec.revisedAt)}</Field>
+      <AuthorAvatar pubkey={spec.pubkey} picture={author?.picture ?? null} />
+      <div className="min-w-0">
+        {/* A name is what a key says about itself, so the key it belongs to stays under it. */}
+        {author !== null && author.name !== "" && (
+          <p title={author.name} className="mb-1.5 truncate font-mono text-sm font-medium">
+            {author.name}
+          </p>
         )}
-        <Field label="event">
-          <a
-            href={eventPath(spec.npub, spec.identifier)}
-            className="underline decoration-rule underline-offset-2 hover:decoration-current"
-          >
-            {shorten(spec.eventId, 10, 4)}
-          </a>
-        </Field>
-      </dl>
+        <dl className="min-w-0 space-y-1 font-mono text-xs">
+          <Field label="signed by">{shorten(spec.npub, 10, 6)}</Field>
+          <Field label="published">{asDate(spec.publishedAt)}</Field>
+          {spec.revisedAt > spec.publishedAt && (
+            <Field label="revised">{asDate(spec.revisedAt)}</Field>
+          )}
+          <Field label="event">
+            <a
+              href={eventPath(spec.npub, spec.identifier)}
+              className="underline decoration-rule underline-offset-2 hover:decoration-current"
+            >
+              {shorten(spec.eventId, 10, 4)}
+            </a>
+          </Field>
+        </dl>
+      </div>
     </div>
 
     <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
@@ -243,12 +268,12 @@ const CitedLinks = ({ previews }: { previews: LinkPreview[] }) => (
 );
 
 export default function Spec({ loaderData }: Route.ComponentProps) {
-  const { spec, previews, canonical, relays } = loaderData;
+  const { spec, author, previews, canonical, relays } = loaderData;
 
   return (
     <Shell>
       <article className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
-        <Masthead spec={spec} canonical={canonical} relays={relays} />
+        <Masthead spec={spec} author={author} canonical={canonical} relays={relays} />
 
         <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
           <Contents headings={spec.headings} />

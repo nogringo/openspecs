@@ -1,17 +1,24 @@
 import { Link } from "react-router";
+import type { Author } from "~/lib/profile";
 import type { SpecCard } from "~/lib/specs.server";
+import { AuthorAvatar } from "./author-avatar";
 import { Highlight } from "./highlight";
-import { KeyMark } from "./key-mark";
 import { SpecTags } from "./spec-tags";
 
 const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString().slice(0, 10);
 
 export const SpecRow = ({
   spec,
+  author,
   excerpt,
   terms,
 }: {
   spec: SpecCard;
+  /**
+   * Only the picture is taken: a name arriving after the row would push the rest
+   * of it down, and a list that jumps under the eye is worse than a list of marks.
+   */
+  author?: Author | null;
   /** What a search found in the body, shown in place of the summary. */
   excerpt?: string;
   terms?: string[];
@@ -23,7 +30,7 @@ export const SpecRow = ({
       <Link to={spec.path} className="group block py-6">
         <div className="flex gap-4">
           <span className="mt-1 shrink-0">
-            <KeyMark pubkey={spec.pubkey} size={28} />
+            <AuthorAvatar pubkey={spec.pubkey} picture={author?.picture ?? null} size={28} />
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-4">

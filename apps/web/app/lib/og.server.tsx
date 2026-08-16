@@ -6,6 +6,7 @@ import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import satori from "satori";
 import { createLoadCache } from "./cache.server";
 import { CARD_VERSION, OG_HEIGHT, OG_WIDTH, OgCard } from "./og-card";
+import type { Author } from "./profile";
 import type { SpecPage } from "./specs.server";
 
 const require = createRequire(import.meta.url);
@@ -52,9 +53,9 @@ const ready = () => {
   return Promise.all([fonts, renderer]);
 };
 
-const draw = async (spec: SpecPage): Promise<Uint8Array> => {
+const draw = async (spec: SpecPage, author: Author | null): Promise<Uint8Array> => {
   const [loaded] = await ready();
-  const svg = await satori(<OgCard spec={spec} />, {
+  const svg = await satori(<OgCard spec={spec} author={author} />, {
     width: OG_WIDTH,
     height: OG_HEIGHT,
     fonts: loaded,
@@ -71,14 +72,21 @@ const memory = createLoadCache<Uint8Array>({ max: 32, ttlMs: 24 * 60 * 60 * 1000
  * Disk survives a restart, memory collapses the concurrent requests a freshly
  * unfurled link produces. A write that fails is not an error worth failing the
  * request over: the image was already drawn, and the next request redraws it.
+ *
+ * The profile's revision is part of the name: the card is cached for a week, and
+ * an author who renamed themselves would otherwise keep the old one all of it.
  */
-export const ogImage = (spec: SpecPage): Promise<Uint8Array> =>
-  memory.get(`${CARD_VERSION}:${spec.eventId}`, async () => {
-    const file = join(CACHE_DIR, `v${CARD_VERSION}`, `${spec.eventId}.png`);
+export const ogImage = (spec: SpecPage, author: Author | null): Promise<Uint8Array> =>
+  memory.get(`${CARD_VERSION}:${spec.eventId}:${author?.updatedAt ?? 0}`, async () => {
+    const file = join(
+      CACHE_DIR,
+      `v${CARD_VERSION}`,
+      `${spec.eventId}-${author?.updatedAt ?? 0}.png`,
+    );
     const cached = await readFile(file).catch(() => null);
     if (cached !== null) return cached;
 
-    const png = await draw(spec);
+    const png = await draw(spec, author);
     // Renamed into place, so a half written file is never served to a crawler.
     const pending = `${file}.${process.pid}.tmp`;
     await mkdir(dirname(file), { recursive: true })

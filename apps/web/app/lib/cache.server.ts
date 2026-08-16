@@ -1,3 +1,16 @@
+/**
+ * How long a page waits on something it does not control. The work it started
+ * keeps going and fills the cache, so what is missing here is there on the next
+ * request, and the reader never waits on the same slow third party twice.
+ */
+export const withDeadline = <T>(work: Promise<T>, fallback: T, ms: number): Promise<T> =>
+  Promise.race([
+    work,
+    new Promise<T>((resolve) => {
+      setTimeout(() => resolve(fallback), ms).unref();
+    }),
+  ]);
+
 export type LoadCacheOptions<T> = {
   /** Entries kept before the least recently used one is dropped. */
   max: number;

@@ -1,5 +1,6 @@
 import { oklchToHex } from "./color";
 import { keyMarkCells, keyMarkHue } from "./key-mark";
+import type { Author } from "./profile";
 import type { SpecPage } from "./specs.server";
 
 export const OG_WIDTH = 1200;
@@ -10,7 +11,7 @@ export const OG_HEIGHT = 630;
  * describes, but it depends just as much on the drawing: without this, a palette
  * or a layout fixed today would keep serving yesterday's picture forever.
  */
-export const CARD_VERSION = 2;
+export const CARD_VERSION = 3;
 
 /**
  * The light palette of app.css, written out: this tree is rendered by satori,
@@ -27,6 +28,15 @@ const clamp = (text: string, max: number): string =>
 const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString().slice(0, 10);
 
 const shortNpub = (npub: string): string => `${npub.slice(0, 12)}...${npub.slice(-6)}`;
+
+/**
+ * Only the latin subset of the font is loaded, so a name written in anything
+ * else would be drawn as a row of boxes. Better to fall back to the key.
+ */
+const drawable = (name: string): string => {
+  const kept = name.replace(/[^\p{Script=Latin}\p{N}\p{P}\p{Zs}]/gu, "").trim();
+  return kept.length >= 2 ? clamp(kept, 28) : "";
+};
 
 const Mark = ({ pubkey, cell = 12 }: { pubkey: string; cell?: number }) => {
   // The light theme of the mark, since the card is always drawn on paper.
@@ -53,12 +63,23 @@ const Mark = ({ pubkey, cell = 12 }: { pubkey: string; cell?: number }) => {
   );
 };
 
+/** No picture: satori fetches a remote one itself, with no timeout this code can hold it to. */
+const Signature = ({ spec, author }: { spec: SpecPage; author: Author | null }) => {
+  const name = drawable(author?.name ?? "");
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {name !== "" && <div style={{ display: "flex", color: INK }}>{name}</div>}
+      <div style={{ display: "flex" }}>{shortNpub(spec.npub)}</div>
+    </div>
+  );
+};
+
 /**
  * One card, one document. Everything on it is read off the event, so an unfurled
  * link says the same things the page does: what the document is, who signed it,
  * and when.
  */
-export const OgCard = ({ spec }: { spec: SpecPage }) => (
+export const OgCard = ({ spec, author }: { spec: SpecPage; author: Author | null }) => (
   <div
     style={{
       width: OG_WIDTH,
@@ -131,7 +152,7 @@ export const OgCard = ({ spec }: { spec: SpecPage }) => (
       }}
     >
       <Mark pubkey={spec.pubkey} />
-      <div style={{ display: "flex" }}>{shortNpub(spec.npub)}</div>
+      <Signature spec={spec} author={author} />
       <div style={{ display: "flex", flexGrow: 1 }} />
       <div style={{ display: "flex" }}>{asDate(spec.publishedAt)}</div>
     </div>

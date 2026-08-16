@@ -46,6 +46,16 @@ export {
   relaySet,
 } from "./pool";
 export {
+  clearProfileCache,
+  fetchProfile,
+  fetchProfiles,
+  PROFILE_KIND,
+  type Profile,
+  type ProfileOptions,
+  parseProfile,
+  selectProfiles,
+} from "./profile";
+export {
   DEFAULT_RELAYS,
   type FetchOptions,
   fetchSpec,

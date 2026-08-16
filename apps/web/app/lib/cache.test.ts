@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createLoadCache } from "./cache.server";
+import { createLoadCache, withDeadline } from "./cache.server";
 
 const cacheOf = <T>(options?: Partial<Parameters<typeof createLoadCache<T>>[0]>) =>
   createLoadCache<T>({ max: 3, ttlMs: 1000, ...options });
@@ -62,5 +62,31 @@ describe("createLoadCache", () => {
     const kept = vi.fn(load("a"));
     await cache.get("a", kept, 0);
     expect(kept).not.toHaveBeenCalled();
+  });
+});
+
+describe("withDeadline", () => {
+  it("returns the value when the work answers in time", async () => {
+    await expect(withDeadline(Promise.resolve("a"), null, 50)).resolves.toBe("a");
+  });
+
+  it("returns the fallback when it does not", async () => {
+    const slow = new Promise<string>((resolve) => {
+      setTimeout(() => resolve("a"), 100);
+    });
+    await expect(withDeadline(slow, null, 1)).resolves.toBeNull();
+  });
+
+  it("does not reject when the work fails after the deadline", async () => {
+    const failing = new Promise<string>((_, reject) => {
+      setTimeout(() => reject(new Error("relay down")), 5);
+    });
+    await expect(
+      withDeadline(
+        failing.catch(() => null),
+        null,
+        1,
+      ),
+    ).resolves.toBeNull();
   });
 });

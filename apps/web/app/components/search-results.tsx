@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { corpusState, serverCorpusState, startCorpus, subscribeCorpus } from "~/lib/corpus";
+import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import { searchDocs, searchTerms } from "~/lib/search";
 import { SpecRow } from "./spec-row";
 
@@ -40,6 +41,12 @@ export const SearchResults = ({
   const hits = useMemo(() => searchDocs(scoped, query, LIMIT), [scoped, query]);
   const terms = useMemo(() => searchTerms(query), [query]);
 
+  // Only the authors a reader ended up in front of: the corpus holds far more.
+  const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
+  useEffect(() => {
+    wantAuthors(hits.map((hit) => hit.doc.pubkey));
+  }, [hits]);
+
   const walking = status === "idle" || status === "loading" || status === "syncing";
   const count = walking
     ? `${plural(hits.length, "result")} so far, ${read} read`
@@ -73,7 +80,13 @@ export const SearchResults = ({
       ) : (
         <ul className="mt-6">
           {hits.map((hit) => (
-            <SpecRow key={hit.doc.path} spec={hit.doc} excerpt={hit.excerpt} terms={terms} />
+            <SpecRow
+              key={hit.doc.path}
+              spec={hit.doc}
+              author={authors[hit.doc.pubkey] ?? null}
+              excerpt={hit.excerpt}
+              terms={terms}
+            />
           ))}
         </ul>
       )}

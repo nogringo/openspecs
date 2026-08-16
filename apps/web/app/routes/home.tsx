@@ -5,6 +5,7 @@ import { SpecRow } from "~/components/spec-row";
 import { PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
 import { atomPath, feedTitle, rssPath, specsPath } from "~/lib/paths";
+import { loadAuthors } from "~/lib/profile.server";
 import { loadSpecs } from "~/lib/specs.server";
 import type { Route } from "./+types/home";
 
@@ -16,7 +17,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   // failed load is evicted from the cache, so the next request tries again.
   const specs = await loadSpecs().catch(() => []);
   const origin = publicOrigin(request);
-  return { specs, origin, canonical: `${origin}/` };
+  return {
+    specs,
+    authors: await loadAuthors(specs.map((spec) => spec.pubkey)),
+    origin,
+    canonical: `${origin}/`,
+  };
 }
 
 export function headers(_: Route.HeadersArgs) {
@@ -58,7 +64,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { specs } = loaderData;
+  const { specs, authors } = loaderData;
 
   return (
     <Shell search={false}>
@@ -96,7 +102,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           ) : (
             <ul className="mt-6">
               {specs.map((spec) => (
-                <SpecRow key={spec.path} spec={spec} />
+                <SpecRow key={spec.path} spec={spec} author={authors[spec.pubkey] ?? null} />
               ))}
             </ul>
           )}

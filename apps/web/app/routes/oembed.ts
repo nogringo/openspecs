@@ -5,6 +5,7 @@ import { parseSpecUrl } from "~/lib/oembed";
 import { OG_HEIGHT, OG_WIDTH } from "~/lib/og-card";
 import { publicOrigin } from "~/lib/origin.server";
 import { ogImagePath } from "~/lib/paths";
+import { loadAuthor } from "~/lib/profile.server";
 import { loadSpec } from "~/lib/specs.server";
 import type { Route } from "./+types/oembed";
 
@@ -28,7 +29,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
   }
 
-  const cached = await loadSpec(pubkey, target.identifier);
+  const [cached, author] = await Promise.all([
+    loadSpec(pubkey, target.identifier),
+    loadAuthor(pubkey),
+  ]);
   if (cached === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
 
   return Response.json(
@@ -36,7 +40,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       version: "1.0",
       type: "link",
       title: cached.page.title,
-      author_name: cached.page.npub,
+      author_name: author?.name || cached.page.npub,
       provider_name: "Open Specs",
       provider_url: `${origin}/`,
       thumbnail_url: `${origin}${ogImagePath(cached.page.npub, cached.page.identifier)}`,

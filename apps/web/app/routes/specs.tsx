@@ -14,6 +14,7 @@ import {
   rssPath,
   specsPath,
 } from "~/lib/paths";
+import { loadAuthors } from "~/lib/profile.server";
 import { loadSpecs } from "~/lib/specs.server";
 import { topicsByFrequency } from "~/lib/topics";
 import type { Route } from "./+types/specs";
@@ -37,6 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return {
     specs,
+    authors: await loadAuthors(specs.map((spec) => spec.pubkey)),
     // Counted over the unfiltered listing: under a filter it would only ever
     // offer the filter already applied.
     topics: topicsByFrequency(all, TOPICS_SHOWN),
@@ -125,7 +127,7 @@ const Chip = ({ to, active, children }: { to: string; active: boolean; children:
 );
 
 export default function Specs({ loaderData }: Route.ComponentProps) {
-  const { specs, topics, topic, kind, query, filtered } = loaderData;
+  const { specs, authors, topics, topic, kind, query, filtered } = loaderData;
 
   return (
     <Shell query={query ?? undefined}>
@@ -181,7 +183,7 @@ export default function Specs({ loaderData }: Route.ComponentProps) {
         ) : (
           <ul className="mt-10">
             {specs.map((spec) => (
-              <SpecRow key={spec.path} spec={spec} />
+              <SpecRow key={spec.path} spec={spec} author={authors[spec.pubkey] ?? null} />
             ))}
           </ul>
         )}
