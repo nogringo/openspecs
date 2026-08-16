@@ -30,20 +30,20 @@ describe("sanitization", () => {
 describe("headings", () => {
   it("shifts every heading down one level, so the page keeps a single h1", () => {
     const out = html("# Title\n\n## Section\n\n### Detail");
-    expect(out).toContain('<h2 id="title">Title</h2>');
-    expect(out).toContain('<h3 id="section">Section</h3>');
-    expect(out).toContain('<h4 id="detail">Detail</h4>');
+    expect(out).toContain('<h2 id="title">Title<');
+    expect(out).toContain('<h3 id="section">Section<');
+    expect(out).toContain('<h4 id="detail">Detail<');
   });
 
   it("keeps the levels as written once the repeated title is dropped", () => {
     const out = html("# NIP-XX\n\n## Motivation", { title: "NIP-XX" });
     expect(out).not.toContain("NIP-XX");
-    expect(out).toContain('<h2 id="motivation">Motivation</h2>');
+    expect(out).toContain('<h2 id="motivation">Motivation<');
   });
 
   it("keeps a leading heading that is not the title", () => {
     const out = html("# Abstract\n\nBody.", { title: "NIP-XX" });
-    expect(out).toContain('<h2 id="abstract">Abstract</h2>');
+    expect(out).toContain('<h2 id="abstract">Abstract<');
   });
 
   it("only drops the repeated title when it opens the document", () => {
@@ -52,7 +52,23 @@ describe("headings", () => {
   });
 
   it("never shifts past h6", () => {
-    expect(html("###### Deep")).toContain('<h6 id="deep">Deep</h6>');
+    expect(html("###### Deep")).toContain('<h6 id="deep">Deep<');
+  });
+
+  it("gives every heading a permalink back to itself", () => {
+    expect(html("## Section", { headingOffset: 0 })).toContain(
+      '<h2 id="section">Section<a class="heading-anchor" aria-label="Link to Section" href="#section"><span aria-hidden="true">#</span></a></h2>',
+    );
+  });
+
+  it("keeps the permalink sign out of the reported heading text", () => {
+    const { headings } = renderMarkdown("## Section", { headingOffset: 0 });
+    expect(headings).toEqual([{ id: "section", depth: 2, text: "Section" }]);
+  });
+
+  it("leaves the generated footnote label without a permalink", () => {
+    const out = html("Text[^1].\n\n[^1]: Note.");
+    expect(out).not.toContain("heading-anchor");
   });
 
   it("honours an explicit offset", () => {

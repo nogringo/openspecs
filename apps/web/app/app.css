@@ -99,6 +99,26 @@ html {
     color: var(--color-muted);
   }
 
+  .doc .heading-anchor {
+    margin-left: 0.4em;
+    color: var(--color-muted);
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+
+  .doc :is(h2, h3, h4, h5, h6):hover .heading-anchor,
+  .doc .heading-anchor:focus-visible {
+    opacity: 1;
+  }
+
+  /* Nothing to hover on a touch screen, so the permalink stays out in the open. */
+  @media (hover: none) {
+    .doc .heading-anchor {
+      opacity: 1;
+    }
+  }
+
   .doc a {
     text-decoration: underline;
     text-decoration-thickness: 1px;

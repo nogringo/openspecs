@@ -1,5 +1,6 @@
 import type { Element, Root } from "hast";
 import { toString as textOf } from "hast-util-to-string";
+import rehypeAutolinkHeadings, { type Options as AutolinkOptions } from "rehype-autolink-headings";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeSlug from "rehype-slug";
 import rehypeStringify from "rehype-stringify";
@@ -105,6 +106,26 @@ const collectHeadings = (headings: MarkdownHeading[]) => (tree: Root) => {
 };
 
 /**
+ * A permalink on every heading a reader can navigate to, so a section can be
+ * cited without going through the table of contents. Linking exactly what was
+ * collected keeps the two ways of reaching a section in step.
+ */
+const linkHeadings = (headings: MarkdownHeading[]): AutolinkOptions => ({
+  behavior: "append",
+  test: (heading) => headings.some(({ id }) => id === heading.properties.id),
+  properties: (heading) => ({
+    className: ["heading-anchor"],
+    ariaLabel: `Link to ${textOf(heading)}`,
+  }),
+  content: {
+    type: "element",
+    tagName: "span",
+    properties: { ariaHidden: "true" },
+    children: [{ type: "text", value: "#" }],
+  },
+});
+
+/**
  * GitHub's schema, minus the `user-content-` prefix it forces on identifiers.
  * Raw HTML never reaches the tree, so the only identifiers to guard against
  * clobbering are the ones this pipeline generates itself, and prefixing them
@@ -128,6 +149,8 @@ export const renderMarkdown = (content: string, options: RenderOptions = {}): Re
     .use(restructureHeadings, options)
     .use(rehypeSlug)
     .use(collectHeadings, headings)
+    // After the collection, or the permalink sign would read as heading text.
+    .use(rehypeAutolinkHeadings, linkHeadings(headings))
     .use(collectLinks, links)
     .use(hardenLinks)
     .use(rehypeStringify)
