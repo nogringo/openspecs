@@ -1,6 +1,13 @@
 import type { MarkdownHeading } from "@openspecs/markdown";
 import { renderMarkdown } from "@openspecs/markdown";
-import { fetchSpec, type Spec, type SpecKindRef, toNpub } from "@openspecs/nostr";
+import {
+  fetchSpec,
+  fetchSpecs,
+  type Spec,
+  type SpecKindRef,
+  specPath,
+  toNpub,
+} from "@openspecs/nostr";
 import { createLoadCache } from "./cache.server";
 
 /**
@@ -69,4 +76,45 @@ export const loadSpec = (pubkey: string, identifier: string): Promise<SpecPage |
   cache.get(`${pubkey}:${identifier}`, async () => {
     const spec = await fetchSpec({ pubkey, identifier });
     return spec === null ? null : toPage(spec);
+  });
+
+export type SpecCard = {
+  path: string;
+  title: string;
+  summary: string;
+  pubkey: string;
+  identifier: string;
+  status: string | null;
+  kinds: SpecKindRef[];
+  topics: string[];
+  publishedAt: number;
+};
+
+const toCard = (spec: Spec): SpecCard => ({
+  path: specPath(spec),
+  title: spec.title,
+  summary: spec.summary,
+  pubkey: spec.pubkey,
+  identifier: spec.identifier,
+  status: spec.status,
+  kinds: spec.kinds,
+  topics: spec.topics,
+  publishedAt: spec.publishedAt,
+});
+
+const recent = createLoadCache<SpecCard[]>({ max: 4, ttlMs: FRESH_MS });
+
+/**
+ * A blank document parses, because its author may simply not have written it
+ * yet, but nothing worth reading is behind it. Listings are where that line is
+ * drawn, so twice the documents are asked for and the empty ones dropped,
+ * rather than returning a short page of placeholders.
+ */
+export const loadRecentSpecs = (limit = 30): Promise<SpecCard[]> =>
+  recent.get(`recent:${limit}`, async () => {
+    const specs = await fetchSpecs({ limit: limit * 2 });
+    return specs
+      .filter((spec) => !spec.isEmpty)
+      .slice(0, limit)
+      .map(toCard);
   });

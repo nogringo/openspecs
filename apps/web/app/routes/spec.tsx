@@ -2,6 +2,8 @@ import type { MarkdownHeading } from "@openspecs/markdown";
 import { parsePubkey, specPath, toNpub } from "@openspecs/nostr";
 import { data, isRouteErrorResponse, Link, redirect } from "react-router";
 import { KeyMark } from "~/components/key-mark";
+import { Shell } from "~/components/shell";
+import { SpecTags } from "~/components/spec-tags";
 import { publicOrigin } from "~/lib/origin.server";
 import { loadSpec, type SpecPage } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
@@ -93,23 +95,6 @@ export function meta({ loaderData }: Route.MetaArgs) {
   ];
 }
 
-const STATUS_TONE: Record<string, string> = {
-  draft: "text-signal-open",
-  proposal: "text-signal-open",
-  proposed: "text-signal-open",
-  experimental: "text-signal-open",
-  wip: "text-signal-open",
-  accepted: "text-signal-settled",
-  active: "text-signal-settled",
-  final: "text-signal-settled",
-  stable: "text-signal-settled",
-  deprecated: "text-signal-closed",
-  obsolete: "text-signal-closed",
-  rejected: "text-signal-closed",
-  retired: "text-signal-closed",
-  withdrawn: "text-signal-closed",
-};
-
 const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString().slice(0, 10);
 
 const shorten = (value: string, head: number, tail: number): string =>
@@ -162,28 +147,8 @@ const Masthead = ({ spec }: { spec: SpecPage }) => (
       <p className="mt-4 max-w-2xl font-serif text-lg leading-relaxed text-muted">{spec.summary}</p>
     )}
 
-    <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
-      {spec.status !== null && (
-        <span className={STATUS_TONE[spec.status.toLowerCase()] ?? "text-muted"}>
-          {spec.status}
-        </span>
-      )}
-      {spec.kinds.length > 0 && (
-        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="text-muted">covers</span>
-          {spec.kinds.map((kind) => (
-            <span key={kind.raw}>
-              {kind.raw}
-              {kind.name !== null && <span className="text-muted"> {kind.name}</span>}
-            </span>
-          ))}
-        </span>
-      )}
-      {spec.topics.map((topic) => (
-        <span key={topic} className="text-muted">
-          #{topic}
-        </span>
-      ))}
+    <div className="mt-6">
+      <SpecTags status={spec.status} kinds={spec.kinds} topics={spec.topics} />
     </div>
 
     <div className="mt-8 inline-flex max-w-full items-start gap-4 rounded-sm border border-rule px-4 py-3.5">
@@ -198,22 +163,6 @@ const Masthead = ({ spec }: { spec: SpecPage }) => (
       </dl>
     </div>
   </header>
-);
-
-const Shell = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-dvh bg-paper text-ink">
-    <div className="border-b border-rule">
-      <div className="mx-auto flex max-w-5xl items-baseline justify-between px-6 py-4">
-        <Link to="/" className="font-mono text-xs uppercase tracking-[0.2em]">
-          Open Specs
-        </Link>
-        <p className="hidden font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-muted sm:block">
-          Signed and stored on Nostr
-        </p>
-      </div>
-    </div>
-    {children}
-  </div>
 );
 
 export default function Spec({ loaderData }: Route.ComponentProps) {
