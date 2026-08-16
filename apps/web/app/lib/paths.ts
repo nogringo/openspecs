@@ -28,3 +28,7 @@ export const feedTitle = (query: SpecsQuery = {}): string => {
   if (query.kind !== undefined && query.kind !== "") return `Open Specs, kind ${query.kind}`;
   return "Open Specs";
 };
+
+/** The card an unfurler reads, drawn from the document it addresses. */
+export const ogImagePath = (npub: string, identifier: string): string =>
+  `/og/${npub}/${encodeURIComponent(identifier)}`;

@@ -8,5 +8,6 @@ export default [
   route("rss.xml", "routes/rss.ts"),
   route("atom.xml", "routes/atom.ts"),
   route("spec/:author/:identifier", "routes/spec.tsx"),
+  route("og/:author/:identifier", "routes/og.ts"),
   route(":address", "routes/address.tsx"),
 ] satisfies RouteConfig;

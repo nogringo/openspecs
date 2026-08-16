@@ -41,7 +41,7 @@ to render during SSR, which ships an empty skeleton to crawlers and defeats the 
 
 ## Lot 3, link metadata
 
-- [ ] Dynamic OpenGraph images (satori, resvg) as a resource route, cached on disk
+- [x] Dynamic OpenGraph images (satori, resvg) as a resource route, cached on disk
 - [x] `sitemap.xml` and `robots.txt`
 - [x] RSS and Atom feeds
 - [ ] oEmbed endpoint

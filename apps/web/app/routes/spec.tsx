@@ -7,6 +7,7 @@ import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
+import { ogImagePath } from "~/lib/paths";
 import { loadSpec, type SpecPage } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
 
@@ -24,7 +25,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   if (spec === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
   // Built per request rather than cached with the document: one document can be
   // served under more than one origin, and only this one is canonical.
-  return { spec, canonical: `${publicOrigin(request)}${path}` };
+  const origin = publicOrigin(request);
+  return {
+    spec,
+    canonical: `${origin}${path}`,
+    ogImage: `${origin}${ogImagePath(toNpub(pubkey), spec.identifier)}`,
+  };
 }
 
 /**
@@ -46,7 +52,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData)
     return [{ title: "Not found | Open Specs" }, { name: "robots", content: "noindex" }];
 
-  const { spec, canonical } = loaderData;
+  const { spec, canonical, ogImage } = loaderData;
   const title = `${spec.title} | Open Specs`;
 
   return [
@@ -59,13 +65,18 @@ export function meta({ loaderData }: Route.MetaArgs) {
     { property: "og:title", content: spec.title },
     { property: "og:description", content: spec.summary },
     { property: "og:url", content: canonical },
+    { property: "og:image", content: ogImage },
+    { property: "og:image:width", content: "1200" },
+    { property: "og:image:height", content: "630" },
+    { property: "og:image:alt", content: spec.title },
     { property: "article:published_time", content: asIso(spec.publishedAt) },
     { property: "article:modified_time", content: asIso(spec.revisedAt) },
     ...spec.topics.map((topic) => ({ property: "article:tag", content: topic })),
 
-    { name: "twitter:card", content: "summary" },
+    { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: spec.title },
     { name: "twitter:description", content: spec.summary },
+    { name: "twitter:image", content: ogImage },
 
     {
       "script:ld+json": {
