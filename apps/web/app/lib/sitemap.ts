@@ -1,17 +1,10 @@
+import { escapeXml } from "./xml";
+
 export type SitemapEntry = {
   loc: string;
   /** Seconds since the epoch, as Nostr counts them. */
   lastmod?: number;
 };
-
-/** A listing URL carries a query string, and a bare `&` makes the document invalid XML. */
-const escapeXml = (value: string): string =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 
 export const sitemapXml = (entries: SitemapEntry[]): string => {
   const urls = entries.map((entry) => {

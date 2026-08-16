@@ -83,6 +83,7 @@ export type SpecCard = {
   title: string;
   summary: string;
   pubkey: string;
+  npub: string;
   identifier: string;
   status: string | null;
   kinds: SpecKindRef[];
@@ -96,6 +97,7 @@ const toCard = (spec: Spec): SpecCard => ({
   title: spec.title,
   summary: spec.summary,
   pubkey: spec.pubkey,
+  npub: toNpub(spec.pubkey),
   identifier: spec.identifier,
   status: spec.status,
   kinds: spec.kinds,

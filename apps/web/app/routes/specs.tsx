@@ -4,7 +4,14 @@ import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
 import { PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
-import { specsPath } from "~/lib/paths";
+import {
+  atomPath,
+  feedTitle,
+  listingDescription,
+  listingTitle,
+  rssPath,
+  specsPath,
+} from "~/lib/paths";
 import { loadSpecs } from "~/lib/specs.server";
 import { topicsByFrequency } from "~/lib/topics";
 import type { Route } from "./+types/specs";
@@ -24,6 +31,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const kind = /^\d{1,7}$/.test(rawKind) ? Number(rawKind) : undefined;
   const filtered = topic !== undefined || kind !== undefined;
 
+  const origin = publicOrigin(request);
   // The unfiltered listing is the home page's, already loaded and cached.
   const [specs, all] = await Promise.all([
     loadSpecs({ topic, kind }, LIMIT).catch(() => []),
@@ -39,7 +47,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     kind: kind ?? null,
     // Canonical drops anything the filter did not recognise, so one listing is
     // never indexed under a dozen spellings of the same query.
-    canonical: `${publicOrigin(request)}${specsPath({ topic, kind })}`,
+    origin,
+    canonical: `${origin}${specsPath({ topic, kind })}`,
     filtered,
   };
 }
@@ -48,17 +57,12 @@ export function headers(_: Route.HeadersArgs) {
   return PAGE_HEADERS;
 }
 
-const titleOf = (topic: string | null, kind: number | null): string => {
-  if (topic !== null) return `Specifications about #${topic}`;
-  if (kind !== null) return `Specifications covering kind ${kind}`;
-  return "All specifications";
-};
-
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Specifications | Open Specs" }];
 
-  const title = titleOf(loaderData.topic, loaderData.kind);
-  const description = `${title}, published as signed Nostr events and readable by anyone.`;
+  const query = { topic: loaderData.topic ?? undefined, kind: loaderData.kind ?? undefined };
+  const title = listingTitle(query);
+  const description = listingDescription(query);
 
   return [
     { title: `${title} | Open Specs` },
@@ -72,6 +76,20 @@ export function meta({ loaderData }: Route.MetaArgs) {
     { name: "twitter:card", content: "summary" },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
+    {
+      tagName: "link",
+      rel: "alternate",
+      type: "application/rss+xml",
+      title: feedTitle(query),
+      href: `${loaderData.origin}${rssPath(query)}`,
+    },
+    {
+      tagName: "link",
+      rel: "alternate",
+      type: "application/atom+xml",
+      title: feedTitle(query),
+      href: `${loaderData.origin}${atomPath(query)}`,
+    },
   ];
 }
 
@@ -95,7 +113,7 @@ export default function Specs({ loaderData }: Route.ComponentProps) {
     <Shell>
       <main className="mx-auto max-w-5xl px-6 py-16">
         <h1 className="font-mono text-2xl font-medium tracking-tight sm:text-3xl">
-          {titleOf(topic, kind)}
+          {listingTitle({ topic: topic ?? undefined, kind: kind ?? undefined })}
         </h1>
 
         <nav aria-label="Topics" className="mt-8 flex flex-wrap items-center gap-1">

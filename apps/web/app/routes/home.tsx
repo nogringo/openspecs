@@ -3,7 +3,7 @@ import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
 import { PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
-import { specsPath } from "~/lib/paths";
+import { atomPath, feedTitle, rssPath, specsPath } from "~/lib/paths";
 import { loadSpecs } from "~/lib/specs.server";
 import type { Route } from "./+types/home";
 
@@ -14,7 +14,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   // The front door stays up when the relays are unreachable, and says so. The
   // failed load is evicted from the cache, so the next request tries again.
   const specs = await loadSpecs().catch(() => []);
-  return { specs, canonical: `${publicOrigin(request)}/` };
+  const origin = publicOrigin(request);
+  return { specs, origin, canonical: `${origin}/` };
 }
 
 export function headers(_: Route.HeadersArgs) {
@@ -34,6 +35,24 @@ export function meta({ loaderData }: Route.MetaArgs) {
     { name: "twitter:card", content: "summary" },
     { name: "twitter:title", content: "Open Specs" },
     { name: "twitter:description", content: DESCRIPTION },
+    ...(loaderData
+      ? [
+          {
+            tagName: "link",
+            rel: "alternate",
+            type: "application/rss+xml",
+            title: feedTitle(),
+            href: `${loaderData.origin}${rssPath()}`,
+          },
+          {
+            tagName: "link",
+            rel: "alternate",
+            type: "application/atom+xml",
+            title: feedTitle(),
+            href: `${loaderData.origin}${atomPath()}`,
+          },
+        ]
+      : []),
   ];
 }
 
