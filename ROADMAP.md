@@ -26,7 +26,7 @@ ours.
 
 ## Lot 2, SSR and SEO
 
-- [ ] Spec detail route: server loader querying relays, in memory LRU, `headers` with
+- [x] Spec detail route: server loader querying relays, in memory LRU, `headers` with
       `s-maxage` and `stale-while-revalidate`
 - [x] Server side Markdown rendering (remark, rehype, rehype-sanitize)
 - [ ] `meta` export: title, description, canonical, OpenGraph, Twitter card

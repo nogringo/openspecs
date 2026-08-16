@@ -20,6 +20,12 @@ export type Spec = {
   /** True when no usable `title` tag was published and the title had to be inferred. */
   titleIsDerived: boolean;
   summary: string;
+  /**
+   * True when no `summary` tag was published and the description had to be taken
+   * from the document itself. Such a summary is written for crawlers, not for
+   * readers: showing it above the document repeats its opening paragraph.
+   */
+  summaryIsDerived: boolean;
   content: string;
   kinds: SpecKindRef[];
   topics: string[];
@@ -94,6 +100,7 @@ export const parseSpec = (input: unknown): Spec | null => {
   const content = event.content;
   const titleTag = tagValue(event, "title");
   const derived = titleTag === "" ? (firstHeading(content) ?? humanize(identifier)) : "";
+  const summaryTag = tagValue(event, "summary");
   const publishedAt = Number(tagValue(event, "published_at"));
 
   return {
@@ -102,7 +109,8 @@ export const parseSpec = (input: unknown): Spec | null => {
     identifier,
     title: titleTag === "" ? derived : titleTag,
     titleIsDerived: titleTag === "",
-    summary: tagValue(event, "summary") || deriveSummary(content),
+    summary: summaryTag || deriveSummary(content),
+    summaryIsDerived: summaryTag === "",
     content,
     kinds: parseKinds(event),
     topics: allTags(event, "t")

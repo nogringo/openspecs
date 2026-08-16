@@ -100,6 +100,16 @@ describe("parseSpec", () => {
     }
   });
 
+  it("says whether the summary was written or taken from the document", () => {
+    for (const event of events) {
+      const spec = parseSpec(event);
+      if (!spec) continue;
+      const summaryTag = (event.tags.find((tag) => tag[0] === "summary")?.[1] ?? "").trim();
+      expect(spec.summaryIsDerived, `fixture ${event.id}`).toBe(summaryTag === "");
+      if (!spec.summaryIsDerived) expect(spec.summary).toBe(summaryTag);
+    }
+  });
+
   it("never leaks heading underlines into the summary", () => {
     for (const event of events) {
       const spec = parseSpec(event);

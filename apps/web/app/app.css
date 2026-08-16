@@ -4,8 +4,215 @@
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono",
+    "Liberation Mono", monospace;
+  --font-serif:
+    ui-serif, Charter, "Bitstream Charter", "Iowan Old Style", "Source Serif 4", Georgia,
+    "Times New Roman", serif;
+
+  --color-paper: #fcfcfa;
+  --color-ink: #15171c;
+  --color-muted: #5c6270;
+  --color-rule: #e4e3dd;
+  --color-shade: #f3f2ec;
+
+  --color-signal-open: #8a5a00;
+  --color-signal-settled: #1e6a45;
+  --color-signal-closed: #9c2f2f;
+}
+
+/*
+ * Unlayered, so these win over the theme block and every utility built on it,
+ * and the whole page flips on one media query instead of a `dark:` variant per
+ * element.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #0f1115;
+    --color-ink: #e7e7e3;
+    --color-muted: #939aa8;
+    --color-rule: #262a32;
+    --color-shade: #171a20;
+
+    --color-signal-open: #e0a83d;
+    --color-signal-settled: #59b98b;
+    --color-signal-closed: #e08585;
+  }
 }
 
 html {
   color-scheme: light dark;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/*
+ * The document body. Prose is set in a serif at a reading measure, while every
+ * structural part of it, headings, code, tables, keeps the monospace of the
+ * page chrome: a specification is read as prose but navigated as a structure.
+ */
+@layer components {
+  .doc {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    line-height: 1.72;
+    overflow-wrap: break-word;
+  }
+
+  .doc > * + * {
+    margin-top: 1.15em;
+  }
+
+  .doc h2,
+  .doc h3,
+  .doc h4,
+  .doc h5,
+  .doc h6 {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    scroll-margin-top: 2rem;
+  }
+
+  .doc h2 {
+    margin-top: 2.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-rule);
+    font-size: 1.1875rem;
+  }
+
+  .doc h3 {
+    margin-top: 2rem;
+    font-size: 1.0625rem;
+  }
+
+  .doc h4,
+  .doc h5,
+  .doc h6 {
+    margin-top: 1.75rem;
+    font-size: 0.9375rem;
+    color: var(--color-muted);
+  }
+
+  .doc a {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    text-decoration-color: var(--color-rule);
+  }
+
+  .doc a:hover {
+    text-decoration-thickness: 2px;
+    text-decoration-color: currentColor;
+  }
+
+  .doc ul,
+  .doc ol {
+    padding-left: 1.4em;
+  }
+
+  .doc ul {
+    list-style: disc;
+  }
+
+  .doc ol {
+    list-style: decimal;
+  }
+
+  .doc li + li {
+    margin-top: 0.35em;
+  }
+
+  .doc li::marker {
+    color: var(--color-muted);
+  }
+
+  .doc .contains-task-list {
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .doc .task-list-item input {
+    margin-right: 0.5em;
+  }
+
+  .doc code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--color-shade);
+    padding: 0.15em 0.35em;
+    border-radius: 3px;
+  }
+
+  .doc pre {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    background: var(--color-shade);
+    border: 1px solid var(--color-rule);
+    border-radius: 4px;
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+  }
+
+  .doc pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  .doc blockquote {
+    border-left: 2px solid var(--color-rule);
+    padding-left: 1rem;
+    color: var(--color-muted);
+  }
+
+  .doc table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+
+  .doc th {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .doc th,
+  .doc td {
+    border: 1px solid var(--color-rule);
+    padding: 0.45rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .doc img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .doc hr {
+    border: 0;
+    border-top: 1px solid var(--color-rule);
+    margin: 2rem 0;
+  }
+
+  .doc .footnotes {
+    margin-top: 3rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-rule);
+    font-size: 0.9375rem;
+    color: var(--color-muted);
+  }
 }

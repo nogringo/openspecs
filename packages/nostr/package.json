@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "sideEffects": false,
   "scripts": {
     "typecheck": "tsc",
     "test": "vitest run"
