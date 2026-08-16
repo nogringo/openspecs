@@ -28,7 +28,7 @@ ours.
 
 - [ ] Spec detail route: server loader querying relays, in memory LRU, `headers` with
       `s-maxage` and `stale-while-revalidate`
-- [ ] Server side Markdown rendering (remark, rehype, rehype-sanitize)
+- [x] Server side Markdown rendering (remark, rehype, rehype-sanitize)
 - [ ] `meta` export: title, description, canonical, OpenGraph, Twitter card
 - [ ] JSON-LD `TechArticle`
 - [ ] Listing and home routes
