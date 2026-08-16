@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { SearchBox } from "~/components/search-box";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
 import { PAGE_HEADERS } from "~/lib/http";
@@ -60,7 +61,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   const { specs } = loaderData;
 
   return (
-    <Shell>
+    <Shell search={false}>
       <main className="mx-auto max-w-5xl px-6 py-16 sm:py-24">
         <h1 className="max-w-3xl text-balance font-mono text-3xl font-medium leading-tight tracking-tight sm:text-4xl">
           Technical specifications, signed and public
@@ -70,6 +71,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           event signed by its author and stored on relays: this site renders and indexes them, it
           does not own them.
         </p>
+
+        <div className="mt-10 max-w-xl">
+          <SearchBox size="hero" />
+        </div>
 
         <section className="mt-20">
           <div className="flex items-baseline justify-between gap-4">

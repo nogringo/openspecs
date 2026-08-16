@@ -8,6 +8,13 @@ export {
   toNaddr,
   toNpub,
 } from "./address";
+export {
+  type Cursors,
+  type RelayCursor,
+  type SyncOptions,
+  type SyncResult,
+  syncSpecs,
+} from "./corpus";
 export { allTags, type NostrEvent, nostrEventSchema, SPEC_KIND, tagValue } from "./event";
 export { deriveSummary, firstHeading, stripInlineMarkdown } from "./markdown";
 export {

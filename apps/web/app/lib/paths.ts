@@ -1,7 +1,9 @@
-export type SpecsQuery = { topic?: string; kind?: string | number };
+export type SpecsQuery = { topic?: string; kind?: string | number; q?: string };
 
 const withFilter = (base: string, query: SpecsQuery = {}): string => {
   const params = new URLSearchParams();
+  // First, because it is what the reader typed and the rest only narrows it.
+  if (query.q) params.set("q", query.q);
   if (query.topic) params.set("topic", query.topic);
   if (query.kind !== undefined && query.kind !== "") params.set("kind", String(query.kind));
   const search = params.toString();
@@ -9,10 +11,14 @@ const withFilter = (base: string, query: SpecsQuery = {}): string => {
 };
 
 export const specsPath = (query: SpecsQuery = {}): string => withFilter("/specs", query);
-export const rssPath = (query: SpecsQuery = {}): string => withFilter("/rss.xml", query);
-export const atomPath = (query: SpecsQuery = {}): string => withFilter("/atom.xml", query);
+
+/** A feed cannot replay a search, so `q` never reaches one. */
+export const rssPath = (query: Omit<SpecsQuery, "q"> = {}): string => withFilter("/rss.xml", query);
+export const atomPath = (query: Omit<SpecsQuery, "q"> = {}): string =>
+  withFilter("/atom.xml", query);
 
 export const listingTitle = (query: SpecsQuery = {}): string => {
+  if (query.q) return `Search results for "${query.q}"`;
   if (query.topic) return `Specifications about #${query.topic}`;
   if (query.kind !== undefined && query.kind !== "")
     return `Specifications covering kind ${query.kind}`;

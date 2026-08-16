@@ -1,7 +1,9 @@
-import { Link } from "react-router";
+import { Link, type ShouldRevalidateFunctionArgs } from "react-router";
 import { ErrorPage } from "~/components/error-page";
+import { SearchResults } from "~/components/search-results";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
+import { parseSearchQuery, parseSpecFilter } from "~/lib/filter";
 import { PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
 import {
@@ -20,15 +22,10 @@ const LIMIT = 60;
 /** Enough to browse by, few enough to read at a glance. */
 const TOPICS_SHOWN = 14;
 
-const TOPIC = /^[a-z0-9][a-z0-9\-_.]{0,63}$/;
-
 export async function loader({ request }: Route.LoaderArgs) {
   const params = new URL(request.url).searchParams;
-  const rawTopic = params.get("topic")?.trim().toLowerCase() ?? "";
-  const rawKind = params.get("kind")?.trim() ?? "";
-
-  const topic = TOPIC.test(rawTopic) ? rawTopic : undefined;
-  const kind = /^\d{1,7}$/.test(rawKind) ? Number(rawKind) : undefined;
+  const { topic, kind } = parseSpecFilter(params);
+  const query = parseSearchQuery(params);
   const filtered = topic !== undefined || kind !== undefined;
 
   const origin = publicOrigin(request);
@@ -45,6 +42,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     topics: topicsByFrequency(all, TOPICS_SHOWN),
     topic: topic ?? null,
     kind: kind ?? null,
+    query: query ?? null,
     // Canonical drops anything the filter did not recognise, so one listing is
     // never indexed under a dozen spellings of the same query.
     origin,
@@ -57,12 +55,32 @@ export function headers(_: Route.HeadersArgs) {
   return PAGE_HEADERS;
 }
 
+/**
+ * A search is answered in the browser, so the loader owes it nothing: asking the
+ * server again on every keystroke would fetch the listing it already has.
+ */
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate;
+  const listing = (url: URL) => `${url.searchParams.get("topic")}:${url.searchParams.get("kind")}`;
+  return listing(currentUrl) === listing(nextUrl) ? false : defaultShouldRevalidate;
+}
+
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Specifications | Open Specs" }];
 
   const query = { topic: loaderData.topic ?? undefined, kind: loaderData.kind ?? undefined };
-  const title = listingTitle(query);
+  const title = listingTitle({ ...query, q: loaderData.query ?? undefined });
   const description = listingDescription(query);
+
+  // Results are read out of the visitor's browser, so there is no page here to
+  // index and no canonical to point a crawler at.
+  if (loaderData.query !== null) {
+    return [{ title: `${title} | Open Specs` }, { name: "robots", content: "noindex, follow" }];
+  }
 
   return [
     { title: `${title} | Open Specs` },
@@ -107,32 +125,54 @@ const Chip = ({ to, active, children }: { to: string; active: boolean; children:
 );
 
 export default function Specs({ loaderData }: Route.ComponentProps) {
-  const { specs, topics, topic, kind, filtered } = loaderData;
+  const { specs, topics, topic, kind, query, filtered } = loaderData;
 
   return (
-    <Shell>
+    <Shell query={query ?? undefined}>
       <main className="mx-auto max-w-5xl px-6 py-16">
         <h1 className="font-mono text-2xl font-medium tracking-tight sm:text-3xl">
-          {listingTitle({ topic: topic ?? undefined, kind: kind ?? undefined })}
+          {listingTitle({
+            topic: topic ?? undefined,
+            kind: kind ?? undefined,
+            q: query ?? undefined,
+          })}
         </h1>
 
         <nav aria-label="Topics" className="mt-8 flex flex-wrap items-center gap-1">
-          <Chip to={specsPath()} active={!filtered}>
+          <Chip to={specsPath({ q: query ?? undefined })} active={!filtered}>
             all
           </Chip>
           {topics.map((name) => (
-            <Chip key={name} to={specsPath({ topic: name })} active={name === topic}>
+            <Chip
+              key={name}
+              to={specsPath({ topic: name, q: query ?? undefined })}
+              active={name === topic}
+            >
               {`#${name}`}
             </Chip>
           ))}
           {kind !== null && (
-            <Chip to={specsPath({ kind })} active>
+            <Chip to={specsPath({ kind, q: query ?? undefined })} active>
               {`kind ${kind}`}
             </Chip>
           )}
         </nav>
 
-        {specs.length === 0 ? (
+        {query !== null ? (
+          <>
+            <SearchResults query={query} topic={topic} kind={kind} />
+            <noscript>
+              <p className="mt-6 font-serif text-muted">
+                Search reads the documents into your browser and looks through them there, which
+                needs JavaScript. Without it, the documents are still there to{" "}
+                <Link to={specsPath()} className="underline underline-offset-4">
+                  browse
+                </Link>
+                .
+              </p>
+            </noscript>
+          </>
+        ) : specs.length === 0 ? (
           <p className="mt-10 border-t border-rule pt-6 font-serif text-muted">
             {filtered
               ? "No document here carries this tag yet."

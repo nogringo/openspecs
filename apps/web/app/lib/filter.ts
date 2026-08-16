@@ -2,6 +2,8 @@ export type SpecFilterParams = { topic?: string; kind?: number };
 
 const TOPIC = /^[a-z0-9][a-z0-9\-_.]{0,63}$/;
 const KIND = /^\d{1,7}$/;
+/** Long enough for a sentence, short enough that a URL stays a URL. */
+const MAX_QUERY = 100;
 
 /**
  * What a visitor typed only becomes a relay filter once it looks like one.
@@ -16,4 +18,14 @@ export const parseSpecFilter = (params: URLSearchParams): SpecFilterParams => {
     ...(TOPIC.test(topic) && { topic }),
     ...(KIND.test(kind) && { kind: Number(kind) }),
   };
+};
+
+/**
+ * Kept apart from the filter above, which relays are asked: this one never
+ * reaches a relay, and never reaches a feed either. It is tidied rather than
+ * validated, since any word a reader types is a legitimate thing to look for.
+ */
+export const parseSearchQuery = (params: URLSearchParams): string | undefined => {
+  const query = (params.get("q") ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_QUERY);
+  return query === "" ? undefined : query;
 };

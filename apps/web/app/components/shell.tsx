@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { SearchBox } from "./search-box";
 
 export const SOURCE_URL = "https://github.com/nogringo/openspecs";
 
@@ -9,15 +10,29 @@ const GithubMark = () => (
   </svg>
 );
 
-export const Shell = ({ children }: { children: React.ReactNode }) => (
+export const Shell = ({
+  children,
+  search = true,
+  query,
+}: {
+  children: React.ReactNode;
+  /** The home page carries its own, so the header does not repeat it. */
+  search?: boolean;
+  query?: string;
+}) => (
   <div className="min-h-dvh bg-paper text-ink">
     <div className="border-b border-rule">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4">
-        <Link to="/" className="font-mono text-xs uppercase tracking-[0.2em]">
+        <Link to="/" className="shrink-0 font-mono text-xs uppercase tracking-[0.2em]">
           Open Specs
         </Link>
+        {search ? (
+          <div className="max-w-xs flex-1">
+            <SearchBox query={query} />
+          </div>
+        ) : null}
         <div className="flex items-center gap-5 font-mono text-[0.6875rem] uppercase tracking-[0.16em]">
-          <p className="hidden text-muted sm:block">Signed and stored on Nostr</p>
+          {search ? null : <p className="hidden text-muted sm:block">Signed and stored on Nostr</p>}
           {/* No nofollow: this one link is the project's own, and it is meant to be followed. */}
           <a
             href={SOURCE_URL}
