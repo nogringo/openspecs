@@ -1,10 +1,10 @@
 import { Link } from "react-router";
-import { KeyMark } from "~/components/key-mark";
 import { Shell } from "~/components/shell";
-import { SpecTags } from "~/components/spec-tags";
+import { SpecRow } from "~/components/spec-row";
 import { PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
-import { loadRecentSpecs, type SpecCard } from "~/lib/specs.server";
+import { specsPath } from "~/lib/paths";
+import { loadSpecs } from "~/lib/specs.server";
 import type { Route } from "./+types/home";
 
 const DESCRIPTION =
@@ -13,7 +13,7 @@ const DESCRIPTION =
 export async function loader({ request }: Route.LoaderArgs) {
   // The front door stays up when the relays are unreachable, and says so. The
   // failed load is evicted from the cache, so the next request tries again.
-  const specs = await loadRecentSpecs().catch(() => []);
+  const specs = await loadSpecs().catch(() => []);
   return { specs, canonical: `${publicOrigin(request)}/` };
 }
 
@@ -37,39 +37,6 @@ export function meta({ loaderData }: Route.MetaArgs) {
   ];
 }
 
-const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString().slice(0, 10);
-
-const Row = ({ spec }: { spec: SpecCard }) => (
-  <li className="border-t border-rule">
-    <Link to={spec.path} className="group block py-6">
-      <div className="flex gap-4">
-        <span className="mt-1 shrink-0">
-          <KeyMark pubkey={spec.pubkey} size={28} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-4">
-            <h3 className="min-w-0 font-mono text-base font-medium group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">
-              {spec.title}
-            </h3>
-            <time
-              dateTime={new Date(spec.publishedAt * 1000).toISOString()}
-              className="shrink-0 font-mono text-xs text-muted"
-            >
-              {asDate(spec.publishedAt)}
-            </time>
-          </div>
-          {spec.summary !== "" && (
-            <p className="mt-2 line-clamp-2 max-w-[44rem] font-serif text-muted">{spec.summary}</p>
-          )}
-          <div className="mt-3">
-            <SpecTags status={spec.status} kinds={spec.kinds} topics={spec.topics} />
-          </div>
-        </div>
-      </div>
-    </Link>
-  </li>
-);
-
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { specs } = loaderData;
 
@@ -86,9 +53,17 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </p>
 
         <section className="mt-20">
-          <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">
-            Recently published
-          </h2>
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">
+              Recently published
+            </h2>
+            <Link
+              to={specsPath()}
+              className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] underline underline-offset-4"
+            >
+              Browse all
+            </Link>
+          </div>
           {specs.length === 0 ? (
             <p className="mt-6 border-t border-rule pt-6 font-serif text-muted">
               No documents came back from the relays. They may be unreachable from this server right
@@ -97,7 +72,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           ) : (
             <ul className="mt-6">
               {specs.map((spec) => (
-                <Row key={spec.path} spec={spec} />
+                <SpecRow key={spec.path} spec={spec} />
               ))}
             </ul>
           )}

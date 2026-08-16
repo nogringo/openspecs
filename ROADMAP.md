@@ -31,7 +31,7 @@ ours.
 - [x] Server side Markdown rendering (remark, rehype, rehype-sanitize)
 - [x] `meta` export: title, description, canonical, OpenGraph, Twitter card
 - [x] JSON-LD `TechArticle`
-- [ ] Listing and home routes
+- [x] Listing and home routes
 - [x] npub canonical URLs, with NIP-05 and NIP-19 aliases redirecting 301
 
 At the end of this lot, pasting a link into a chat renders a proper preview.

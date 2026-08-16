@@ -137,7 +137,7 @@ const Masthead = ({ spec }: { spec: SpecPage }) => (
     )}
 
     <div className="mt-6">
-      <SpecTags status={spec.status} kinds={spec.kinds} topics={spec.topics} />
+      <SpecTags status={spec.status} kinds={spec.kinds} topics={spec.topics} linked />
     </div>
 
     <div className="mt-8 inline-flex max-w-full items-start gap-4 rounded-sm border border-rule px-4 py-3.5">

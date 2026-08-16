@@ -102,7 +102,14 @@ const toCard = (spec: Spec): SpecCard => ({
   publishedAt: spec.publishedAt,
 });
 
-const recent = createLoadCache<SpecCard[]>({ max: 4, ttlMs: FRESH_MS });
+export type SpecFilter = {
+  /** A `t` tag, which relays index, so this is asked of them rather than filtered here. */
+  topic?: string;
+  /** A `k` tag: the event kind a document is about. */
+  kind?: number;
+};
+
+const listings = createLoadCache<SpecCard[]>({ max: 50, ttlMs: FRESH_MS });
 
 /**
  * A blank document parses, because its author may simply not have written it
@@ -110,9 +117,13 @@ const recent = createLoadCache<SpecCard[]>({ max: 4, ttlMs: FRESH_MS });
  * drawn, so twice the documents are asked for and the empty ones dropped,
  * rather than returning a short page of placeholders.
  */
-export const loadRecentSpecs = (limit = 30): Promise<SpecCard[]> =>
-  recent.get(`recent:${limit}`, async () => {
-    const specs = await fetchSpecs({ limit: limit * 2 });
+export const loadSpecs = (filter: SpecFilter = {}, limit = 30): Promise<SpecCard[]> =>
+  listings.get(`${limit}:${filter.topic ?? ""}:${filter.kind ?? ""}`, async () => {
+    const specs = await fetchSpecs({
+      limit: limit * 2,
+      ...(filter.topic ? { topics: [filter.topic] } : {}),
+      ...(filter.kind === undefined ? {} : { covers: [filter.kind] }),
+    });
     return specs
       .filter((spec) => !spec.isEmpty)
       .slice(0, limit)

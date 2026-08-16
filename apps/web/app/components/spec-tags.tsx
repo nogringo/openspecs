@@ -1,4 +1,6 @@
 import type { SpecKindRef } from "@openspecs/nostr";
+import { Link } from "react-router";
+import { specsPath } from "~/lib/paths";
 
 /**
  * Status is a free string, so this maps the values documents actually use onto
@@ -25,9 +27,11 @@ export type SpecTagsProps = {
   status: string | null;
   kinds: SpecKindRef[];
   topics: string[];
+  /** Turns kinds and topics into links to the listing they filter. */
+  linked?: boolean;
 };
 
-export const SpecTags = ({ status, kinds, topics }: SpecTagsProps) => {
+export const SpecTags = ({ status, kinds, topics, linked = false }: SpecTagsProps) => {
   if (status === null && kinds.length === 0 && topics.length === 0) return null;
 
   return (
@@ -40,17 +44,30 @@ export const SpecTags = ({ status, kinds, topics }: SpecTagsProps) => {
           <span className="text-muted">covers</span>
           {kinds.map((kind) => (
             <span key={kind.raw}>
-              {kind.raw}
+              {/* Only a numeric kind is a filter relays can answer. */}
+              {linked && kind.kind !== null ? (
+                <Link to={specsPath({ kind: kind.kind })} className="hover:underline">
+                  {kind.raw}
+                </Link>
+              ) : (
+                kind.raw
+              )}
               {kind.name !== null && <span className="text-muted"> {kind.name}</span>}
             </span>
           ))}
         </span>
       )}
-      {topics.map((topic) => (
-        <span key={topic} className="text-muted">
-          #{topic}
-        </span>
-      ))}
+      {topics.map((topic) =>
+        linked ? (
+          <Link key={topic} to={specsPath({ topic })} className="text-muted hover:text-ink">
+            #{topic}
+          </Link>
+        ) : (
+          <span key={topic} className="text-muted">
+            #{topic}
+          </span>
+        ),
+      )}
     </div>
   );
 };
