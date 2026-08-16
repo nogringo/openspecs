@@ -5,5 +5,6 @@ export default defineConfig({
     name: "nostr",
     environment: "node",
     include: ["test/**/*.test.ts"],
+    setupFiles: ["./test/no-network.ts"],
   },
 });

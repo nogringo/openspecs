@@ -59,9 +59,9 @@ instead of being mandated as a new tag.
 
 ## Stack
 
-React Router (framework mode) for SSR, TypeScript, Tailwind. Postgres, Meilisearch and a
-relay indexer arrive later, behind a `SpecSource` interface that the routes are written
-against, so the same route code runs with or without a backend.
+React Router (framework mode) for SSR, TypeScript, Tailwind. Routes read specifications
+from relays directly, with a short lived cache. Postgres, Meilisearch and a relay indexer
+arrive later, once there is something to gain from them.
 
 ## Development
 

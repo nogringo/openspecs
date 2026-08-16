@@ -5,9 +5,6 @@ project exists. The database, the indexer and push notifications come last, beca
 server rendering path does not need them: a loader can query relays directly from the
 Node server with a short lived cache, which produces real HTML from day one.
 
-Everything is written against the `SpecSource` interface, so `RelaySource` in lot 1 is
-later replaced by `PostgresSource` on the server without touching a single route.
-
 ## Lot 0, skeleton
 
 - [x] pnpm monorepo, Biome, shared tsconfig, Vitest
@@ -16,10 +13,9 @@ later replaced by `PostgresSource` on the server without touching a single route
 
 ## Lot 1, the event contract
 
-- [ ] `packages/nostr`: zod schemas for kind 30817, parsing, validation, naddr helpers
-- [ ] The `SpecSource` interface and `RelaySource` (SimplePool, `useWebSocketImplementation`
-      for Node)
-- [ ] Tests against real kind 30817 event fixtures pulled from public relays
+- [x] `packages/nostr`: zod schemas for kind 30817, parsing, validation, naddr helpers
+- [x] Relay reads: shared SimplePool, NIP-65 outbox, newest revision per coordinate
+- [x] Tests against real kind 30817 event fixtures pulled from public relays
 
 Testable without any UI. Everything downstream depends on it.
 
@@ -30,7 +26,7 @@ ours.
 
 ## Lot 2, SSR and SEO
 
-- [ ] Spec detail route: server loader on `RelaySource`, in memory LRU, `headers` with
+- [ ] Spec detail route: server loader querying relays, in memory LRU, `headers` with
       `s-maxage` and `stale-while-revalidate`
 - [ ] Server side Markdown rendering (remark, rehype, rehype-sanitize)
 - [ ] `meta` export: title, description, canonical, OpenGraph, Twitter card
@@ -69,7 +65,7 @@ Shippable here: read only, no accounts, no database, but properly indexed.
 ## Lot 6, the backend
 
 - [ ] Postgres, Drizzle, raw events stored as jsonb next to parsed projections
-- [ ] Relay indexer, `PostgresSource`
+- [ ] Relay indexer, loaders reading from Postgres instead of relays
 - [ ] Full revision history, which relays cannot keep for addressable events
 - [ ] Meilisearch
 - [ ] Web Push

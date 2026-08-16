@@ -79,6 +79,9 @@ importers:
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3
+      nostr-mock-relay:
+        specifier: ^0.1.1
+        version: 0.1.1(typescript@7.0.2)
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -1217,6 +1220,10 @@ packages:
     resolution: {integrity: sha512-D9UOmYG3UH1V+ENW56t5QXBwJw1YEY18ruVeus89Rw+SyIgjPkCO84bRzO3uNIYosJbNwiabWVn48o3uJLjxFQ==}
     engines: {node: '>=18'}
 
+  nostr-mock-relay@0.1.1:
+    resolution: {integrity: sha512-FF5xqnKQQRJorfbxkacunur+wMPUAYJKdiVppNLQEWSZAFYvuMvmtt3FUYyMHYpVobqsm0gKL54tRTG5A8P4RA==}
+    engines: {node: '>=24'}
+
   nostr-tools@2.24.1:
     resolution: {integrity: sha512-KdrKjC74n/rr6J3eCSfZj8dcbZFvolHYe4S22SefNZ5YWbhHiB0KL/mmJjEZ0u6B9mZK0YcQtl+WQ46KzwapeQ==}
     peerDependencies:
@@ -1555,6 +1562,18 @@ packages:
 
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
+
+  ws@8.21.3:
+    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
@@ -2545,6 +2564,15 @@ snapshots:
 
   node-releases@2.0.53: {}
 
+  nostr-mock-relay@0.1.1(typescript@7.0.2):
+    dependencies:
+      nostr-tools: 2.24.1(typescript@7.0.2)
+      ws: 8.21.3
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+
   nostr-tools@2.24.1(typescript@7.0.2):
     dependencies:
       '@noble/ciphers': 2.1.1
@@ -2857,6 +2885,8 @@ snapshots:
       stackback: 0.0.2
 
   wrappy@1.0.2: {}
+
+  ws@8.21.3: {}
 
   yallist@3.1.1: {}
 
