@@ -1,15 +1,18 @@
 import type { MarkdownHeading } from "@openspecs/markdown";
 import { parsePubkey, resolveNip05, specPath, toNpub } from "@openspecs/nostr";
 import { data, redirect } from "react-router";
+import { CopyButton } from "~/components/copy-button";
 import { ErrorPage } from "~/components/error-page";
 import { KeyMark } from "~/components/key-mark";
+import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
-import { oembedPath, ogImagePath } from "~/lib/paths";
+import { eventPath, oembedPath, ogImagePath } from "~/lib/paths";
 import type { LinkPreview } from "~/lib/preview";
 import { loadLinkPreviews } from "~/lib/preview.server";
+import { rebroadcastRelays } from "~/lib/relays.server";
 import { loadSpec, type SpecPage } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
 
@@ -23,13 +26,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const path = specPath({ pubkey, identifier: params.identifier });
   if (params.author !== toNpub(pubkey)) throw redirect(path, 301);
 
-  const spec = await loadSpec(pubkey, params.identifier);
-  if (spec === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
+  const cached = await loadSpec(pubkey, params.identifier);
+  if (cached === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
   // Built per request rather than cached with the document: one document can be
   // served under more than one origin, and only this one is canonical.
   const origin = publicOrigin(request);
+  const spec = cached.page;
   return {
     spec,
+    relays: await rebroadcastRelays(pubkey),
     previews: await loadLinkPreviews(spec.links),
     origin,
     canonical: `${origin}${path}`,
@@ -145,7 +150,15 @@ const Contents = ({ headings }: { headings: MarkdownHeading[] }) => (
   </nav>
 );
 
-const Masthead = ({ spec }: { spec: SpecPage }) => (
+const Masthead = ({
+  spec,
+  canonical,
+  relays,
+}: {
+  spec: SpecPage;
+  canonical: string;
+  relays: string[];
+}) => (
   <header>
     <p className="font-mono text-xs tracking-wide text-muted">
       {spec.kind}:{spec.identifier}
@@ -170,8 +183,30 @@ const Masthead = ({ spec }: { spec: SpecPage }) => (
         {spec.revisedAt > spec.publishedAt && (
           <Field label="revised">{asDate(spec.revisedAt)}</Field>
         )}
-        <Field label="event">{shorten(spec.eventId, 10, 4)}</Field>
+        <Field label="event">
+          <a
+            href={eventPath(spec.npub, spec.identifier)}
+            className="underline decoration-rule underline-offset-2 hover:decoration-current"
+          >
+            {shorten(spec.eventId, 10, 4)}
+          </a>
+        </Field>
       </dl>
+    </div>
+
+    <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
+      <CopyButton value={canonical} label="Copy link" title={canonical} />
+      <CopyButton
+        value={spec.naddr}
+        label="Copy naddr"
+        title="The document's Nostr address, for any client"
+      />
+      <CopyButton
+        value={() => fetch(eventPath(spec.npub, spec.identifier)).then((event) => event.text())}
+        label="Copy event"
+        title="The signed event, exactly as the relays serve it"
+      />
+      <Rebroadcast eventUrl={eventPath(spec.npub, spec.identifier)} relays={relays} />
     </div>
   </header>
 );
@@ -208,12 +243,12 @@ const CitedLinks = ({ previews }: { previews: LinkPreview[] }) => (
 );
 
 export default function Spec({ loaderData }: Route.ComponentProps) {
-  const { spec, previews } = loaderData;
+  const { spec, previews, canonical, relays } = loaderData;
 
   return (
     <Shell>
       <article className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
-        <Masthead spec={spec} />
+        <Masthead spec={spec} canonical={canonical} relays={relays} />
 
         <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
           <Contents headings={spec.headings} />

@@ -15,11 +15,11 @@ export async function loader({ params }: Route.LoaderArgs) {
     throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
   }
 
-  const spec = await loadSpec(pubkey, params.identifier);
-  if (spec === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
+  const cached = await loadSpec(pubkey, params.identifier);
+  if (cached === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
 
   // Copied out of the renderer's memory, which WebAssembly is free to reuse.
-  return new Response(new Uint8Array(await ogImage(spec)), {
+  return new Response(new Uint8Array(await ogImage(cached.page)), {
     headers: {
       "Content-Type": "image/png",
       // Named after a revision that cannot change, so it is cached for a week.

@@ -41,6 +41,9 @@ importers:
       isbot:
         specifier: ^5.2.1
         version: 5.2.1
+      nostr-tools:
+        specifier: ^2.24.1
+        version: 2.24.1(typescript@7.0.2)
       react:
         specifier: ^19.2.8
         version: 19.2.8

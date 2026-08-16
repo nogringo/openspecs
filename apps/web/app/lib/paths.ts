@@ -36,3 +36,7 @@ export const ogImagePath = (npub: string, identifier: string): string =>
 /** Where a consumer asks what this site knows about one of its own pages. */
 export const oembedPath = (canonical: string): string =>
   `/oembed?url=${encodeURIComponent(canonical)}`;
+
+/** The signed event behind a document, served as it came off the relays. */
+export const eventPath = (npub: string, identifier: string): string =>
+  `/spec/${npub}/${encodeURIComponent(identifier)}/event.json`;

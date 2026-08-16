@@ -1,11 +1,13 @@
 import type { MarkdownHeading } from "@openspecs/markdown";
 import { renderMarkdown } from "@openspecs/markdown";
+import type { NostrEvent } from "@openspecs/nostr";
 import {
   fetchSpec,
   fetchSpecs,
   type Spec,
   type SpecKindRef,
   specPath,
+  toNaddr,
   toNpub,
 } from "@openspecs/nostr";
 import { createLoadCache } from "./cache.server";
@@ -27,6 +29,7 @@ export type SpecPage = {
   pubkey: string;
   npub: string;
   identifier: string;
+  naddr: string;
   eventId: string;
   status: string | null;
   topics: string[];
@@ -38,6 +41,13 @@ export type SpecPage = {
   headings: MarkdownHeading[];
   links: string[];
 };
+
+/**
+ * The event travels with the page through the cache but never into a loader's
+ * payload: the page needs the rendered document, and only the routes that serve
+ * the event itself need its 15 kilobytes of JSON.
+ */
+export type CachedSpec = { page: SpecPage; event: NostrEvent };
 
 /**
  * The Markdown is rendered here rather than in the component, so the cache
@@ -55,6 +65,7 @@ const toPage = (spec: Spec): SpecPage => {
     pubkey: spec.pubkey,
     npub: toNpub(spec.pubkey),
     identifier: spec.identifier,
+    naddr: toNaddr(spec),
     eventId: spec.event.id,
     status: spec.status,
     topics: spec.topics,
@@ -68,16 +79,16 @@ const toPage = (spec: Spec): SpecPage => {
   };
 };
 
-const cache = createLoadCache<SpecPage | null>({
+const cache = createLoadCache<CachedSpec | null>({
   max: 500,
   ttlMs: FRESH_MS,
-  ttlMsFor: (page) => (page === null ? MISSING_MS : FRESH_MS),
+  ttlMsFor: (cached) => (cached === null ? MISSING_MS : FRESH_MS),
 });
 
-export const loadSpec = (pubkey: string, identifier: string): Promise<SpecPage | null> =>
+export const loadSpec = (pubkey: string, identifier: string): Promise<CachedSpec | null> =>
   cache.get(`${pubkey}:${identifier}`, async () => {
     const spec = await fetchSpec({ pubkey, identifier });
-    return spec === null ? null : toPage(spec);
+    return spec === null ? null : { page: toPage(spec), event: spec.event };
   });
 
 export type SpecCard = {

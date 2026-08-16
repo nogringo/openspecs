@@ -8,6 +8,7 @@ export default [
   route("rss.xml", "routes/rss.ts"),
   route("atom.xml", "routes/atom.ts"),
   route("spec/:author/:identifier", "routes/spec.tsx"),
+  route("spec/:author/:identifier/event.json", "routes/event.ts"),
   route("og/:author/:identifier", "routes/og.ts"),
   route("oembed", "routes/oembed.ts"),
   route(":address", "routes/address.tsx"),

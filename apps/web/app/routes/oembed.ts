@@ -28,18 +28,18 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
   }
 
-  const spec = await loadSpec(pubkey, target.identifier);
-  if (spec === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
+  const cached = await loadSpec(pubkey, target.identifier);
+  if (cached === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
 
   return Response.json(
     {
       version: "1.0",
       type: "link",
-      title: spec.title,
-      author_name: spec.npub,
+      title: cached.page.title,
+      author_name: cached.page.npub,
       provider_name: "Open Specs",
       provider_url: `${origin}/`,
-      thumbnail_url: `${origin}${ogImagePath(spec.npub, spec.identifier)}`,
+      thumbnail_url: `${origin}${ogImagePath(cached.page.npub, cached.page.identifier)}`,
       thumbnail_width: OG_WIDTH,
       thumbnail_height: OG_HEIGHT,
       cache_age: CACHE_AGE_SECONDS,
