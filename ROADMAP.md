@@ -49,20 +49,14 @@ to render during SSR, which ships an empty skeleton to crawlers and defeats the 
 
 Shippable here: read only, no accounts, no database, but properly indexed.
 
-## Lot 4, identity and offline fallback
+## Lot 4, identity and writing
 
 - [ ] NIP-07 and NIP-46 login
-- [ ] `clientLoader` fallback to relays when the server is unreachable
-- [ ] Static build target (`ssr: false`), service worker, app shell
-- [ ] Publish to nsite, so the app survives without any server at all
-
-## Lot 5, writing
-
 - [ ] Editor, publishing kind 30817
 - [ ] NIP-37 encrypted drafts
 - [ ] Forks, NIP-22 comments, NIP-32 approvals, NIP-84 highlights
 
-## Lot 6, the backend
+## Lot 5, the backend
 
 - [ ] Postgres, Drizzle, raw events stored as jsonb next to parsed projections
 - [ ] Relay indexer, loaders reading from Postgres instead of relays

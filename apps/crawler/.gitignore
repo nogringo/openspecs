@@ -1,0 +1,6 @@
+# https://dart.dev/tools/private-files
+# Created by `dart pub`
+.dart_tool/
+
+# Cache and sync state of a local run
+.crawler/
