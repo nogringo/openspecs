@@ -103,6 +103,8 @@ export const CommentThread = ({
               response={responses[comment.id] ?? NO_RESPONSE}
               me={me}
               target={{ id: comment.id, pubkey: comment.pubkey, kind: COMMENT_KIND }}
+              author={author}
+              name={authorName(author, npub)}
             />
             {me !== null && !replying && (
               <button

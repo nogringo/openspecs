@@ -86,6 +86,20 @@ export {
   tallyReactions,
 } from "./nip25";
 export {
+  callWallet,
+  clearWalletInfoCache,
+  fetchWalletInfo,
+  type PaidInvoice,
+  parseWalletConnect,
+  payInvoice,
+  pickEncryption,
+  WALLET_REQUEST_KIND,
+  WALLET_RESPONSE_KIND,
+  type WalletConnection,
+  WalletError,
+  type WalletInfo,
+} from "./nip47";
+export {
   buildZapRequest,
   parseZapReceipt,
   parseZapRequest,

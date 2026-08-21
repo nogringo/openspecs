@@ -8,8 +8,11 @@ import {
 import { useState } from "react";
 import type { Response } from "~/lib/discussion";
 import { addToDiscussion } from "~/lib/discussion";
+import type { Author } from "~/lib/profile";
 import { signAndPublish } from "~/lib/publish";
 import { writeRelays } from "~/lib/relays";
+import { canBeZapped } from "~/lib/zap";
+import { ZapDialog } from "./zap-dialog";
 
 /** A reaction is a symbol. What arrives is whatever a client put in `content`. */
 const MAX_SYMBOL = 16;
@@ -38,6 +41,9 @@ export type TallyProps = {
   me?: string | null;
   /** What a reaction would be about. Absent while the page is still loading. */
   target?: ReactionTarget | null;
+  /** Who would be paid, and what they are called. Absent when nobody can be. */
+  author?: Author | null;
+  name?: string;
 };
 
 /**
@@ -46,11 +52,21 @@ export type TallyProps = {
  * says how many. Your own reaction is marked by the border rather than by a
  * colour, since the colours here mean a status a document has.
  */
-export const Tally = ({ response, me = null, target = null }: TallyProps) => {
+export const Tally = ({
+  response,
+  me = null,
+  target = null,
+  author = null,
+  name = "",
+}: TallyProps) => {
   const [open, setOpen] = useState(false);
+  const [zapping, setZapping] = useState(false);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const canReact = me !== null && target !== null;
+  // Offered only to somebody who can be paid: a button that fails after three
+  // clicks and a signature is worse than no button.
+  const canZap = canReact && canBeZapped(author);
 
   const react = async (symbol: string) => {
     if (!canReact || busy) return;
@@ -97,10 +113,35 @@ export const Tally = ({ response, me = null, target = null }: TallyProps) => {
         );
       })}
 
-      {response.zapSats > 0 && (
-        <span className={`${CHIP} border-rule`} title={`${sats(response.zapSats)} satoshis zapped`}>
-          <span aria-hidden="true">⚡</span>
-          <span className="text-muted">{sats(response.zapSats)}</span>
+      {(response.zapSats > 0 || canZap) && (
+        <span className="relative">
+          <button
+            type="button"
+            disabled={!canZap}
+            onClick={() => setZapping(!zapping)}
+            title={canZap ? `Zap ${name || "them"}` : `${sats(response.zapSats)} satoshis zapped`}
+            className={`${CHIP} border-rule ${canZap ? "hover:border-muted hover:text-ink" : "cursor-default"}`}
+          >
+            <span aria-hidden="true">⚡</span>
+            {response.zapSats > 0 && <span className="text-muted">{sats(response.zapSats)}</span>}
+          </button>
+
+          {zapping && me !== null && author !== null && target !== null && (
+            <span className="absolute left-0 top-full z-10 mt-1 block w-[min(20rem,calc(100vw-3rem))] rounded-sm border border-rule bg-paper p-3 normal-case tracking-normal shadow-sm">
+              <ZapDialog
+                me={me}
+                author={author}
+                name={name || "them"}
+                target={{
+                  pubkey: target.pubkey,
+                  eventId: target.id,
+                  coordinate: target.coordinate ?? null,
+                  kind: target.kind,
+                }}
+                onDone={() => setZapping(false)}
+              />
+            </span>
+          )}
         </span>
       )}
 

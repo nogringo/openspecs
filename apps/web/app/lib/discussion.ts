@@ -126,6 +126,15 @@ const responseTo = (discussion: Discussion, target: Target): Response => ({
   zapSats: totalSats(discussion.zaps.filter((zap) => answers(zap, target))),
 });
 
+/**
+ * Every invoice a receipt in this conversation says was paid. A page that handed
+ * one out learns here that it was settled, without asking anybody's server and
+ * without the reader telling it anything: the receipt names the invoice.
+ */
+let paid = new Set<string>();
+
+export const invoicePaid = (invoice: string): boolean => paid.has(invoice.trim().toLowerCase());
+
 /** The state to draw, and the reaction ids the next pass has to ask about. */
 type Recomputed = { state: DiscussionState; reactions: string[] };
 
@@ -142,6 +151,8 @@ const recompute = (): Recomputed => {
     ...scope,
     threadIds: new Set(named.comments.map((comment) => comment.id)),
   });
+
+  paid = new Set(discussion.zaps.map((zap) => zap.bolt11.trim().toLowerCase()));
 
   const byComment: Record<string, Response> = {};
   for (const comment of discussion.comments) {
@@ -335,6 +346,7 @@ export const clearDiscussion = (): void => {
   close();
   events = new Map();
   asked = new Set();
+  paid = new Set();
   pointer = null;
   listed = false;
   settled = false;

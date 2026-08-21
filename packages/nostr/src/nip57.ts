@@ -57,6 +57,8 @@ export type ZapReceipt = {
   pubkey: string;
   createdAt: number;
   amountSats: number;
+  /** The invoice that was paid, which is what ties a receipt to a handed out one. */
+  bolt11: string;
   /** Who paid, read from the request the server echoed back. */
   zapper: string | null;
   recipient: string | null;
@@ -106,6 +108,7 @@ export const parseZapReceipt = (input: unknown): ZapReceipt | null => {
     pubkey: event.pubkey,
     createdAt: event.created_at,
     amountSats,
+    bolt11,
     zapper: request?.pubkey ?? (tagValue(event, "P") || null),
     recipient: tagValue(event, "p") || null,
     comment: (request?.content ?? "").trim(),

@@ -15,6 +15,7 @@ import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure
 import {
   clearDiscussion,
   discussionState,
+  invoicePaid,
   startDiscussion,
   subscribeDiscussionState,
 } from "./discussion";
@@ -178,6 +179,58 @@ describe("what the record waits for", () => {
     await vi.advanceTimersByTimeAsync(5000);
     expect(discussionState().status).toBe("ready");
     expect(discussionState().count).toBe(1);
+  });
+});
+
+/**
+ * An invoice paid on a phone tells this page nothing. The receipt does, and it
+ * names the invoice it settles, which is how a dialog holding a QR learns that
+ * the code across the room was scanned.
+ */
+describe("an invoice this page handed out", () => {
+  const INVOICE = "lnbc210n1pn2s396pp5w7lqvvmqxxwqmqjqxqyjqxqyjqxqyjqxqyjqxqyjqxqyjqxqyjqs";
+
+  const receipt = (bolt11: string) =>
+    finalizeEvent(
+      {
+        kind: 9735,
+        created_at: 30,
+        content: "",
+        tags: [
+          ["p", author],
+          ["a", ROOT.coordinate],
+          ["bolt11", bolt11],
+          ["description", ""],
+        ],
+      },
+      readerKey,
+    );
+
+  it("is not settled until a receipt says so", async () => {
+    startDiscussion(POINTER);
+    main.eose();
+    await vi.advanceTimersByTimeAsync(600);
+    expect(invoicePaid(INVOICE)).toBe(false);
+  });
+
+  it("is settled by the receipt that names it", async () => {
+    startDiscussion(POINTER);
+    main.send(receipt(INVOICE));
+    main.eose();
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(invoicePaid(INVOICE)).toBe(true);
+    // However it was written down on the way through.
+    expect(invoicePaid(` ${INVOICE.toUpperCase()} `)).toBe(true);
+  });
+
+  it("is not settled by a receipt for somebody else's invoice", async () => {
+    startDiscussion(POINTER);
+    main.send(receipt(INVOICE.replace("lnbc210n", "lnbc420n")));
+    main.eose();
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(invoicePaid(INVOICE)).toBe(false);
   });
 });
 

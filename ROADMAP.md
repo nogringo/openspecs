@@ -53,10 +53,12 @@ Shippable here: read only, no accounts, no database, but properly indexed.
 
 ## Lot 4, identity and writing
 
-- [ ] NIP-07 and NIP-46 login
+- [x] NIP-07, NIP-46 and a key on this device, kept under a PIN when asked for
+- [x] NIP-22 comments and replies, NIP-25 reactions with NIP-09 retraction
+- [x] NIP-57 zaps, over WebLN, NIP-47 or an invoice the reader carries
 - [ ] Editor, publishing kind 30817
 - [ ] NIP-37 encrypted drafts
-- [ ] Forks, NIP-22 comments, NIP-32 approvals, NIP-84 highlights
+- [ ] Forks, NIP-32 approvals, NIP-84 highlights
 
 ## Lot 5, the backend
 

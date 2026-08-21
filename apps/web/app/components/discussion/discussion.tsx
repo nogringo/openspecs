@@ -1,4 +1,4 @@
-import { type CommentNode, SPEC_KIND } from "@openspecs/nostr";
+import { type CommentNode, SPEC_KIND, toNpub } from "@openspecs/nostr";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import {
   discussionState,
@@ -8,6 +8,7 @@ import {
   stopDiscussion,
   subscribeDiscussionState,
 } from "~/lib/discussion";
+import { authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import { serverSessionState, sessionState, subscribeSession } from "~/lib/session";
 import { CommentThread } from "./comment";
@@ -104,8 +105,8 @@ export const Discussion = ({
 
   // Only the keys a reader ended up in front of, asked for in one batch.
   useEffect(() => {
-    if (discussion.correspondents.length > 0) wantAuthors(discussion.correspondents);
-  }, [discussion.correspondents]);
+    wantAuthors([pubkey, ...discussion.correspondents]);
+  }, [pubkey, discussion.correspondents]);
 
   // The record of another document is not this one's, and the store holds one at
   // a time: until it has caught up, this page has nothing of its own to draw.
@@ -142,6 +143,8 @@ export const Discussion = ({
           // The coordinate is what a reaction on a document has to carry: it is
           // the half that survives its author editing the text.
           target={{ id: specEventId, pubkey, kind: SPEC_KIND, coordinate }}
+          author={authors[pubkey] ?? null}
+          name={authorName(authors[pubkey] ?? null, toNpub(pubkey))}
         />
       </div>
 
