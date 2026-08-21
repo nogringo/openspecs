@@ -50,8 +50,32 @@ export const EMPTY_DISCUSSION: DiscussionState = Object.freeze({
 /** Often enough to watch a conversation arrive, rarely enough not to rethread on every event. */
 const NOTIFY_MS = 150;
 
+/**
+ * How long a conversation that came back empty is given to prove itself empty.
+ * Relays answer at their own pace and the end of one relay's stored events is
+ * not the end of another's, so a thread that looks empty for a moment is only
+ * one relay having finished first.
+ */
+const QUIET_MS = 500;
+
+/**
+ * And how long the whole record waits before it gives up and shows what it has.
+ * Nothing indexes a deletion by the document it eventually concerns, so a
+ * retraction can only be asked for by the id of what it takes back, one round
+ * trip behind. Showing a comment in between is showing something about to be
+ * taken away, which is the flicker this whole dance exists to avoid.
+ */
+const SETTLE_MS = 4000;
+
 let state = EMPTY_DISCUSSION;
-let status: DiscussionStatus = "idle";
+/** The relays that hold the conversation have said what they hold. */
+let listed = false;
+/** And nothing in it turned out to have been retracted. */
+let settled = false;
+let settling: ReturnType<typeof setTimeout> | null = null;
+let quieting: ReturnType<typeof setTimeout> | null = null;
+/** Second-pass subscriptions that have not said what they hold yet. */
+let awaiting = 0;
 let pointer: DiscussionPointer | null = null;
 let events = new Map<string, NostrEvent>();
 /** Comments a second pass already covers, so widening it asks only about the new ones. */
@@ -102,9 +126,12 @@ const responseTo = (discussion: Discussion, target: Target): Response => ({
   zapSats: totalSats(discussion.zaps.filter((zap) => answers(zap, target))),
 });
 
-const recompute = (): DiscussionState => {
+/** The state to draw, and the reaction ids the next pass has to ask about. */
+type Recomputed = { state: DiscussionState; reactions: string[] };
+
+const recompute = (): Recomputed => {
   const current = pointer;
-  if (current === null) return EMPTY_DISCUSSION;
+  if (current === null) return { state: EMPTY_DISCUSSION, reactions: [] };
 
   const all = [...events.values()];
   const scope = { specEventId: current.specEventId };
@@ -122,42 +149,97 @@ const recompute = (): DiscussionState => {
   }
 
   return {
-    coordinate: current.coordinate,
-    status,
-    roots: threadComments(discussion.comments),
-    count: discussion.comments.length,
-    correspondents: correspondents(discussion.comments),
-    document: responseTo(discussion, {
-      id: current.specEventId,
+    state: {
       coordinate: current.coordinate,
-    }),
-    byComment,
+      // Ready means the record can be read, not that events stopped arriving:
+      // the relays have listed what they hold, and nothing in it was retracted.
+      status: pointer === null ? "idle" : listed && settled ? "ready" : "loading",
+      roots: threadComments(discussion.comments),
+      count: discussion.comments.length,
+      correspondents: correspondents(discussion.comments),
+      document: responseTo(discussion, {
+        id: current.specEventId,
+        coordinate: current.coordinate,
+      }),
+      byComment,
+    },
+    reactions: discussion.reactions.map((reaction) => reaction.id),
   };
 };
 
 /**
  * What a comment was answered with can only be asked for by its id, which only
- * exists once the comment itself has arrived. Every new id opens one more
- * subscription rather than replacing the one running: the relays have already
- * sent what they hold for the ids asked before, and asking again pays for it
- * twice.
+ * exists once the comment itself has arrived. Reactions are asked about too, and
+ * for the same reason: a retraction names the reaction it takes back, so a
+ * reaction nobody asked about is one that can never be seen to have been undone.
+ *
+ * Every new id opens one more subscription rather than replacing the one
+ * running: the relays have already sent what they hold for the ids asked
+ * before, and asking again pays for it twice.
  */
-const askAbout = (nodes: CommentNode[]): void => {
+const askAbout = (state: DiscussionState, reactions: string[]): void => {
   const current = pointer;
   if (current === null) return;
 
   const ids: string[] = [];
+  const want = (id: string) => {
+    if (!asked.has(id)) ids.push(id);
+  };
+
   const walk = (walking: CommentNode[]): void => {
     for (const node of walking) {
-      if (!asked.has(node.comment.id)) ids.push(node.comment.id);
+      want(node.comment.id);
       walk(node.replies);
     }
   };
-  walk(nodes);
+  walk(state.roots);
+  for (const id of reactions) want(id);
 
   if (ids.length === 0) return;
   for (const id of ids) asked.add(id);
-  subscriptions.push(subscribeReferences(current, ids, receive));
+
+  // Until every one of these has answered, nobody knows whether what arrived is
+  // still standing, and a retraction always arrives before the answer that ends
+  // the question: it is one of the things being asked for.
+  if (settled) {
+    subscriptions.push(subscribeReferences(current, ids, receive));
+    return;
+  }
+
+  awaiting += 1;
+  subscriptions.push(
+    subscribeReferences(current, ids, receive, {
+      onEose: () => {
+        awaiting -= 1;
+        if (awaiting === 0) settle();
+      },
+    }),
+  );
+};
+
+/** Nothing left to learn about what has arrived, so the record can be read. */
+function settle(): void {
+  if (settled) return;
+  settled = true;
+  for (const pending of [settling, quieting]) if (pending !== null) clearTimeout(pending);
+  settling = null;
+  quieting = null;
+  publish();
+}
+
+/**
+ * A conversation with nothing in it has nothing to ask a second question about,
+ * so it would otherwise wait out the whole deadline. This settles it once the
+ * relays have gone quiet, and restarts on every event, so the moment anything
+ * does arrive the second pass takes over the waiting.
+ */
+const settleWhenQuiet = (): void => {
+  if (settled) return;
+  if (quieting !== null) clearTimeout(quieting);
+  quieting = setTimeout(() => {
+    quieting = null;
+    if (listed && awaiting === 0) settle();
+  }, QUIET_MS);
 };
 
 const publish = (): void => {
@@ -165,8 +247,9 @@ const publish = (): void => {
     clearTimeout(timer);
     timer = null;
   }
-  state = recompute();
-  askAbout(state.roots);
+  const next = recompute();
+  state = next.state;
+  askAbout(state, next.reactions);
   notify();
 };
 
@@ -181,6 +264,7 @@ const publishSoon = (): void => {
 function receive(event: NostrEvent): void {
   if (events.has(event.id)) return;
   events.set(event.id, event);
+  settleWhenQuiet();
   publishSoon();
 }
 
@@ -202,13 +286,25 @@ export const startDiscussion = (next: DiscussionPointer): void => {
   close();
   if (pointer?.coordinate !== next.coordinate) {
     events = new Map();
-    status = "loading";
-    state = { ...EMPTY_DISCUSSION, coordinate: next.coordinate, status };
+    state = { ...EMPTY_DISCUSSION, coordinate: next.coordinate, status: "loading" };
   }
   // Cleared even when the events are kept: the subscriptions watching these ids
   // were just closed, and nothing would reopen them.
   asked = new Set();
+  listed = false;
+  settled = false;
+  awaiting = 0;
   pointer = next;
+
+  // A relay that never answers must not be able to keep the record hidden.
+  for (const pending of [settling, quieting]) if (pending !== null) clearTimeout(pending);
+  quieting = null;
+  settling = setTimeout(() => {
+    settling = null;
+    settled = true;
+    publish();
+  }, SETTLE_MS);
+
   notify();
 
   subscriptions.push(
@@ -216,13 +312,21 @@ export const startDiscussion = (next: DiscussionPointer): void => {
       onEose: () => {
         // Said once, by the relays that held the conversation already. The
         // author's own join the subscription later and announce nothing.
-        status = "ready";
+        listed = true;
         publish();
+        settleWhenQuiet();
       },
     }),
   );
   publish();
 };
+
+/**
+ * An event this browser just published, shown before any relay has echoed it
+ * back. The subscription delivers the same event moments later and drops it as a
+ * duplicate, so this is a head start rather than a second copy.
+ */
+export const addToDiscussion = (event: NostrEvent): void => receive(event);
 
 export const stopDiscussion = (): void => close();
 
@@ -232,8 +336,12 @@ export const clearDiscussion = (): void => {
   events = new Map();
   asked = new Set();
   pointer = null;
-  status = "idle";
-  if (timer !== null) clearTimeout(timer);
+  listed = false;
+  settled = false;
+  awaiting = 0;
+  for (const pending of [timer, settling, quieting]) if (pending !== null) clearTimeout(pending);
   timer = null;
+  settling = null;
+  quieting = null;
   state = EMPTY_DISCUSSION;
 };

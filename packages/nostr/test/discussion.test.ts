@@ -133,6 +133,38 @@ describe("sortDiscussion", () => {
     const comment = sign(buildComment({ root: ROOT, content: "once" }));
     expect(sortDiscussion([comment, comment], ROOT.coordinate).comments).toHaveLength(1);
   });
+
+  describe("a comment somebody took back", () => {
+    const comment = sign(buildComment({ root: ROOT, content: "said in haste" }), readerKey);
+
+    const deletion = (key: Uint8Array) =>
+      sign(
+        {
+          kind: 5,
+          content: "",
+          tags: [
+            ["e", comment.id],
+            ["k", "1111"],
+          ],
+        },
+        key,
+      );
+
+    /** Relays are not required to honour a kind 5, and a page is not required to wait. */
+    it("is dropped, whether or not the relays honoured it", () => {
+      expect(sortDiscussion([comment, deletion(readerKey)], ROOT.coordinate).comments).toEqual([]);
+    });
+
+    it("stays when the request came from somebody else", () => {
+      expect(sortDiscussion([comment, deletion(authorKey)], ROOT.coordinate).comments).toHaveLength(
+        1,
+      );
+    });
+
+    it("is dropped whichever order the two arrived in", () => {
+      expect(sortDiscussion([deletion(readerKey), comment], ROOT.coordinate).comments).toEqual([]);
+    });
+  });
 });
 
 describe("the author's own relays", () => {

@@ -82,6 +82,7 @@ export {
   type Reaction,
   type ReactionTally,
   type ReactionTarget,
+  retractions,
   tallyReactions,
 } from "./nip25";
 export {

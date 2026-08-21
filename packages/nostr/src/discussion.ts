@@ -9,6 +9,7 @@ import {
   parseReaction,
   REACTION_KIND,
   type Reaction,
+  retractions,
 } from "./nip25";
 import { parseZapReceipt, ZAP_RECEIPT_KIND, type ZapReceipt } from "./nip57";
 import { fetchRelayList, type RelayListOptions } from "./nip65";
@@ -146,7 +147,16 @@ export const sortDiscussion = (
     }
   }
 
-  return { comments, reactions, zaps, deletions };
+  // A comment its own author asked to be forgotten is not shown, whether or not
+  // the relays honoured the request: a reader who took their words back has
+  // said so, and only the pages that ignore them keep them up.
+  const retracted = retractions(deletions);
+  return {
+    comments: comments.filter((comment) => !retracted.get(comment.id)?.has(comment.pubkey)),
+    reactions,
+    zaps,
+    deletions,
+  };
 };
 
 export type DiscussionPointer = {
@@ -281,12 +291,18 @@ export const subscribeDiscussion = (
   return subscription;
 };
 
-/** The same, for the ids that only exist once the first events have arrived. */
+/**
+ * The same, for the ids that only exist once the first events have arrived.
+ *
+ * Its end of stored events is worth knowing: it is the moment a caller learns
+ * that none of these ids were retracted, which is the difference between showing
+ * a comment and showing one that is about to be taken away again.
+ */
 export const subscribeReferences = (
   pointer: DiscussionPointer,
   ids: string[],
   onEvent: (event: NostrEvent) => void,
-  options: DiscussionOptions = {},
+  options: DiscussionOptions & { onEose?: () => void } = {},
 ): DiscussionSubscription => {
   const filters = referenceFilters(ids);
   const known = relaysFor(pointer, options);

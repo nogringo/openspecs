@@ -1,13 +1,14 @@
 import { renderMarkdown } from "@openspecs/markdown";
-import type { CommentNode } from "@openspecs/nostr";
-import { authorPath, toNpub } from "@openspecs/nostr";
-import { useEffect, useMemo } from "react";
+import type { CommentNode, CommentRoot } from "@openspecs/nostr";
+import { authorPath, COMMENT_KIND, toNpub } from "@openspecs/nostr";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { NO_RESPONSE, type Response } from "~/lib/discussion";
 import { mentionedKeys, mentionResolver } from "~/lib/mention";
 import { type Authors, authorName } from "~/lib/profile";
 import { wantAuthors } from "~/lib/profiles";
+import { Composer } from "./composer";
 import { Tally } from "./tally";
 
 /**
@@ -56,10 +57,22 @@ export type CommentProps = {
   node: CommentNode;
   authors: Authors;
   responses: Record<string, Response>;
+  /** The document this thread hangs from, which stays the root of every reply. */
+  root: CommentRoot;
+  /** Null when nobody is signed in: the thread is then a record and not a form. */
+  me?: string | null;
   depth?: number;
 };
 
-export const CommentThread = ({ node, authors, responses, depth = 0 }: CommentProps) => {
+export const CommentThread = ({
+  node,
+  authors,
+  responses,
+  root,
+  me = null,
+  depth = 0,
+}: CommentProps) => {
+  const [replying, setReplying] = useState(false);
   const { comment } = node;
   const npub = toNpub(comment.pubkey);
   const author = authors[comment.pubkey] ?? null;
@@ -85,9 +98,35 @@ export const CommentThread = ({ node, authors, responses, depth = 0 }: CommentPr
 
           <Body content={comment.content} authors={authors} />
 
-          <div className="mt-3">
-            <Tally response={responses[comment.id] ?? NO_RESPONSE} />
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Tally
+              response={responses[comment.id] ?? NO_RESPONSE}
+              me={me}
+              target={{ id: comment.id, pubkey: comment.pubkey, kind: COMMENT_KIND }}
+            />
+            {me !== null && !replying && (
+              <button
+                type="button"
+                onClick={() => setReplying(true)}
+                className="rounded-sm border border-rule px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink"
+              >
+                Reply
+              </button>
+            )}
           </div>
+
+          {me !== null && replying && (
+            <div className="mt-4">
+              <Composer
+                me={me}
+                root={root}
+                parent={{ id: comment.id, pubkey: comment.pubkey }}
+                authors={authors}
+                onSent={() => setReplying(false)}
+                onCancel={() => setReplying(false)}
+              />
+            </div>
+          )}
 
           {node.replies.length > 0 && (
             <div className={depth < MAX_DEPTH ? SPINE : "mt-6 space-y-6"}>
@@ -97,6 +136,8 @@ export const CommentThread = ({ node, authors, responses, depth = 0 }: CommentPr
                   node={reply}
                   authors={authors}
                   responses={responses}
+                  root={root}
+                  me={me}
                   depth={Math.min(depth + 1, MAX_DEPTH)}
                 />
               ))}

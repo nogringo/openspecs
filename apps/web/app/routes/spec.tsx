@@ -328,6 +328,7 @@ export default function Spec({ loaderData }: Route.ComponentProps) {
             <Discussion
               coordinate={toCoordinate(spec)}
               specEventId={spec.eventId}
+              pubkey={spec.pubkey}
               relays={discussion}
               revisedAt={spec.revisedAt > spec.publishedAt ? spec.revisedAt : null}
             />

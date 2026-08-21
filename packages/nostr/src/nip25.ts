@@ -114,6 +114,23 @@ export const parseDeletion = (input: unknown): Deletion | null => {
   return ids.length === 0 ? null : { pubkey: parsed.data.pubkey, ids };
 };
 
+/**
+ * Who asked for what to be forgotten. A kind 5 naming somebody else's event is a
+ * request nobody has to honour, so the author is kept alongside the id and the
+ * two are checked together.
+ */
+export const retractions = (deletions: Deletion[]): Map<string, Set<string>> => {
+  const asked = new Map<string, Set<string>>();
+  for (const deletion of deletions) {
+    for (const id of deletion.ids) {
+      const authors = asked.get(id) ?? new Set<string>();
+      authors.add(deletion.pubkey);
+      asked.set(id, authors);
+    }
+  }
+  return asked;
+};
+
 export type ReactionTally = {
   symbol: string;
   emojiUrl: string | null;
@@ -131,15 +148,7 @@ export const tallyReactions = (
   reactions: Reaction[],
   deletions: Deletion[] = [],
 ): ReactionTally[] => {
-  const retracted = new Map<string, Set<string>>();
-  for (const deletion of deletions) {
-    for (const id of deletion.ids) {
-      const authors = retracted.get(id) ?? new Set<string>();
-      authors.add(deletion.pubkey);
-      retracted.set(id, authors);
-    }
-  }
-
+  const retracted = retractions(deletions);
   const newest = new Map<string, Reaction>();
   for (const reaction of reactions) {
     if (retracted.get(reaction.id)?.has(reaction.pubkey)) continue;

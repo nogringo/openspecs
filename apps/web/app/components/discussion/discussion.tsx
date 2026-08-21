@@ -1,4 +1,4 @@
-import type { CommentNode } from "@openspecs/nostr";
+import { type CommentNode, SPEC_KIND } from "@openspecs/nostr";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import {
   discussionState,
@@ -9,7 +9,9 @@ import {
   subscribeDiscussionState,
 } from "~/lib/discussion";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
+import { serverSessionState, sessionState, subscribeSession } from "~/lib/session";
 import { CommentThread } from "./comment";
+import { Composer } from "./composer";
 import { Tally } from "./tally";
 
 export const DISCUSSION_ID = "discussion";
@@ -62,13 +64,25 @@ const RevisionLine = ({ revisedAt }: { revisedAt: number }) => (
 export type DiscussionProps = {
   coordinate: string;
   specEventId: string;
+  /** The document's author, who is the root scope of every comment here. */
+  pubkey: string;
   /** The document author's own relays, resolved by the loader. */
   relays: string[];
   /** When the document was last edited, or null if it never was. */
   revisedAt: number | null;
 };
 
-export const Discussion = ({ coordinate, specEventId, relays, revisedAt }: DiscussionProps) => {
+export const Discussion = ({
+  coordinate,
+  specEventId,
+  pubkey,
+  relays,
+  revisedAt,
+}: DiscussionProps) => {
+  const session = useSyncExternalStore(subscribeSession, sessionState, serverSessionState);
+  const me = session.pubkey;
+  const root = { coordinate, pubkey };
+
   // The loader hands over a fresh array on every revalidation, and an array is
   // never equal to the one before it, so what the effect watches is its content.
   const relayKey = relays.join(" ");
@@ -96,7 +110,14 @@ export const Discussion = ({ coordinate, specEventId, relays, revisedAt }: Discu
   // The record of another document is not this one's, and the store holds one at
   // a time: until it has caught up, this page has nothing of its own to draw.
   const mine = discussion.coordinate === coordinate;
-  const roots = mine ? discussion.roots : [];
+  /**
+   * Drawn once the record stands, not as it arrives. A retraction can only be
+   * asked for by the id of what it takes back, so it always lands one round trip
+   * behind: showing the conversation before then means showing comments and
+   * reactions that vanish a moment later.
+   */
+  const ready = mine && discussion.status === "ready";
+  const roots = ready ? discussion.roots : [];
   /** Nothing has been asked of any relay yet: this is what the server renders. */
   const waiting = !mine || discussion.status === "idle";
 
@@ -106,7 +127,7 @@ export const Discussion = ({ coordinate, specEventId, relays, revisedAt }: Discu
   return (
     <section id={DISCUSSION_ID} className="mt-16 border-t border-rule pt-8">
       <Heading />
-      {mine && discussion.count > 0 && (
+      {ready && discussion.count > 0 && (
         <Docket
           count={discussion.count}
           correspondents={discussion.correspondents.length}
@@ -115,7 +136,23 @@ export const Discussion = ({ coordinate, specEventId, relays, revisedAt }: Discu
       )}
 
       <div className="mt-5">
-        <Tally response={mine ? discussion.document : NO_RESPONSE} />
+        <Tally
+          response={ready ? discussion.document : NO_RESPONSE}
+          me={me}
+          // The coordinate is what a reaction on a document has to carry: it is
+          // the half that survives its author editing the text.
+          target={{ id: specEventId, pubkey, kind: SPEC_KIND, coordinate }}
+        />
+      </div>
+
+      <div className="mt-6">
+        {me === null ? (
+          <p className="font-serif text-[0.9375rem] leading-relaxed text-muted">
+            Connect a key to comment.
+          </p>
+        ) : (
+          <Composer me={me} root={root} authors={authors} />
+        )}
       </div>
 
       {roots.length === 0 ? (
@@ -140,6 +177,8 @@ export const Discussion = ({ coordinate, specEventId, relays, revisedAt }: Discu
               node={node}
               authors={authors}
               responses={discussion.byComment}
+              root={root}
+              me={me}
             />
           ))}
           {before.length > 0 && after.length > 0 && revisedAt !== null && (
@@ -151,6 +190,8 @@ export const Discussion = ({ coordinate, specEventId, relays, revisedAt }: Discu
               node={node}
               authors={authors}
               responses={discussion.byComment}
+              root={root}
+              me={me}
             />
           ))}
         </div>
