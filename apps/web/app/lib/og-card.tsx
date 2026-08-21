@@ -1,5 +1,5 @@
 import { oklchToHex } from "./color";
-import { keyMarkCells, keyMarkHue } from "./key-mark";
+import { KEY_MARK_GRID, keyMarkCells, keyMarkHue } from "./key-mark";
 import { type Author, shortNpub } from "./profile";
 import type { SpecPage } from "./specs.server";
 
@@ -11,7 +11,7 @@ export const OG_HEIGHT = 630;
  * describes, but it depends just as much on the drawing: without this, a palette
  * or a layout fixed today would keep serving yesterday's picture forever.
  */
-export const CARD_VERSION = 3;
+export const CARD_VERSION = 4;
 
 /**
  * The light palette of app.css, written out: this tree is rendered by satori,
@@ -34,6 +34,34 @@ const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString
 const drawable = (text: string, max = 28): string => {
   const kept = text.replace(/[^\p{Script=Latin}\p{N}\p{P}\p{Zs}]/gu, "").trim();
   return kept.length >= 2 ? clamp(kept, max) : "";
+};
+
+/**
+ * The picture arrives as bytes the loader already read, never as a URL: satori
+ * would fetch a URL itself, on a request an unfurler is waiting on. The mark is
+ * what every author has, so it is what stands in when there are no bytes.
+ */
+const Face = ({
+  pubkey,
+  picture,
+  cell,
+}: {
+  pubkey: string;
+  picture: string | null;
+  cell: number;
+}) => {
+  const size = cell * KEY_MARK_GRID;
+  return picture === null ? (
+    <Mark pubkey={pubkey} cell={cell} />
+  ) : (
+    <img
+      src={picture}
+      alt=""
+      width={size}
+      height={size}
+      style={{ width: size, height: size, borderRadius: cell / 2, objectFit: "cover" }}
+    />
+  );
 };
 
 const Mark = ({ pubkey, cell = 12 }: { pubkey: string; cell?: number }) => {
@@ -61,7 +89,6 @@ const Mark = ({ pubkey, cell = 12 }: { pubkey: string; cell?: number }) => {
   );
 };
 
-/** No picture: satori fetches a remote one itself, with no timeout this code can hold it to. */
 const Signature = ({ spec, author }: { spec: SpecPage; author: Author | null }) => {
   const name = drawable(author?.name ?? "");
   return (
@@ -77,7 +104,15 @@ const Signature = ({ spec, author }: { spec: SpecPage; author: Author | null }) 
  * link says the same things the page does: what the document is, who signed it,
  * and when.
  */
-export const OgCard = ({ spec, author }: { spec: SpecPage; author: Author | null }) => (
+export const OgCard = ({
+  spec,
+  author,
+  picture,
+}: {
+  spec: SpecPage;
+  author: Author | null;
+  picture: string | null;
+}) => (
   <div
     style={{
       width: OG_WIDTH,
@@ -149,7 +184,7 @@ export const OgCard = ({ spec, author }: { spec: SpecPage; author: Author | null
         color: MUTED,
       }}
     >
-      <Mark pubkey={spec.pubkey} />
+      <Face pubkey={spec.pubkey} picture={picture} cell={12} />
       <Signature spec={spec} author={author} />
       <div style={{ display: "flex", flexGrow: 1 }} />
       <div style={{ display: "flex" }}>{asDate(spec.publishedAt)}</div>
@@ -162,14 +197,12 @@ export type OgAuthor = {
   npub: string;
   name: string;
   about: string;
+  /** The picture as bytes, read by the loader rather than by the renderer. */
+  picture: string | null;
   count: number;
 };
 
-/**
- * One card, one author. The mark is drawn rather than the profile picture: the
- * picture lives on whatever host the author named, and satori would fetch it
- * with no timeout this code can hold it to.
- */
+/** One card, one author: their face, their name and the size of their shelf. */
 export const OgAuthorCard = ({ author }: { author: OgAuthor }) => {
   const name = drawable(author.name);
   const about = drawable(author.about, 118);
@@ -201,7 +234,7 @@ export const OgAuthorCard = ({ author }: { author: OgAuthor }) => {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 36, marginTop: 64 }}>
-        <Mark pubkey={author.pubkey} cell={24} />
+        <Face pubkey={author.pubkey} picture={author.picture} cell={24} />
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {name !== "" && (
             <div style={{ display: "flex", fontSize: 62, fontWeight: 500, lineClamp: 1 }}>

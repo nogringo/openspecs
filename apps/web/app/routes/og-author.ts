@@ -30,7 +30,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   };
 
   // Copied out of the renderer's memory, which WebAssembly is free to reuse.
-  return new Response(new Uint8Array(await authorOgImage(card, author?.updatedAt ?? 0)), {
+  return new Response(new Uint8Array(await authorOgImage(card, author)), {
     headers: {
       "Content-Type": "image/png",
       // Redrawn as soon as the profile or the shelf changes, since both are in
