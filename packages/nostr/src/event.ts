@@ -16,6 +16,12 @@ export const nostrEventSchema = z.object({
 
 export type NostrEvent = z.infer<typeof nostrEventSchema>;
 
+/**
+ * An event before anyone signed it. `created_at` is left to whoever publishes
+ * it, so the moment stamped on an event is the moment it was actually sent.
+ */
+export type EventDraft = { kind: number; content: string; tags: string[][] };
+
 export const firstTag = (event: NostrEvent, name: string): string[] | undefined =>
   event.tags.find((tag) => tag[0] === name);
 

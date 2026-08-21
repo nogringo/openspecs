@@ -1,0 +1,137 @@
+{
+  "source": "kind 1111, 7 and 9735 events collected from public relays",
+  "collectedAt": "2026-08-21",
+  "cases": {
+    "thread": {
+      "note": "the busiest thread found, 25 comments on 30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+      "ids": [
+        "5f1a42559bced0a2dc781b39b084ca237fa31a5eb1766c68b8f836749284efc5",
+        "b647e9e017df8ac942ccb2fc13fa2ae214df60917e55a397b60932aac9939b26",
+        "379e18973a989b5c52db2639908194956f4221f92f88ed9c720631e331ad0f99",
+        "f16f9b803fcf32439d3dc96855507de4a34d8b39b00f90df8649658ff8dbf8eb",
+        "68229d9a89e7c87894650683904d89749ab9b77e829b640f68087c12b0f50249",
+        "8ff24e7eec875074e44bfcee0fd54044f92b7ee57b1cf0c112a368b39d724e39",
+        "199bc73a0fb008f72688fd5325c688e0722708412ee62ab1bdcc2df7829b2c57",
+        "5cc3c870f6e1bc2a6c919a6335a7217bb1bda7b3861722a048764763b1838b5e",
+        "4adf1f38001b4e3b7e8e4f3a1bb335a53b91b6761ec18884aa162254c980c2c5",
+        "17fa9bd968ef4b70b019150f1bce3313f1176573d10152bd538ef8ce8a15226b",
+        "752acea5223c71f9846ef08db79dcb1d1e4fbe8004c5e80c2ef7a8faef479d54",
+        "19d6c7867831b45fab0a4714b2834e1c71ed022663081a639fabc25ea19f9f8e",
+        "2fd6f6d14af558e2283f4fb602cef4579e4df253b738cf90e71e5abbda59bb47",
+        "000003b556500965657f30914867f17b435e4e4ac775e56c363e2ba802e32093",
+        "577625387476c39c10ed87180d9e7231ad4e1e72c0c7709c920c4ce888e0b33a",
+        "2aa082a4723a12eb22038ead77bfbbc67b08e49f16d9a2e590ebb9eb4e62b29b",
+        "05e47d389ab1b960db110f15111150c764906344a47b14ed0869cc97c3375336",
+        "8e63eea6cd12bb0094d4efe1f479a14d668a261c189d4dc294351d46752b99ff",
+        "23d04eff8c324660abfd444b4280b16373800c07317d7fe50723d4293ff2336a",
+        "afddbac3793d4c9c2453e016c0a7d814e558153f60547393408a92a21242334c",
+        "ad8cd589f6ba5aa9cf9d3566d6f93192b35ccf0d94f5c37d5b9d4163f62940cc",
+        "3063bc9e5f9cbe838d5f296c14e85ea5aefd12c632a3065b6da100b317d450ea",
+        "53c383454b04756646a8fb2e5307b667ef46fa09182f93efb0ced68bf18fa720",
+        "e10c27d03f6029b05d136c3bd4a80b10b84053bf4bb8d2ba7fec5bca5cd2213d",
+        "7855b7f6ba3a5ad2a1e88e44f591d3251dea7c17fd83ee66913d48cc02f438e0"
+      ]
+    },
+    "nostrhub-top-level": {
+      "note": "nostrhub.io, the shape both sites agree on: A/K/P and a/k/p all on the document",
+      "ids": [
+        "290d12e8615ee1f81b7f9f547d4a0396fe5407d3a182f06fe93ced3914185207",
+        "04df2839c622e5c340c7deac5441d215245b3f8479055224c7a5a33de11da93b",
+        "4980c83e7f0ac6ce421bf7839dd33232111a5eaec58b0c4cdf9aaebf2bed4c26",
+        "8bdcb121f52276a1e925f8909b6997f3a4bd8b9b56d00b6b17dd69d7328e67be",
+        "b8cb51564bbce9786567d68c5da5071d9a1ca94a861184a27fafee9d948582b3",
+        "2e7b45d55b65f472c1062d56f632c198651e9d805b7d599cd2436453005b5511"
+      ]
+    },
+    "nostrhub-reply": {
+      "note": "nostrhub.io reply: the root stays the document, e/k/p move to the parent comment",
+      "ids": [
+        "b6e645d55f65792b6b055f35e9727c4a4116c8cd700437146ac5cea4525af398",
+        "48cfdda05242abba7bb7de8c93543e2aba76754b58c73b08ebf3eefbb1f1da88",
+        "722a3ed3b9ae2ac3c0ca07a31b2182df88b1f5d458eaedc275177189a90667e8",
+        "0f824c6459b0f3b9ab91a462882a61c8b4e947bbbd6a369bc54c3c425abba02f",
+        "dd07faa8d15120413542afd2da75e36208337c6b6268742c4de0dd3722ad3992",
+        "c7fb5190a84f304d1f378dbf345547bc6ccc2f638572887c1242fa2473231a0c"
+      ]
+    },
+    "better-nips": {
+      "note": "better-nips, which documents nostrhub's conventions and matches them",
+      "ids": [
+        "fd15c6ad0598a5732fc0b39f9cde274d3ce81236f4580a8b8bb8ddccd351ab15",
+        "daaba275358fbd2e0295f51f8681afd123123ec7aea6dfa3676f05fd935c2904",
+        "b53605fdbc86eacffb58d13674dc1080e04fa1f61220d9205f513f0e86b927db",
+        "865a50f63924d38bdf03fa895bcfaf8642a701700c9293b7b3250d83d3e7a9c4",
+        "07a11d3c9bd67342c45b47c5584f8b1b79a39ea79c43253362d445e451cc0853",
+        "c291d615ca0bc8e3dbb0e9d0d3ee246ba697b4149396264f77646be998245a31"
+      ]
+    },
+    "amethyst-e-and-E": {
+      "note": "Amethyst repeats its E root in e, so a top level comment looks like a reply",
+      "ids": [
+        "c9db05734763f7c1269865bb399e53f71696d7373b188451f69c22b93dd68efe",
+        "3054a533f0a0f4bec2bdf7f78c4139da3273aeb30b7ddeb85ec3faa8c4ef12f0",
+        "8736eb8a24b62cce1467b77d7ed416410081878c6bdb1c1ed035dff50819222b",
+        "7dda30aa2fbd1e1e87a69238583164081f042d8844f6d3b86b6aa0ee2f872f3a",
+        "8fbb92ed70e009fa9ee7d5ef901769f4010ef24cb4f30586020ec632a83b3a77",
+        "06462c85c25de0c60d77bc73f137b4c4a259a07f1afd3f2a5adcfe35d748780c"
+      ]
+    },
+    "e-pointing-at-the-document": {
+      "note": "an e tag alongside k: 30817, which names the document as the parent, not a comment",
+      "ids": [
+        "ccbd190a53bc3e9112fa9eff03675f6040d17e913bb5bac988edfd7469e234fe"
+      ]
+    },
+    "other-clients": {
+      "note": "imwald, Ditto, jumble, noStrudel and the clients that sign no client tag at all",
+      "ids": [
+        "4d0fb0b2970dd03847f2d263e83eed43eac0724b5d15c126c971f5b21c568755",
+        "d7c248d185308ac566219b269a3a5a429f4c7998339ad941b16de1f73fa1f476",
+        "bb79ea29d940a916c366514da1e0d829e551c70f77d6cc002bdd625b8d2906c5",
+        "b3f15304c3d1bd05ae677cbcdb5a24b3b127b3dc8f46b5ce4d704248a246caba",
+        "fdf8257a2e5740e82dd3d3b51bda4d1894c589bb081935ea9d15172bcf556c80",
+        "46c321c2f34db7b08425bf2a00d6500d9779360cba8fc58f4fd49ad8a50d09f4"
+      ]
+    },
+    "reactions-on-documents": {
+      "note": "kind 7 carrying an a coordinate, which is what survives a revision",
+      "ids": [
+        "25652251fed96e6b7b5d1f1f1493016d32efd392f35cfdf697e7a48a548ed45f",
+        "5dcdc138e339d4f1c28771b29fbe5b3cdc646f29024e66a55edb2bac12b3d004",
+        "448e7190b74b61ebe0b027cb0ff0438db7ad1a9ab220b4c64330f5f2da449b18",
+        "7fbceac6d302f538a3b0e6cf3cba7d8a1d41224bc11902ba38394299a2bf1d93",
+        "249f66f8182aedb59909974dbc3d9286b210dcee3452cc22f40131f54fff3727",
+        "350d9f2c4768d005195c50181909aee529714045c169b523e2c21e088e4633f6",
+        "c39afac4f255e6a6d09e3d0144c02804f7dc2b6e495573e5c783c821783f8043",
+        "6bb3bb73a6f323f812c6bc5c99b8dec1130019db75a1bd759bf4432e6fc6ee96",
+        "b54ae53021a8aa788abcc8f3e1e11e439679c6e6e61a86f1bd2865d26127e997",
+        "d460896bed4cfa7d332226574e25fef9b5bf7c91cd57927e93cee72843b4a705"
+      ]
+    },
+    "reactions-on-comments": {
+      "note": "kind 7 on a comment, which is a regular event and so carries no a",
+      "ids": [
+        "533ff4bbedad6f90d59636e135043e1a25f427b4810c2f875d1e24c654718fb5",
+        "f491a129c374cc0076300bbd577afe1eaa591a5c14a78fd52cebdef5a6c0590f",
+        "44a54bdc1bf1a34ce498805769fb1a80403ac67865126df2503463da1db0b5d2",
+        "97d101b0de3fd56168a4c10653de694b79d5cb36a5da2a6651ffcc1e16b498e1",
+        "fe6d07e6cddf988d0fea31a3a8cabf9910bbfe80f5424f6fa2d31d4dcf78ebcb",
+        "1722647cdaf68f22666d641cc1d378cf0af31b1b42d7c0c7bb140f0fb76d4a36",
+        "26ed39e2b339f072f5a74efe1c54d3feb0a0e8e4ea4056bac0412558ff8830c3",
+        "8ba60634f448a21d25e69a72e81b8be159fdf5904cbb7f65b4eab7b4a93aff1e",
+        "c163b8ff903febdbc3c5f6fc5810342da7579440f3d1a9db782cb235f22192f3",
+        "e24a22ca628d3c041e623cfa8b4764354595fdcf9771085fffac960647337389"
+      ]
+    },
+    "zaps": {
+      "note": "kind 9735 receipts, signed by the recipients' LNURL servers",
+      "ids": [
+        "694494048b33505118103ee5fc81cd84685d9ecc56411ad37c56a783d2e0c499",
+        "f6aa515a319bd6ac56b1d4e36da371d6140edece666bdbaf4188ffba76b82bdc",
+        "9a0a3cf93e6319bb3c8730808f72d01f67c61a0b1696bcf23bbc5ad7b9b1e94e",
+        "8cfa65015aab1ddd358f4e31b000b601cdf85db016c4954b2b5f1bc19aba0228",
+        "7822f2aea56819a4890b147c641990253ed380b3879948fff96685c9975b7e8f"
+      ]
+    }
+  }
+}

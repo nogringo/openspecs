@@ -16,7 +16,37 @@ export {
   type SyncResult,
   syncSpecs,
 } from "./corpus";
-export { allTags, type NostrEvent, nostrEventSchema, SPEC_KIND, tagValue } from "./event";
+export {
+  authorRelays,
+  DISCUSSION_RELAYS,
+  type Discussion,
+  type DiscussionOptions,
+  type DiscussionPointer,
+  type DiscussionSubscription,
+  discussionFilters,
+  EMPTY_DISCUSSION,
+  fetchDiscussion,
+  referenceFilters,
+  sortDiscussion,
+  subscribeDiscussion,
+  subscribeReferences,
+} from "./discussion";
+export {
+  allTags,
+  type EventDraft,
+  type NostrEvent,
+  nostrEventSchema,
+  SPEC_KIND,
+  tagValue,
+} from "./event";
+export {
+  fetchInvoice,
+  fetchPayEndpoint,
+  type InvoiceRequest,
+  LNURL_TIMEOUT_MS,
+  type PayEndpoint,
+  payUrl,
+} from "./lnurl";
 export { deriveSummary, firstHeading, stripInlineMarkdown } from "./markdown";
 export {
   clearNip05Cache,
@@ -27,6 +57,45 @@ export {
   parseNip05Address,
   resolveNip05,
 } from "./nip05";
+export {
+  buildComment,
+  CLIENT_NAME,
+  COMMENT_KIND,
+  type Comment,
+  type CommentDraft,
+  type CommentNode,
+  type CommentParent,
+  type CommentRoot,
+  correspondents,
+  parseComment,
+  threadComments,
+} from "./nip22";
+export {
+  buildReaction,
+  buildRetraction,
+  DELETION_KIND,
+  type Deletion,
+  LIKE,
+  parseDeletion,
+  parseReaction,
+  REACTION_KIND,
+  type Reaction,
+  type ReactionTally,
+  type ReactionTarget,
+  tallyReactions,
+} from "./nip25";
+export {
+  buildZapRequest,
+  parseZapReceipt,
+  parseZapRequest,
+  totalSats,
+  verifyZapReceipt,
+  ZAP_RECEIPT_KIND,
+  ZAP_REQUEST_KIND,
+  type ZapReceipt,
+  type ZapRequestDraft,
+  type ZapTarget,
+} from "./nip57";
 export {
   clearRelayListCache,
   fetchRelayList,

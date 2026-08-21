@@ -35,6 +35,7 @@ describe("parseProfile", () => {
         picture: "https://example.com/alice.png",
         nip05: "alice@example.com",
         about: "Writes specifications.",
+        lud16: "alice@example.com",
       }),
     );
 
@@ -44,8 +45,16 @@ describe("parseProfile", () => {
       picture: "https://example.com/alice.png",
       nip05: "alice@example.com",
       about: "Writes specifications.",
+      lud16: "alice@example.com",
+      lud06: null,
       updatedAt: 1_700_000_000,
     });
+  });
+
+  it("leaves an author who published no lightning address without one", () => {
+    const profile = parseProfile(profileEvent({ name: "alice" }));
+    expect(profile?.lud16).toBeNull();
+    expect(profile?.lud06).toBeNull();
   });
 
   it("folds a description written over several lines into one", () => {
