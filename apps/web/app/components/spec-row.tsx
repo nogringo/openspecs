@@ -10,6 +10,7 @@ const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString
 export const SpecRow = ({
   spec,
   author,
+  avatar = true,
   excerpt,
   terms,
 }: {
@@ -19,6 +20,8 @@ export const SpecRow = ({
    * of it down, and a list that jumps under the eye is worse than a list of marks.
    */
   author?: Author | null;
+  /** Off where every row is signed by the same key, which the page already names. */
+  avatar?: boolean;
   /** What a search found in the body, shown in place of the summary. */
   excerpt?: string;
   terms?: string[];
@@ -29,9 +32,11 @@ export const SpecRow = ({
     <li className="border-t border-rule">
       <Link to={spec.path} className="group block py-6">
         <div className="flex gap-4">
-          <span className="mt-1 shrink-0">
-            <AuthorAvatar pubkey={spec.pubkey} picture={author?.picture ?? null} size={28} />
-          </span>
+          {avatar && (
+            <span className="mt-1 shrink-0">
+              <AuthorAvatar pubkey={spec.pubkey} picture={author?.picture ?? null} size={28} />
+            </span>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-4">
               <h3 className="min-w-0 font-mono text-base font-medium group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">

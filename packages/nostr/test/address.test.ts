@@ -1,6 +1,7 @@
 import { naddrEncode, nprofileEncode, npubEncode } from "nostr-tools/nip19";
 import { describe, expect, it } from "vitest";
 import {
+  authorPath,
   parseCoordinate,
   parsePubkey,
   parseSpecAddress,
@@ -104,6 +105,20 @@ describe("specPath", () => {
       const path = specPath(spec);
       expect(path.split("/")).toHaveLength(4);
       expect(decodeURIComponent(path.split("/")[3] ?? "")).toBe(spec.identifier);
+    }
+  });
+});
+
+describe("authorPath", () => {
+  it("puts the npub at the root, and nothing else with it", () => {
+    for (const spec of specs) {
+      expect(authorPath(spec.pubkey)).toBe(`/${npubEncode(spec.pubkey)}`);
+    }
+  });
+
+  it("names the author a document is signed by", () => {
+    for (const spec of specs) {
+      expect(specPath(spec).startsWith(`/spec${authorPath(spec.pubkey)}/`)).toBe(true);
     }
   });
 });

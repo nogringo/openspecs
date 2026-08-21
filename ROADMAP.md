@@ -46,6 +46,8 @@ to render during SSR, which ships an empty skeleton to crawlers and defeats the 
 - [x] RSS and Atom feeds
 - [x] oEmbed endpoint
 - [x] Preview cards for external links cited inside specs
+- [x] Author pages at the root, `/npub1...`, with their own card, feeds and
+      sitemap entries, and every document linking to the key that signed it
 
 Shippable here: read only, no accounts, no database, but properly indexed.
 

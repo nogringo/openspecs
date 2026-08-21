@@ -124,6 +124,8 @@ export type SpecFilter = {
   topic?: string;
   /** A `k` tag: the event kind a document is about. */
   kind?: number;
+  /** A hex key. Asking for one author's documents is also what turns the outbox on. */
+  author?: string;
 };
 
 const listings = createLoadCache<SpecCard[]>({ max: 50, ttlMs: FRESH_MS });
@@ -135,14 +137,28 @@ const listings = createLoadCache<SpecCard[]>({ max: 50, ttlMs: FRESH_MS });
  * rather than returning a short page of placeholders.
  */
 export const loadSpecs = (filter: SpecFilter = {}, limit = 30): Promise<SpecCard[]> =>
-  listings.get(`${limit}:${filter.topic ?? ""}:${filter.kind ?? ""}`, async () => {
-    const specs = await fetchSpecs({
-      limit: limit * 2,
-      ...(filter.topic ? { topics: [filter.topic] } : {}),
-      ...(filter.kind === undefined ? {} : { covers: [filter.kind] }),
-    });
-    return specs
-      .filter((spec) => !spec.isEmpty)
-      .slice(0, limit)
-      .map(toCard);
-  });
+  listings.get(
+    `${limit}:${filter.topic ?? ""}:${filter.kind ?? ""}:${filter.author ?? ""}`,
+    async () => {
+      const specs = await fetchSpecs({
+        limit: limit * 2,
+        ...(filter.topic ? { topics: [filter.topic] } : {}),
+        ...(filter.kind === undefined ? {} : { covers: [filter.kind] }),
+        ...(filter.author ? { authors: [filter.author] } : {}),
+      });
+      return specs
+        .filter((spec) => !spec.isEmpty)
+        .slice(0, limit)
+        .map(toCard);
+    },
+  );
+
+/** A page of what one author signed. Long, because it is their whole shelf. */
+const AUTHOR_LIMIT = 60;
+
+/**
+ * The page, its card and its feeds ask for the same list under the same key, so
+ * an unfurled link costs one relay query rather than three.
+ */
+export const loadAuthorSpecs = (pubkey: string): Promise<SpecCard[]> =>
+  loadSpecs({ author: pubkey }, AUTHOR_LIMIT);

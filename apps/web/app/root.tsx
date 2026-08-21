@@ -1,13 +1,6 @@
-import {
-  isRouteErrorResponse,
-  Links,
-  Meta,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-} from "react-router";
-
+import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import type { Route } from "./+types/root";
+import { ErrorPage } from "./components/error-page";
 import "./app.css";
 
 /**
@@ -51,29 +44,11 @@ export default function App() {
   return <Outlet />;
 }
 
+/**
+ * What is left when no route matched, or when one failed before its own
+ * boundary could. The same page either way: a reader who lands on a broken
+ * address should not be able to tell which of the two happened.
+ */
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
-  let stack: string | undefined;
-
-  if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404 ? "The requested page could not be found." : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message;
-    stack = error.stack;
-  }
-
-  return (
-    <main className="container mx-auto p-4 pt-16">
-      <h1 className="text-2xl font-semibold">{message}</h1>
-      <p className="mt-2 text-gray-600 dark:text-gray-400">{details}</p>
-      {stack && (
-        <pre className="mt-6 w-full overflow-x-auto rounded bg-gray-100 p-4 text-sm dark:bg-gray-900">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
-  );
+  return <ErrorPage error={error} />;
 }

@@ -39,6 +39,16 @@ export const feedTitle = (query: SpecsQuery = {}): string => {
 export const ogImagePath = (npub: string, identifier: string): string =>
   `/og/${npub}/${encodeURIComponent(identifier)}`;
 
+/** The same, for an author, drawn from their profile and their shelf. */
+export const authorOgImagePath = (npub: string): string => `/og/${npub}`;
+
+/**
+ * An author's feeds hang under the author, not under the listing: what a reader
+ * subscribes to here is a person, and a person is not a query.
+ */
+export const authorRssPath = (npub: string): string => `/${npub}/rss.xml`;
+export const authorAtomPath = (npub: string): string => `/${npub}/atom.xml`;
+
 /** Where a consumer asks what this site knows about one of its own pages. */
 export const oembedPath = (canonical: string): string =>
   `/oembed?url=${encodeURIComponent(canonical)}`;

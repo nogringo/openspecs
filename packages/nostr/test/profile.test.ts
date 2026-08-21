@@ -34,7 +34,7 @@ describe("parseProfile", () => {
         display_name: "Alice",
         picture: "https://example.com/alice.png",
         nip05: "alice@example.com",
-        about: "ignored",
+        about: "Writes specifications.",
       }),
     );
 
@@ -43,8 +43,20 @@ describe("parseProfile", () => {
       name: "Alice",
       picture: "https://example.com/alice.png",
       nip05: "alice@example.com",
+      about: "Writes specifications.",
       updatedAt: 1_700_000_000,
     });
+  });
+
+  it("folds a description written over several lines into one", () => {
+    const profile = parseProfile(
+      profileEvent({ about: "Writes specifications.\n\nAnd reads them." }),
+    );
+    expect(profile?.about).toBe("Writes specifications. And reads them.");
+  });
+
+  it("truncates a description that would run over the page", () => {
+    expect(parseProfile(profileEvent({ about: "a".repeat(500) }))?.about).toHaveLength(323);
   });
 
   it("falls back to the name when the display name is blank", () => {

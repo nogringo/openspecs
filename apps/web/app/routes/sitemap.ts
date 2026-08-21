@@ -1,6 +1,7 @@
+import { authorPath } from "@openspecs/nostr";
 import { publicOrigin } from "~/lib/origin.server";
 import { specsPath } from "~/lib/paths";
-import { type SitemapEntry, sitemapXml } from "~/lib/sitemap";
+import { newestByAuthor, type SitemapEntry, sitemapXml } from "~/lib/sitemap";
 import { loadSpecs } from "~/lib/specs.server";
 import { topicsByFrequency } from "~/lib/topics";
 import type { Route } from "./+types/sitemap";
@@ -23,6 +24,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     { loc: `${origin}${specsPath()}`, ...(newest > 0 && { lastmod: newest }) },
     ...topicsByFrequency(specs, TOPICS).map((topic) => ({
       loc: `${origin}${specsPath({ topic })}`,
+    })),
+    ...[...newestByAuthor(specs)].map(([pubkey, lastmod]) => ({
+      loc: `${origin}${authorPath(pubkey)}`,
+      lastmod,
     })),
     ...specs.map((spec) => ({ loc: `${origin}${spec.path}`, lastmod: spec.revisedAt })),
   ];

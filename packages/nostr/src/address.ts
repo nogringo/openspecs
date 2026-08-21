@@ -78,3 +78,10 @@ export const parseSpecAddress = (input: string): SpecPointer | null => {
  */
 export const specPath = (pointer: Pick<SpecPointer, "pubkey" | "identifier">): string =>
   `/spec/${toNpub(pointer.pubkey)}/${encodeURIComponent(pointer.identifier)}`;
+
+/**
+ * The canonical URL of an author, at the root of the site: an npub is the
+ * identity itself, not a page this site files under a heading of its own.
+ * Nothing else can sit there, since no path this app serves starts with `npub1`.
+ */
+export const authorPath = (pubkey: string): string => `/${toNpub(pubkey)}`;

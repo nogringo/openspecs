@@ -10,6 +10,7 @@ const profile = (pubkey: string, name: string, picture: string | null = null): P
   name,
   picture,
   nip05: null,
+  about: "",
   updatedAt: 1_700_000_000,
 });
 

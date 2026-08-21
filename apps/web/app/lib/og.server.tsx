@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import satori from "satori";
 import { createLoadCache } from "./cache.server";
-import { CARD_VERSION, OG_HEIGHT, OG_WIDTH, OgCard } from "./og-card";
+import { CARD_VERSION, OG_HEIGHT, OG_WIDTH, type OgAuthor, OgAuthorCard, OgCard } from "./og-card";
 import type { Author } from "./profile";
 import type { SpecPage } from "./specs.server";
 
@@ -53,13 +53,9 @@ const ready = () => {
   return Promise.all([fonts, renderer]);
 };
 
-const draw = async (spec: SpecPage, author: Author | null): Promise<Uint8Array> => {
+const draw = async (card: React.ReactElement): Promise<Uint8Array> => {
   const [loaded] = await ready();
-  const svg = await satori(<OgCard spec={spec} author={author} />, {
-    width: OG_WIDTH,
-    height: OG_HEIGHT,
-    fonts: loaded,
-  });
+  const svg = await satori(card, { width: OG_WIDTH, height: OG_HEIGHT, fonts: loaded });
   return new Resvg(svg, { fitTo: { mode: "width", value: OG_WIDTH } }).render().asPng();
 };
 
@@ -73,20 +69,17 @@ const memory = createLoadCache<Uint8Array>({ max: 32, ttlMs: 24 * 60 * 60 * 1000
  * unfurled link produces. A write that fails is not an error worth failing the
  * request over: the image was already drawn, and the next request redraws it.
  *
- * The profile's revision is part of the name: the card is cached for a week, and
- * an author who renamed themselves would otherwise keep the old one all of it.
+ * The name is what makes a card stale: it carries every revision the drawing
+ * depends on, so nothing here is ever invalidated, only asked for under a name
+ * nothing has drawn yet.
  */
-export const ogImage = (spec: SpecPage, author: Author | null): Promise<Uint8Array> =>
-  memory.get(`${CARD_VERSION}:${spec.eventId}:${author?.updatedAt ?? 0}`, async () => {
-    const file = join(
-      CACHE_DIR,
-      `v${CARD_VERSION}`,
-      `${spec.eventId}-${author?.updatedAt ?? 0}.png`,
-    );
+const cardImage = (name: string, card: () => React.ReactElement): Promise<Uint8Array> =>
+  memory.get(`${CARD_VERSION}:${name}`, async () => {
+    const file = join(CACHE_DIR, `v${CARD_VERSION}`, `${name}.png`);
     const cached = await readFile(file).catch(() => null);
     if (cached !== null) return cached;
 
-    const png = await draw(spec, author);
+    const png = await draw(card());
     // Renamed into place, so a half written file is never served to a crawler.
     const pending = `${file}.${process.pid}.tmp`;
     await mkdir(dirname(file), { recursive: true })
@@ -95,3 +88,22 @@ export const ogImage = (spec: SpecPage, author: Author | null): Promise<Uint8Arr
       .catch(() => {});
     return png;
   });
+
+/**
+ * The profile's revision is part of the name: the card is cached for a week, and
+ * an author who renamed themselves would otherwise keep the old one all of it.
+ */
+export const ogImage = (spec: SpecPage, author: Author | null): Promise<Uint8Array> =>
+  cardImage(`${spec.eventId}-${author?.updatedAt ?? 0}`, () => (
+    <OgCard spec={spec} author={author} />
+  ));
+
+/**
+ * An author's card counts their documents, so the count is part of its name too:
+ * nothing else on the card changes when they publish, and the number would keep
+ * a week of readers a document behind.
+ */
+export const authorOgImage = (author: OgAuthor, updatedAt: number): Promise<Uint8Array> =>
+  cardImage(`author-${author.pubkey}-${updatedAt}-${author.count}`, () => (
+    <OgAuthorCard author={author} />
+  ));

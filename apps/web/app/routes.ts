@@ -10,6 +10,12 @@ export default [
   route("spec/:author/:identifier", "routes/spec.tsx"),
   route("spec/:author/:identifier/event.json", "routes/event.ts"),
   route("og/:author/:identifier", "routes/og.ts"),
+  route("og/:author", "routes/og-author.ts"),
   route("oembed", "routes/oembed.ts"),
-  route(":address", "routes/address.tsx"),
+  // Last, and at the root: an npub is the identity itself rather than something
+  // this site files under a heading of its own. Every static path above is a
+  // word, and no npub is, so the two can never mean the same thing.
+  route(":author/rss.xml", "routes/author-rss.ts"),
+  route(":author/atom.xml", "routes/author-atom.ts"),
+  route(":author", "routes/author.tsx"),
 ] satisfies RouteConfig;

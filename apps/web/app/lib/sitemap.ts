@@ -6,6 +6,20 @@ export type SitemapEntry = {
   lastmod?: number;
 };
 
+/**
+ * An author's page is only as fresh as their newest document, since that is
+ * everything on it that this server can see change.
+ */
+export const newestByAuthor = (
+  specs: { pubkey: string; revisedAt: number }[],
+): Map<string, number> => {
+  const newest = new Map<string, number>();
+  for (const spec of specs) {
+    newest.set(spec.pubkey, Math.max(newest.get(spec.pubkey) ?? 0, spec.revisedAt));
+  }
+  return newest;
+};
+
 export const sitemapXml = (entries: SitemapEntry[]): string => {
   const urls = entries.map((entry) => {
     const lastmod =

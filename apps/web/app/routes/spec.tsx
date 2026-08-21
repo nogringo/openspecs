@@ -1,6 +1,6 @@
 import type { MarkdownHeading } from "@openspecs/markdown";
-import { parsePubkey, resolveNip05, specPath, toNpub } from "@openspecs/nostr";
-import { data, redirect } from "react-router";
+import { authorPath, parsePubkey, resolveNip05, specPath, toNpub } from "@openspecs/nostr";
+import { data, Link, redirect } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
 import { ErrorPage } from "~/components/error-page";
@@ -22,14 +22,18 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   // A NIP-05 address is a name a domain owner can reassign, so it addresses the
   // document but never names it: it is resolved once, then redirected away from.
   const pubkey = parsePubkey(params.author) ?? (await resolveNip05(params.author))?.pubkey ?? null;
-  if (pubkey === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
+  if (pubkey === null) {
+    throw data({ missing: "address" }, { status: 404, headers: NOT_FOUND_HEADERS });
+  }
 
   // One document, one URL: a hex key or an nprofile addresses the same author.
   const path = specPath({ pubkey, identifier: params.identifier });
   if (params.author !== toNpub(pubkey)) throw redirect(path, 301);
 
   const cached = await loadSpec(pubkey, params.identifier);
-  if (cached === null) throw data("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
+  if (cached === null) {
+    throw data({ missing: "document" }, { status: 404, headers: NOT_FOUND_HEADERS });
+  }
   // Built per request rather than cached with the document: one document can be
   // served under more than one origin, and only this one is canonical.
   const origin = publicOrigin(request);
@@ -193,16 +197,27 @@ const Masthead = ({
     </div>
 
     <div className="mt-8 inline-flex max-w-full items-start gap-4 rounded-sm border border-rule px-4 py-3.5">
-      <AuthorAvatar pubkey={spec.pubkey} picture={author?.picture ?? null} />
+      <Link to={authorPath(spec.pubkey)} title={`Everything signed by ${spec.npub}`}>
+        <AuthorAvatar pubkey={spec.pubkey} picture={author?.picture ?? null} />
+      </Link>
       <div className="min-w-0">
         {/* A name is what a key says about itself, so the key it belongs to stays under it. */}
         {author !== null && author.name !== "" && (
           <p title={author.name} className="mb-1.5 truncate font-mono text-sm font-medium">
-            {author.name}
+            <Link to={authorPath(spec.pubkey)} className="hover:underline">
+              {author.name}
+            </Link>
           </p>
         )}
         <dl className="min-w-0 space-y-1 font-mono text-xs">
-          <Field label="signed by">{shorten(spec.npub, 10, 6)}</Field>
+          <Field label="signed by">
+            <Link
+              to={authorPath(spec.pubkey)}
+              className="underline decoration-rule underline-offset-2 hover:decoration-current"
+            >
+              {shorten(spec.npub, 10, 6)}
+            </Link>
+          </Field>
           <Field label="published">{asDate(spec.publishedAt)}</Field>
           {spec.revisedAt > spec.publishedAt && (
             <Field label="revised">{asDate(spec.revisedAt)}</Field>

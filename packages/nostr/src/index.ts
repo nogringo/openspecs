@@ -1,4 +1,5 @@
 export {
+  authorPath,
   parseCoordinate,
   parsePubkey,
   parseSpecAddress,

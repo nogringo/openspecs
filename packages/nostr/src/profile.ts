@@ -10,6 +10,7 @@ const PROFILE_TTL_MS = 30 * 60 * 1000;
 
 const MAX_NAME = 64;
 const MAX_NIP05 = 128;
+const MAX_ABOUT = 320;
 const MAX_URL = 2048;
 
 export type Profile = {
@@ -19,6 +20,8 @@ export type Profile = {
   picture: string | null;
   /** A claim the author makes about themselves, which nothing here resolves. */
   nip05: string | null;
+  /** The author's own description of themselves, shown on their page. */
+  about: string;
   updatedAt: number;
 };
 
@@ -35,6 +38,7 @@ const metadataSchema = z.object({
   displayName: text,
   picture: text,
   nip05: text,
+  about: text,
 });
 
 /**
@@ -79,13 +83,16 @@ export const parseProfile = (input: unknown): Profile | null => {
   const metadata = metadataSchema.safeParse(content);
   if (!metadata.success) return null;
 
-  const { display_name, displayName, name, picture, nip05 } = metadata.data;
+  const { display_name, displayName, name, picture, nip05, about } = metadata.data;
   return {
     pubkey: parsed.data.pubkey,
     // A blank `display_name` is common, and the author's `name` is what it hides.
     name: clean(display_name ?? displayName, MAX_NAME) || clean(name, MAX_NAME),
     picture: pictureUrl(picture),
     nip05: clean(nip05, MAX_NIP05) || null,
+    // Folded to one line: it is drawn as a paragraph, and a profile written as
+    // ten lines of Markdown would take over the page it introduces.
+    about: clean(about, MAX_ABOUT),
     updatedAt: parsed.data.created_at,
   };
 };

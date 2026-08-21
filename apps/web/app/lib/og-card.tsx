@@ -1,6 +1,6 @@
 import { oklchToHex } from "./color";
 import { keyMarkCells, keyMarkHue } from "./key-mark";
-import type { Author } from "./profile";
+import { type Author, shortNpub } from "./profile";
 import type { SpecPage } from "./specs.server";
 
 export const OG_WIDTH = 1200;
@@ -27,15 +27,13 @@ const clamp = (text: string, max: number): string =>
 
 const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString().slice(0, 10);
 
-const shortNpub = (npub: string): string => `${npub.slice(0, 12)}...${npub.slice(-6)}`;
-
 /**
- * Only the latin subset of the font is loaded, so a name written in anything
- * else would be drawn as a row of boxes. Better to fall back to the key.
+ * Only the latin subset of the font is loaded, so text written in anything else
+ * would be drawn as a row of boxes. Better to fall back to the key.
  */
-const drawable = (name: string): string => {
-  const kept = name.replace(/[^\p{Script=Latin}\p{N}\p{P}\p{Zs}]/gu, "").trim();
-  return kept.length >= 2 ? clamp(kept, 28) : "";
+const drawable = (text: string, max = 28): string => {
+  const kept = text.replace(/[^\p{Script=Latin}\p{N}\p{P}\p{Zs}]/gu, "").trim();
+  return kept.length >= 2 ? clamp(kept, max) : "";
 };
 
 const Mark = ({ pubkey, cell = 12 }: { pubkey: string; cell?: number }) => {
@@ -158,3 +156,93 @@ export const OgCard = ({ spec, author }: { spec: SpecPage; author: Author | null
     </div>
   </div>
 );
+
+export type OgAuthor = {
+  pubkey: string;
+  npub: string;
+  name: string;
+  about: string;
+  count: number;
+};
+
+/**
+ * One card, one author. The mark is drawn rather than the profile picture: the
+ * picture lives on whatever host the author named, and satori would fetch it
+ * with no timeout this code can hold it to.
+ */
+export const OgAuthorCard = ({ author }: { author: OgAuthor }) => {
+  const name = drawable(author.name);
+  const about = drawable(author.about, 118);
+  const documents = author.count === 1 ? "specification" : "specifications";
+
+  return (
+    <div
+      style={{
+        width: OG_WIDTH,
+        height: OG_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: PAPER,
+        color: INK,
+        padding: "60px 72px",
+        fontFamily: "JetBrains Mono",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          fontSize: 22,
+          letterSpacing: "0.2em",
+          textTransform: "uppercase",
+          color: MUTED,
+        }}
+      >
+        Open Specs
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 36, marginTop: 64 }}>
+        <Mark pubkey={author.pubkey} cell={24} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {name !== "" && (
+            <div style={{ display: "flex", fontSize: 62, fontWeight: 500, lineClamp: 1 }}>
+              {name}
+            </div>
+          )}
+          {/* The key, larger when it is the only thing this author is named by. */}
+          <div style={{ display: "flex", fontSize: name === "" ? 44 : 28, color: MUTED }}>
+            {shortNpub(author.npub)}
+          </div>
+        </div>
+      </div>
+
+      {about !== "" && (
+        <div
+          style={{
+            display: "flex",
+            marginTop: 40,
+            fontSize: 26,
+            lineHeight: 1.45,
+            color: MUTED,
+            lineClamp: 2,
+          }}
+        >
+          {about}
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexGrow: 1 }} />
+
+      <div
+        style={{
+          display: "flex",
+          paddingTop: 28,
+          borderTop: `2px solid ${RULE}`,
+          fontSize: 24,
+          color: MUTED,
+        }}
+      >
+        {`${author.count} ${documents}`}
+      </div>
+    </div>
+  );
+};

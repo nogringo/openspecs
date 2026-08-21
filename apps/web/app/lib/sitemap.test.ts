@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sitemapXml } from "./sitemap";
+import { newestByAuthor, sitemapXml } from "./sitemap";
 
 describe("sitemapXml", () => {
   it("writes one url per entry", () => {
@@ -29,5 +29,24 @@ describe("sitemapXml", () => {
     const xml = sitemapXml([]);
     expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
     expect(xml).toContain("</urlset>");
+  });
+});
+
+describe("newestByAuthor", () => {
+  it("lists an author once, under their newest revision", () => {
+    const newest = newestByAuthor([
+      { pubkey: "alice", revisedAt: 100 },
+      { pubkey: "bob", revisedAt: 300 },
+      { pubkey: "alice", revisedAt: 200 },
+    ]);
+
+    expect([...newest]).toEqual([
+      ["alice", 200],
+      ["bob", 300],
+    ]);
+  });
+
+  it("has nothing to say about an empty corpus", () => {
+    expect(newestByAuthor([]).size).toBe(0);
   });
 });

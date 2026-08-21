@@ -42,6 +42,17 @@ itself: it cannot expire and cannot be reassigned by a domain owner.
 /naddr1...                             301 to the canonical form
 ```
 
+An author is one of those URLs too, at the root of the site rather than under a
+heading of this project's choosing, because an npub is the identity itself and not a
+category a site files someone under. Nothing else can sit there: every path this app
+serves is a word, and no npub is one.
+
+```
+/npub1...                              the author, and everything they signed
+/alice@example.com                     301 to the canonical form
+/nprofile1...                          301 to the canonical form
+```
+
 ## Event schema
 
 A specification is an addressable event of kind `30817`, holding Markdown in `content`,
