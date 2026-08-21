@@ -114,8 +114,8 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
 A document lives exactly as long as some relay keeps it, and no relay owes anyone
 that. The crawler in `apps/crawler` reads every document from the relays this app
 queries and copies what is missing to others, over NIP-77 so only what a relay
-lacks travels. No key and no account is involved: a document carries its author's
-signature, and every relay checks it.
+lacks travels. Copying needs no key and no account: a document carries its
+author's signature, and every relay checks it.
 
 Running one has nothing to do with hosting the site, and needs no port open:
 
@@ -126,6 +126,15 @@ docker compose -f docker-compose.crawler.yml up -d
 
 The useful part is naming your own relay, in `OPENSPECS_CRAWLER_MIRRORS`. A
 corpus copied by many operators is one none of them can decide to drop.
+
+Copying keeps documents alive but not their history: a document is an addressable
+event, relays keep one revision of one, and an edit erases what it said before.
+A crawler given a key in `OPENSPECS_CRAWLER_ARCHIVIST_KEY` also archives, in the
+sense of [kind 1349][snapshots]: each revision it reads is wrapped in a regular
+event, which relays keep. The key signs the wrapper and proves only who archived
+a version, since the document inside keeps its author's own signature.
+
+[snapshots]: https://openspecs.uid.ovh/spec/npub1kg4sdvz3l4fr99n2jdz2vdxe2mpacva87hkdetv76ywacsfq5leqquw5te/replaceable-event-snapshots
 
 ## Layout
 

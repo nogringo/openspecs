@@ -1,4 +1,5 @@
 import 'package:args/args.dart';
+import 'package:ndk/ndk.dart';
 
 import 'relays.dart';
 
@@ -8,6 +9,13 @@ import 'relays.dart';
 /// updates under them.
 const sourcesVariable = 'OPENSPECS_CRAWLER_SOURCES';
 const mirrorsVariable = 'OPENSPECS_CRAWLER_MIRRORS';
+
+/// The key an archivist signs its snapshots with. Set means it archives, empty
+/// means it only mirrors, which is the default and needs no key at all.
+///
+/// The environment and nothing else: an option would put a private key in the
+/// process list, where every user on the host can read it.
+const archivistKeyVariable = 'OPENSPECS_CRAWLER_ARCHIVIST_KEY';
 
 /// The command line, with [environment] deciding what the relay options fall
 /// back to.
@@ -51,6 +59,31 @@ ArgParser parserFor(Map<String, String> environment) => ArgParser()
     defaultsTo: '30',
   )
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this usage.');
+
+/// The signer a key names, or null when there is no key and so no archiving.
+///
+/// Takes an `nsec` or the same key in hex. A variable declared and left empty
+/// reads as absent, the way the relay lists do: compose passes a cleared line
+/// through as an empty string.
+///
+/// Throws a [FormatException] on anything else rather than falling back to
+/// mirroring, so a mistyped key is reported instead of quietly changing what the
+/// crawler does.
+EventSigner? signerFrom(String? value) {
+  final key = (value ?? '').trim();
+  if (key.isEmpty) return null;
+
+  final String hex;
+  if (Nip19.isPrivateKey(key)) {
+    hex = Nip19.decode(key);
+  } else if (RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(key)) {
+    hex = key.toLowerCase();
+  } else {
+    throw const FormatException('archivist key must be an nsec or 64 hex');
+  }
+
+  return const Bip340EventSignerFactory().create(privateKey: hex);
+}
 
 /// The relays a variable lists, separated by commas or spaces.
 ///

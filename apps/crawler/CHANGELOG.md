@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.0
+
+- Archives versions, when `OPENSPECS_CRAWLER_ARCHIVIST_KEY` names a key. Each
+  revision it reads is preserved as a kind 1349 snapshot, published to the
+  sources, the mirrors and whatever the archivist's own relay list names. No key
+  means it only mirrors, which is still the default
+- Asks the relays what it archived under its own key before wrapping a version
+  its cache says nothing about, so a lost data directory costs a query rather
+  than a second snapshot of every document
+- Carries kind 1349 alongside the documents: snapshots are read from the sources
+  and copied to the mirrors like anything else, whether this crawler archives or
+  not. One that disagrees with the event it holds is dropped rather than copied
+  on, so nobody can attach arbitrary events to a document's history through a
+  mirror
+- Reads two kinds instead of one, which changes what the sync engine was told to
+  keep available: the first run after this upgrade walks the corpus in full
+  again, then picks up its watermarks as before
+
 ## 1.1.0
 
 - Reads the relays it walks from `OPENSPECS_CRAWLER_SOURCES` and

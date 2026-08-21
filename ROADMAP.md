@@ -60,6 +60,7 @@ Shippable here: read only, no accounts, no database, but properly indexed.
 
 - [ ] Postgres, Drizzle, raw events stored as jsonb next to parsed projections
 - [ ] Relay indexer, loaders reading from Postgres instead of relays
-- [ ] Full revision history, which relays cannot keep for addressable events
+- [ ] Full revision history, read from the kind 1349 snapshots the crawler
+      archives, so it is a projection of events rather than server only state
 - [ ] Meilisearch
 - [ ] Web Push

@@ -20,9 +20,13 @@ services:
     #
     # Which relays it walks belongs in .env rather than here, so an operator
     # never edits a file this repository ships. Empty means the built in lists.
+    #
+    # The key belongs there too, and only there: an option would put it in the
+    # process list. Empty means the crawler only copies, which needs no key.
     environment:
       OPENSPECS_CRAWLER_SOURCES: ${OPENSPECS_CRAWLER_SOURCES:-}
       OPENSPECS_CRAWLER_MIRRORS: ${OPENSPECS_CRAWLER_MIRRORS:-}
+      OPENSPECS_CRAWLER_ARCHIVIST_KEY: ${OPENSPECS_CRAWLER_ARCHIVIST_KEY:-}
     volumes:
       - crawler_data:/data
 

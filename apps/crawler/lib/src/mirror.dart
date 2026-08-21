@@ -13,10 +13,10 @@ class MirrorReport {
 
   final String relay;
 
-  /// Documents negentropy said the relay does not have.
+  /// Events negentropy said the relay does not have.
   final int missing;
 
-  /// Documents the relay answered `OK` for.
+  /// Events the relay answered `OK` for.
   final int sent;
 
   /// Set when the reconciliation never happened: no NIP-77, no connection, or
@@ -24,9 +24,9 @@ class MirrorReport {
   final Object? error;
 }
 
-/// The documents [result] reported as missing, in the order negentropy gave
-/// them. An id without an event is dropped rather than faked: the cache is the
-/// only place the bytes can come from.
+/// The events [result] reported as missing, in the order negentropy gave them.
+/// An id without an event is dropped rather than faked: the cache is the only
+/// place the bytes can come from.
 List<Nip01Event> missingOf(Nip77Result result, Map<String, Nip01Event> byId) =>
     [for (final id in result.haveIds) ?byId[id]];
 
@@ -35,15 +35,20 @@ List<Nip01Event> missingOf(Nip77Result result, Map<String, Nip01Event> byId) =>
 /// Negentropy settles which ids are missing in a couple of round trips, whatever
 /// the size of the corpus. It only reconciles ids though, so the events
 /// themselves still travel as ordinary `EVENT` messages afterwards. They carry
-/// their author's signature from the day they were written, so no key and no
-/// account is involved in copying them.
+/// their signature from the day they were written, so no key and no account is
+/// involved in copying them.
+///
+/// [kinds] has to match what [events] holds: negentropy compares the relay's
+/// answer to that filter against the ids given, so a kind left out of it turns
+/// every event of that kind into one the relay looks like it is missing.
 Future<MirrorReport> mirrorTo(
   Ndk ndk,
   String relay,
-  List<Nip01Event> specs, {
+  List<Nip01Event> events, {
+  List<int> kinds = const [specKind],
   Duration timeout = const Duration(seconds: 30),
 }) async {
-  final byId = {for (final spec in specs) spec.id: spec};
+  final byId = {for (final event in events) event.id: event};
 
   final Nip77Result result;
   try {
@@ -51,7 +56,7 @@ Future<MirrorReport> mirrorTo(
     result = await ndk.nip77
         .reconcile(
           relayUrl: relay,
-          filter: Filter(kinds: [specKind]),
+          filter: Filter(kinds: kinds),
           localIds: byId.keys.toList(),
           timeout: timeout,
         )
@@ -63,10 +68,10 @@ Future<MirrorReport> mirrorTo(
   final missing = missingOf(result, byId);
 
   var sent = 0;
-  for (final spec in missing) {
+  for (final event in missing) {
     final answers = await ndk.broadcast
         .broadcast(
-          nostrEvent: spec,
+          nostrEvent: event,
           specificRelays: [relay],
           saveToCache: false,
           timeout: timeout,

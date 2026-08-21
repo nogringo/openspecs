@@ -31,6 +31,15 @@ Future<void> main(List<String> arguments) async {
   }
   final (interval, timeout) = seconds;
 
+  final EventSigner? signer;
+  try {
+    signer = signerFrom(Platform.environment[archivistKeyVariable]);
+  } on FormatException catch (error) {
+    stderr.writeln('$archivistKeyVariable: ${error.message}');
+    exitCode = 64;
+    return;
+  }
+
   final dataDir = options.option('data')!;
   await Directory(dataDir).create(recursive: true);
 
@@ -38,20 +47,38 @@ Future<void> main(List<String> arguments) async {
     p.join(dataDir, 'sync_engine.db'),
   );
   final cache = await SembastCacheManager.create(databasePath: dataDir);
+  final sources = options.multiOption('source');
+  final mirrors = options.multiOption('mirror');
+  final everyRelay = {...sources, ...mirrors}.toList();
+
   final ndk = Ndk(
     NdkConfig(
       eventVerifier: Bip340EventVerifier(),
       cache: cache,
-      bootstrapRelays: const [],
+      // The relays every lookup this app does not aim itself falls back to,
+      // which is only the archivist's relay list. Both lists: an archivist
+      // announces itself wherever it writes, and that is as often its own
+      // relay, which is a mirror, as the ones it reads from.
+      bootstrapRelays: everyRelay,
     ),
   );
+
+  final archivist = signer == null
+      ? null
+      : await Archivist.resolve(
+          ndk,
+          signer: signer,
+          relays: everyRelay,
+          timeout: timeout,
+        );
 
   final crawler = Crawler(
     ndk,
     db: db,
     cache: cache,
-    sources: options.multiOption('source'),
-    mirrors: options.multiOption('mirror'),
+    sources: sources,
+    mirrors: mirrors,
+    archivist: archivist,
     interval: interval,
     timeout: timeout,
     onProgress: (progress) => _say(
@@ -64,13 +91,22 @@ Future<void> main(List<String> arguments) async {
           : 'sources read',
     ),
     onMirror: (report) => _say('${_host(report.relay)}: ${_outcome(report)}'),
+    onArchive: (report) => _say(
+      '${report.published.length} of ${report.wrapped} versions archived',
+    ),
   );
 
   _say(
-    'reading ${options.multiOption('source').length} relays, '
-    'copying to ${options.multiOption('mirror').length}, '
+    'reading ${sources.length} relays, '
+    'copying to ${mirrors.length}, '
     'every ${interval.inSeconds}s',
   );
+  if (archivist != null) {
+    _say(
+      'archiving versions as ${Nip19.encodePubKey(archivist.pubkey)} '
+      'to ${archivist.relays.length} relays',
+    );
+  }
   crawler.start();
 
   await _untilStopped();
