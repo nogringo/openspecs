@@ -1,7 +1,10 @@
 import type { Profile } from "@openspecs/nostr";
 
 /** What a page shows of an author. `updatedAt` is what a drawn card is cached under. */
-export type Author = Pick<Profile, "name" | "picture" | "nip05" | "about" | "updatedAt">;
+export type Author = Pick<
+  Profile,
+  "name" | "picture" | "nip05" | "about" | "lud16" | "lud06" | "updatedAt"
+>;
 
 export type Authors = Record<string, Author>;
 
@@ -9,19 +12,26 @@ export type Authors = Record<string, Author>;
  * An author with nothing published about themselves is left out entirely: their
  * key already says everything the page knows about them, and a row with an empty
  * name would only be a hole where a name is elsewhere.
+ *
+ * A lightning address counts as something published, even alone: it is the one
+ * field that decides whether a page can offer to pay them.
  */
 export const toAuthor = (profile: Profile | null): Author | null =>
   profile === null ||
   (profile.name === "" &&
     profile.picture === null &&
     profile.nip05 === null &&
-    profile.about === "")
+    profile.about === "" &&
+    profile.lud16 === null &&
+    profile.lud06 === null)
     ? null
     : {
         name: profile.name,
         picture: profile.picture,
         nip05: profile.nip05,
         about: profile.about,
+        lud16: profile.lud16,
+        lud06: profile.lud06,
         updatedAt: profile.updatedAt,
       };
 

@@ -36,6 +36,12 @@ export type RenderOptions = {
    * and to zero once that heading has been dropped as a repeated title.
    */
   headingOffset?: number;
+  /**
+   * How to draw a `nostr:` reference. Left out, they stay the bech32 text they
+   * were: this package knows nothing about keys, and the caller that does can
+   * turn one into a name.
+   */
+  mention?: MentionResolver;
 };
 
 const HEADINGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6"]);
@@ -92,6 +98,74 @@ const collectLinks = (links: Set<string>) => (tree: Root) => {
     if (node.tagName !== "a") return;
     const href = String(node.properties.href ?? "");
     if (/^https?:\/\//i.test(href)) links.add(href);
+  });
+};
+
+/**
+ * What a `nostr:` reference should be drawn as. Returning null leaves it as the
+ * text it was, which is the honest outcome for a reference nothing can resolve.
+ */
+export type Mention = { label: string; href?: string };
+
+export type MentionResolver = (uri: string) => Mention | null;
+
+/** NIP-21, and bech32's alphabet, which is the one without `1`, `b`, `i` and `o`. */
+const NOSTR_URI =
+  /nostr:((?:npub|nprofile|note|nevent|naddr)1[023456789acdefghjklmnpqrstuvwxyz]+)/gi;
+
+/**
+ * A bech32 identifier is sixty characters of noise to a reader, and a comment
+ * opening on seven of them says nothing at all. This turns each one into
+ * whatever the caller can make of it, usually a name and a link.
+ *
+ * Left alone inside a link, which already says where it goes, and inside code,
+ * where an identifier is the subject rather than a reference.
+ */
+const drawMentions = (resolve: MentionResolver | undefined) => (tree: Root) => {
+  if (resolve === undefined) return;
+
+  visit(tree, "text", (node, index, parent) => {
+    if (index === undefined || parent === null || parent === undefined) return;
+    if (parent.type === "element" && ["a", "code", "pre"].includes(parent.tagName)) return SKIP;
+
+    NOSTR_URI.lastIndex = 0;
+    if (!NOSTR_URI.test(node.value)) return;
+    NOSTR_URI.lastIndex = 0;
+
+    const children: (Element | { type: "text"; value: string })[] = [];
+    let taken = 0;
+    for (const match of node.value.matchAll(NOSTR_URI)) {
+      const uri = match[1];
+      const mention = uri === undefined ? null : resolve(uri);
+      if (mention === null) continue;
+
+      if (match.index > taken) {
+        children.push({ type: "text", value: node.value.slice(taken, match.index) });
+      }
+      children.push(
+        mention.href === undefined
+          ? {
+              type: "element",
+              tagName: "span",
+              properties: { className: ["mention"] },
+              children: [{ type: "text", value: mention.label }],
+            }
+          : {
+              type: "element",
+              tagName: "a",
+              properties: { href: mention.href, className: ["mention"] },
+              children: [{ type: "text", value: mention.label }],
+            },
+      );
+      taken = match.index + match[0].length;
+    }
+
+    if (children.length === 0) return;
+    if (taken < node.value.length) {
+      children.push({ type: "text", value: node.value.slice(taken) });
+    }
+    parent.children.splice(index, 1, ...(children as Element[]));
+    return index + children.length;
   });
 };
 
@@ -152,6 +226,8 @@ export const renderMarkdown = (content: string, options: RenderOptions = {}): Re
     // After the collection, or the permalink sign would read as heading text.
     .use(rehypeAutolinkHeadings, linkHeadings(headings))
     .use(collectLinks, links)
+    // After the collection: a mention is a reference to a key, not a cited link.
+    .use(drawMentions, options.mention)
     .use(hardenLinks)
     .use(rehypeStringify)
     .processSync(content)

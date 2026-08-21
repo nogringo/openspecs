@@ -1,0 +1,3338 @@
+[
+  {
+    "content": "yeah, nsite-cli and nsyte are both cli tools for deploying nsites\nhttps://nsyte.run/ https://github.com/flox1an/nsite-cli",
+    "created_at": 1749216010,
+    "id": "b6e645d55f65792b6b055f35e9727c4a4116c8cd700437146ac5cea4525af398",
+    "kind": 1111,
+    "pubkey": "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5",
+    "sig": "a3dc61ed3a9ca5960febce2a7a1341c3d831487f0bbbb41d98a102df340b1ee213900177ca1d7c9b0d0bbb53e696cbe8b0dfc2b5dd641f97cd3ed20ad2a53190",
+    "tags": [
+      [
+        "A",
+        "30817:266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5:pubkey-static-websites"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "e",
+        "653251d0a5409cecb3dd2fe0cb1be70d1ca4082044c258e0b1e6d150a1455cf8"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "06639a386c9c1014217622ccbcf40908c4f1a0c33e23f8d6d68f4abf655f8f71"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "Cool, nsyte is new to me.\n\nI haven't looked into the spec deep yet, but each 'nsite' is tight to one keypair right? Cause I wonder how I could publish multiple sites from 1 keypair / profile.",
+    "created_at": 1749218245,
+    "id": "4d0fb0b2970dd03847f2d263e83eed43eac0724b5d15c126c971f5b21c568755",
+    "kind": 1111,
+    "pubkey": "06639a386c9c1014217622ccbcf40908c4f1a0c33e23f8d6d68f4abf655f8f71",
+    "sig": "707989bb324716df63d3020a00ff0a08a2ea7ff69213e3caba90fe6b6e204ab16ae3f922e108deef94e840f333349f5f657810ebc3847dbd5086b5c12a6f2ee8",
+    "tags": [
+      [
+        "P",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "b6e645d55f65792b6b055f35e9727c4a4116c8cd700437146ac5cea4525af398",
+        "wss://relay.nostr.band/",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ]
+    ]
+  },
+  {
+    "content": "I believe this NIP should use an ephemeral event kind (within the 20000–29999 range) so relays will only forward it to connected clients without storing it. The reason is that this is a \"real-time\" event, meaning past instances of it serve no purpose. Additionally, I propose re-licensing the NIP under the public domain, consistent with other NIPs.\n\nI also think renaming the NIP to its kind in hexadecimal would be a good idea. For example, if you choose `25006`, the NIP name could become `NIP-61AE`.\n\nThank you for this great NIP.",
+    "created_at": 1749247231,
+    "id": "290d12e8615ee1f81b7f9f547d4a0396fe5407d3a182f06fe93ced3914185207",
+    "kind": 1111,
+    "pubkey": "00000001505e7e48927046e9bbaa728b1f3b511227e2200c578d6e6bb0c77eb9",
+    "sig": "7c268381b517c5bd718c2951f393785f15d9f8a0538a40d23f618416baae0be6272fb36dde602cb35fa1b1f8b4dd41125eac06cee90755a958dbc9d98e44def9",
+    "tags": [
+      [
+        "A",
+        "30817:5f432a9f39b58ff132fc0a4c8af10d42efd917d8076f68bb7f2f91ed7d4f6a41:buzz"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "5f432a9f39b58ff132fc0a4c8af10d42efd917d8076f68bb7f2f91ed7d4f6a41"
+      ],
+      [
+        "a",
+        "30817:5f432a9f39b58ff132fc0a4c8af10d42efd917d8076f68bb7f2f91ed7d4f6a41:buzz"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "5f432a9f39b58ff132fc0a4c8af10d42efd917d8076f68bb7f2f91ed7d4f6a41"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "+",
+    "created_at": 1749247310,
+    "id": "25652251fed96e6b7b5d1f1f1493016d32efd392f35cfdf697e7a48a548ed45f",
+    "kind": 7,
+    "pubkey": "00000001505e7e48927046e9bbaa728b1f3b511227e2200c578d6e6bb0c77eb9",
+    "sig": "a8e9cfe6cc026efc4cd7fb1197c64a5c5a1d4de789e51d98090ec3da29813be127516a9f4e9f10a3987967411a5989008844adf4b45ef3112b4bd4bc1b2d2db8",
+    "tags": [
+      [
+        "e",
+        "dc0fd5aa5bfd002e07911f48de816a6570b0d361659e26d6d8f28924710f8a35"
+      ],
+      [
+        "p",
+        "5f432a9f39b58ff132fc0a4c8af10d42efd917d8076f68bb7f2f91ed7d4f6a41"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:5f432a9f39b58ff132fc0a4c8af10d42efd917d8076f68bb7f2f91ed7d4f6a41:buzz"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "No, its restricted to a single site (folder structure) for a pubkey. it makes things a lot simpler to implement",
+    "created_at": 1749647368,
+    "id": "48cfdda05242abba7bb7de8c93543e2aba76754b58c73b08ebf3eefbb1f1da88",
+    "kind": 1111,
+    "pubkey": "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5",
+    "sig": "ddbf9dbc6ff114430f4838bea9c33ce90ac357474010ca37963a2391af24c1a5a0d9ebfbfeb5e99e62b406b568665d5168e6b32212dcd8fa9e6dbe6f443e4f15",
+    "tags": [
+      [
+        "A",
+        "30817:266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5:pubkey-static-websites"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "e",
+        "ddb8462c017fcd25609c049bbacdbee70a00f79742ebd6ebf3cd639b64402fe9"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "06639a386c9c1014217622ccbcf40908c4f1a0c33e23f8d6d68f4abf655f8f71"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "This should use kind 1111 for threads",
+    "created_at": 1750778252,
+    "id": "04df2839c622e5c340c7deac5441d215245b3f8479055224c7a5a33de11da93b",
+    "kind": 1111,
+    "pubkey": "0461fcbecc4c3374439932d6b8f11269ccdb7cc973ad7a50ae362db135a474dd",
+    "sig": "0a26f67b5c60b01b9582a317b0a918f5fad74661ad93326f54a511b47a42a22ef9580e6d9c4667518a396e201f8953418e5a239eea5693a904aa6c87a65e397d",
+    "tags": [
+      [
+        "A",
+        "30817:460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c:bulletin-boards"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "a",
+        "30817:460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c:bulletin-boards"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "I only used another kind because kind 1111 doesn't accept markdown",
+    "created_at": 1750778604,
+    "id": "d7c248d185308ac566219b269a3a5a429f4c7998339ad941b16de1f73fa1f476",
+    "kind": 1111,
+    "pubkey": "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c",
+    "sig": "3a2945030906e516a2f9017ed47b4db1b39927e2fd2618d8823821f5025ae31dd3e6fd5a61f4a34f04e797d5211017be95ef323cad3230bb6888c229a7e4b48d",
+    "tags": [
+      [
+        "A",
+        "30817:460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c:bulletin-boards"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "04df2839c622e5c340c7deac5441d215245b3f8479055224c7a5a33de11da93b",
+        "wss://relay.primal.net/",
+        "0461fcbecc4c3374439932d6b8f11269ccdb7cc973ad7a50ae362db135a474dd"
+      ],
+      [
+        "k",
+        "1111"
+      ]
+    ]
+  },
+  {
+    "content": "The reason I didn't use 1111 is to avoid overloading with Markdown or BBCode content :(",
+    "created_at": 1750779177,
+    "id": "722a3ed3b9ae2ac3c0ca07a31b2182df88b1f5d458eaedc275177189a90667e8",
+    "kind": 1111,
+    "pubkey": "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c",
+    "sig": "96dfb013a212b546e70d48e10888085d76db43658da846ac6e8633df289833247f43066e8e1cd494b600bfa4570f1d947623651edd9f37440663dd1b7d747f4c",
+    "tags": [
+      [
+        "A",
+        "30817:460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c:bulletin-boards"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "e",
+        "04df2839c622e5c340c7deac5441d215245b3f8479055224c7a5a33de11da93b"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "0461fcbecc4c3374439932d6b8f11269ccdb7cc973ad7a50ae362db135a474dd"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "sig": "e8372a725f77f4e4a86af6c1f26a5b07719e8f7eeabbb9ed6fb8e9d76982f139da395c8aed18208b134d4d2294d005b23c734d9315deff182350191ca0159df5",
+    "kind": 7,
+    "created_at": 1750813490,
+    "id": "5dcdc138e339d4f1c28771b29fbe5b3cdc646f29024e66a55edb2bac12b3d004",
+    "content": "+",
+    "tags": [
+      [
+        "e",
+        "ac586410fefba90b257e67bcb303f1d3ab46e08a179595ee242db004c629246d"
+      ],
+      [
+        "p",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08:documentation-and-wikis-with-spaces-and-format-declaration"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ],
+    "pubkey": "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+  },
+  {
+    "content": "👀👀👀",
+    "created_at": 1750820098,
+    "id": "4980c83e7f0ac6ce421bf7839dd33232111a5eaec58b0c4cdf9aaebf2bed4c26",
+    "kind": 1111,
+    "pubkey": "2efaa715bbb46dd5be6b7da8d7700266d11674b913b8178addb5c2e63d987331",
+    "sig": "3a47e7c4f9df1d363d016a5aebd954a9a09a2ebaaf57f818175fe46f0af331d465ef6564916342550c9dd9597b865b7eb66a44aca8c8ddb7f668e6962b9039cf",
+    "tags": [
+      [
+        "A",
+        "30817:c4f5e7a75a8ce3683d529cff06368439c529e5243c6b125ba68789198856cac7:attestations"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "c4f5e7a75a8ce3683d529cff06368439c529e5243c6b125ba68789198856cac7"
+      ],
+      [
+        "a",
+        "30817:c4f5e7a75a8ce3683d529cff06368439c529e5243c6b125ba68789198856cac7:attestations"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "c4f5e7a75a8ce3683d529cff06368439c529e5243c6b125ba68789198856cac7"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "good primitive for spaced repetition systems!",
+    "created_at": 1750820336,
+    "id": "8bdcb121f52276a1e925f8909b6997f3a4bd8b9b56d00b6b17dd69d7328e67be",
+    "kind": 1111,
+    "pubkey": "2efaa715bbb46dd5be6b7da8d7700266d11674b913b8178addb5c2e63d987331",
+    "sig": "d177b0a9c0cd1dfa8bbfe173a3e34601ea38103c80f47b334fd8ed8b8d31d50fbafaa0dcd65e31941022219d0be4adaf7451a33e2937ff11572f155f56951332",
+    "tags": [
+      [
+        "A",
+        "30817:4abc8f17e30e49e8b960ea8211cfcc6448cc908b741e7f9819f066f272470848:nip-decks-flashcards"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "4abc8f17e30e49e8b960ea8211cfcc6448cc908b741e7f9819f066f272470848"
+      ],
+      [
+        "a",
+        "30817:4abc8f17e30e49e8b960ea8211cfcc6448cc908b741e7f9819f066f272470848:nip-decks-flashcards"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "4abc8f17e30e49e8b960ea8211cfcc6448cc908b741e7f9819f066f272470848"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "+",
+    "created_at": 1750820349,
+    "id": "448e7190b74b61ebe0b027cb0ff0438db7ad1a9ab220b4c64330f5f2da449b18",
+    "kind": 7,
+    "pubkey": "2efaa715bbb46dd5be6b7da8d7700266d11674b913b8178addb5c2e63d987331",
+    "sig": "4a4f351868a0da451d1447c4def84c85c90f8b15e2edb4cc431da1a3f544b5cab1933f6d6799ad940b4edd2eaa80fe578ac89027ca5ad3c826239531dd5dc4af",
+    "tags": [
+      [
+        "e",
+        "a19ec64d1ae428f3d7605879f415e0a4a8551d9086ea9ae2ea298db28c6abbdf"
+      ],
+      [
+        "p",
+        "4abc8f17e30e49e8b960ea8211cfcc6448cc908b741e7f9819f066f272470848"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:4abc8f17e30e49e8b960ea8211cfcc6448cc908b741e7f9819f066f272470848:nip-decks-flashcards"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "+",
+    "created_at": 1750820358,
+    "id": "7fbceac6d302f538a3b0e6cf3cba7d8a1d41224bc11902ba38394299a2bf1d93",
+    "kind": 7,
+    "pubkey": "2efaa715bbb46dd5be6b7da8d7700266d11674b913b8178addb5c2e63d987331",
+    "sig": "dc74225024b24329bda6e5dfc990549e24f8094ed3711a3ac2991c6ca8ef828ca313bb3ef28c6edbd91f17dcd38c504147294c062d47f4968ccf9f1269202878",
+    "tags": [
+      [
+        "e",
+        "946d7d40afbda11d9b9cbaaf86ba2bddeb2e845643394afddc2113342d8b39b7"
+      ],
+      [
+        "p",
+        "c4f5e7a75a8ce3683d529cff06368439c529e5243c6b125ba68789198856cac7"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:c4f5e7a75a8ce3683d529cff06368439c529e5243c6b125ba68789198856cac7:attestations"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "+",
+    "created_at": 1750820371,
+    "id": "249f66f8182aedb59909974dbc3d9286b210dcee3452cc22f40131f54fff3727",
+    "kind": 7,
+    "pubkey": "2efaa715bbb46dd5be6b7da8d7700266d11674b913b8178addb5c2e63d987331",
+    "sig": "fbf65c5ae94d5d66c92338cd0975a8e1843bf50d55a1cf51b97476804d3bcfe59b372d0d26458ca7b5803f434238b785d020b3c5ed077c50d847b3a35fc6a3de",
+    "tags": [
+      [
+        "e",
+        "b1b7dff77aff6fb438a290523321a594239decb419ef7d30242e5265f33011e0"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5:pubkey-static-websites"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "I am so here for this",
+    "created_at": 1750820392,
+    "id": "b8cb51564bbce9786567d68c5da5071d9a1ca94a861184a27fafee9d948582b3",
+    "kind": 1111,
+    "pubkey": "2efaa715bbb46dd5be6b7da8d7700266d11674b913b8178addb5c2e63d987331",
+    "sig": "f84b53c522644330aec8dff63bc03ff8565fbf949013c9cb47093dd0141695b8f8f2188ef72c084cac9e7ddd427562054f061eb7ad54269f354653f593edb115",
+    "tags": [
+      [
+        "A",
+        "30817:266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5:pubkey-static-websites"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "a",
+        "30817:266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5:pubkey-static-websites"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "I might suggest looking into wabac, WARC, and WACZ file formats. they have solved web archiving in a durable and robust manner. (what the Wayback Machine runs on]",
+    "created_at": 1750820513,
+    "id": "2e7b45d55b65f472c1062d56f632c198651e9d805b7d599cd2436453005b5511",
+    "kind": 1111,
+    "pubkey": "2efaa715bbb46dd5be6b7da8d7700266d11674b913b8178addb5c2e63d987331",
+    "sig": "82dea9b468e722c30fb0162ab91a07c4ed5e755ae10349cb7db2875de10f2c04bbad99f0470cb2144ec91bc5cb48b6b70bd8d268b0c13ddf896a624b577ecf5e",
+    "tags": [
+      [
+        "A",
+        "30817:f5073ea24832d8e6246d22ec0b5a75bbf4a12558e3ac67cb07360b3474e5a40e:archiving-websites-on-nostr"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "f5073ea24832d8e6246d22ec0b5a75bbf4a12558e3ac67cb07360b3474e5a40e"
+      ],
+      [
+        "a",
+        "30817:f5073ea24832d8e6246d22ec0b5a75bbf4a12558e3ac67cb07360b3474e5a40e:archiving-websites-on-nostr"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "f5073ea24832d8e6246d22ec0b5a75bbf4a12558e3ac67cb07360b3474e5a40e"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "❤️",
+    "created_at": 1750854363,
+    "id": "533ff4bbedad6f90d59636e135043e1a25f427b4810c2f875d1e24c654718fb5",
+    "kind": 7,
+    "pubkey": "4abc8f17e30e49e8b960ea8211cfcc6448cc908b741e7f9819f066f272470848",
+    "sig": "c426cc5afb16c596dab2b150cc50e329b0c27b0a6d8614bbf032a4a5278b458319ece71471b6a1848f1dbfe2ee84ea44baab4ba2d515355b32de33bf38dc459b",
+    "tags": [
+      [
+        "e",
+        "8bdcb121f52276a1e925f8909b6997f3a4bd8b9b56d00b6b17dd69d7328e67be"
+      ],
+      [
+        "p",
+        "2efaa715bbb46dd5be6b7da8d7700266d11674b913b8178addb5c2e63d987331"
+      ],
+      [
+        "k",
+        "1111"
+      ]
+    ]
+  },
+  {
+    "sig": "b2da28b19b0fdc4160e3dddbfe3f03947c7eec88df6ccf49d060765b5471e9dffd173d810e4daf963cee33579093b587e8459343011491fe349bf00efd382811",
+    "kind": 7,
+    "created_at": 1750987090,
+    "id": "350d9f2c4768d005195c50181909aee529714045c169b523e2c21e088e4633f6",
+    "content": "+",
+    "tags": [
+      [
+        "e",
+        "ac586410fefba90b257e67bcb303f1d3ab46e08a179595ee242db004c629246d"
+      ],
+      [
+        "p",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08:documentation-and-wikis-with-spaces-and-format-declaration"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ],
+    "pubkey": "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+  },
+  {
+    "sig": "6fe12b63734d7ce86f74ef829ebd4b898147ede0bbd98bec1a91ca842d77773966b937d0c214aa73f39ff056c245a7c7ca56e6f366fdcf11e320df062feee1ba",
+    "kind": 7,
+    "created_at": 1750987092,
+    "id": "c39afac4f255e6a6d09e3d0144c02804f7dc2b6e495573e5c783c821783f8043",
+    "content": "+",
+    "tags": [
+      [
+        "e",
+        "ac586410fefba90b257e67bcb303f1d3ab46e08a179595ee242db004c629246d"
+      ],
+      [
+        "p",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08:documentation-and-wikis-with-spaces-and-format-declaration"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ],
+    "pubkey": "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+  },
+  {
+    "sig": "e7663157746224e44869f2c3ba2f90c7f2b8ffd785423511f3963a1fea7e7e079027bf8a7f8b99689dc09f5a08f9886a08fbf0f86f9f166f409440b758c99db8",
+    "kind": 1111,
+    "created_at": 1751143058,
+    "id": "0f824c6459b0f3b9ab91a462882a61c8b4e947bbbd6a369bc54c3c425abba02f",
+    "content": "Thanks, is there anything specific that's broken or is it pretty much broken across the board?",
+    "tags": [
+      [
+        "A",
+        "30817:910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d:frenstr"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d"
+      ],
+      [
+        "e",
+        "8b1965ea0584185a0701a33f8a55d3c88f6ae0d7886ef464a10b4be695fa347e"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ],
+    "pubkey": "910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d"
+  },
+  {
+    "sig": "cd37a3ba5038c7bdc4d4aeb50cf76dbac4beb97ec1e45bec5016fbfc10c63b33c9d472fe6072891cd5528014f6036cd4e2f4749b4b2bcb113c44fe8702780d6a",
+    "kind": 1111,
+    "created_at": 1751152825,
+    "id": "dd07faa8d15120413542afd2da75e36208337c6b6268742c4de0dd3722ad3992",
+    "content": "I think I found a few different mistakes, did I catch everything or only a few of many issues?",
+    "tags": [
+      [
+        "A",
+        "30817:910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d:frenstr"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d"
+      ],
+      [
+        "e",
+        "0f824c6459b0f3b9ab91a462882a61c8b4e947bbbd6a369bc54c3c425abba02f"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ],
+    "pubkey": "910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d"
+  },
+  {
+    "sig": "9ced1d640c9229310fa2294270c0ebd20eae44879438251f14687a35c6a0442831ee4a4644ca6e66984872d65fbcf3a7b738001f37fe89ac77a32cc86727e49c",
+    "kind": 1111,
+    "created_at": 1753400839,
+    "id": "c7fb5190a84f304d1f378dbf345547bc6ccc2f638572887c1242fa2473231a0c",
+    "content": "Looks much better now. But one thing to note: Replacable events should use a kind number between 10000 and 19999. Or addressable events with a kind number between 30000 and 39999, and including the \"d\" tag. Also, private messages should never be sent unencrypted.",
+    "tags": [
+      [
+        "A",
+        "30817:910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d:frenstr"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d"
+      ],
+      [
+        "e",
+        "dd07faa8d15120413542afd2da75e36208337c6b6268742c4de0dd3722ad3992"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "910af9070dfd6beee63f0d4aaac354b5da164d6bb23c9c876cdf524c7204e66d"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ],
+    "pubkey": "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+  },
+  {
+    "content": "+",
+    "created_at": 1753815449,
+    "id": "6bb3bb73a6f323f812c6bc5c99b8dec1130019db75a1bd759bf4432e6fc6ee96",
+    "kind": 7,
+    "pubkey": "97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322",
+    "sig": "a5d86cee963d1e2fa7b96269d3bc2d89d8b5b211150b6c9cea1f27cab294f20fbbab5d1e9e734bea74b0ccd4816004983aa0f934309c3b9f2ff5b2a5ff54e527",
+    "tags": [
+      [
+        "e",
+        "af63365567477747ad8d2f85bc88db0a94b3a1638adbae01abd7e17601d3fd99"
+      ],
+      [
+        "p",
+        "97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322:geocaching-events"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "+",
+    "created_at": 1757949366,
+    "id": "b54ae53021a8aa788abcc8f3e1e11e439679c6e6e61a86f1bd2865d26127e997",
+    "kind": 7,
+    "pubkey": "3f770d65d3a764a9c5cb503ae123e62ec7598ad035d836e2a810f3877a745b24",
+    "sig": "64827c9e68cbd81910bea56a8685e696e8c05056798de4863f25100f4b994f0eba43c0b7eea5c82104540c141a0a29ded02b7e4e17a7ab8988a2ebaf15ef5697",
+    "tags": [
+      [
+        "e",
+        "d9e278309ab1942d57528a05cfc6ebb2ba9963ba02120819394bd0ad3d5ef71f"
+      ],
+      [
+        "p",
+        "3f770d65d3a764a9c5cb503ae123e62ec7598ad035d836e2a810f3877a745b24"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:3f770d65d3a764a9c5cb503ae123e62ec7598ad035d836e2a810f3877a745b24:podcast-episodes-and-trailers"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "+",
+    "created_at": 1758683405,
+    "id": "d460896bed4cfa7d332226574e25fef9b5bf7c91cd57927e93cee72843b4a705",
+    "kind": 7,
+    "pubkey": "3f770d65d3a764a9c5cb503ae123e62ec7598ad035d836e2a810f3877a745b24",
+    "sig": "c6f61ce7d1b5de4b036dc8b7847dc5a4ea5cb63c7dca3e58f58caf48c5c322f615e50c5a25950d510e1daf77f718135ee72e96ca1ba6216b84eba2b23aa95c3a",
+    "tags": [
+      [
+        "e",
+        "9faba1e1bbbde274a3c8b8e2149332b31c7ca9d9e1351b5d862afd82087273b0"
+      ],
+      [
+        "p",
+        "3f770d65d3a764a9c5cb503ae123e62ec7598ad035d836e2a810f3877a745b24"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:3f770d65d3a764a9c5cb503ae123e62ec7598ad035d836e2a810f3877a745b24:podcast-episodes-and-trailers"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "🔥",
+    "created_at": 1761466926,
+    "id": "f491a129c374cc0076300bbd577afe1eaa591a5c14a78fd52cebdef5a6c0590f",
+    "kind": 7,
+    "pubkey": "0c45d7d45edb0fadda4215d36ca0d9aba0c771b85d3717764b8a128d5e443e4d",
+    "sig": "c96e09509b3e1d830288bebfb9797e003ac27a7d4fb3b7d7033c2507c4b6ae795001d65c61f8647c5c4ebdf3216781bb57695d9722aaf199e06043b9a4409a23",
+    "tags": [
+      [
+        "e",
+        "bab8614496258df6ff8d81f4d5c3fe6d1194b573176b412ca1a768794b0256fe",
+        "wss://theforest.nostr1.com/",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "k",
+        "1111"
+      ]
+    ]
+  },
+  {
+    "content": "nostr needs CRDTs",
+    "created_at": 1761470331,
+    "id": "bb79ea29d940a916c366514da1e0d829e551c70f77d6cc002bdd625b8d2906c5",
+    "kind": 1111,
+    "pubkey": "4c800257a588a82849d049817c2bdaad984b25a45ad9f6dad66e47d3b47e3b2f",
+    "sig": "49318975e5179e26aa5019e5f39b37926c5d438d368b85efd5f40003ed03badce32df851349da8f7ad5d3846500921d639f18e2993e4c0768015f6748ebf3989",
+    "tags": [
+      [
+        "p",
+        "e5272de914bd301755c439b88e6959a43c9d2664831f093c51e9c799a16a102f"
+      ],
+      [
+        "A",
+        "30817:e5272de914bd301755c439b88e6959a43c9d2664831f093c51e9c799a16a102f:decentralized-lists"
+      ],
+      [
+        "P",
+        "e5272de914bd301755c439b88e6959a43c9d2664831f093c51e9c799a16a102f"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "bab8614496258df6ff8d81f4d5c3fe6d1194b573176b412ca1a768794b0256fe",
+        "wss://theforest.nostr1.com/",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ]
+    ]
+  },
+  {
+    "content": "👀",
+    "created_at": 1762208478,
+    "id": "44a54bdc1bf1a34ce498805769fb1a80403ac67865126df2503463da1db0b5d2",
+    "kind": 7,
+    "pubkey": "df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200",
+    "sig": "c70db1e6231545c558c53df0f608b4dce9ebad856f542b4ef06ded5c232ded1596474fdf8f687b517f7616bbeee80c8bb815f5f4c68471d818f732ade1e3a302",
+    "tags": [
+      [
+        "e",
+        "97d6fbd54f445b40984c29f2f193bebfdfbebc99f69176b1ffc9fe7c6cfbfd4f"
+      ],
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "client",
+        "Nostur",
+        "31990:9be0be0fc079548233231614e4e1efc9f28b0db398011efeecf05fe570e5dd33:1685868693432"
+      ]
+    ]
+  },
+  {
+    "content": "👀",
+    "created_at": 1762208481,
+    "id": "97d101b0de3fd56168a4c10653de694b79d5cb36a5da2a6651ffcc1e16b498e1",
+    "kind": 7,
+    "pubkey": "df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200",
+    "sig": "4b1d9eba3f5399e2b8e25eac4fddd6a964ed05abcc5c4658faacf122d58c337ee299581cfcb5cd490e09bde59efdb2f292bbf1a7e5524f57ade4cf0fcc19dc89",
+    "tags": [
+      [
+        "e",
+        "9c237f699ac0d395a6676d5ddecd533009b1caf7ed45960818c5db8f629457fe"
+      ],
+      [
+        "p",
+        "e5272de914bd301755c439b88e6959a43c9d2664831f093c51e9c799a16a102f"
+      ],
+      [
+        "client",
+        "Nostur",
+        "31990:9be0be0fc079548233231614e4e1efc9f28b0db398011efeecf05fe570e5dd33:1685868693432"
+      ]
+    ]
+  },
+  {
+    "content": "👀",
+    "created_at": 1762208483,
+    "id": "fe6d07e6cddf988d0fea31a3a8cabf9910bbfe80f5424f6fa2d31d4dcf78ebcb",
+    "kind": 7,
+    "pubkey": "df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200",
+    "sig": "f9062e9b98bc436bf8b9dc54528341a8312b6a6b5ce7b969d7619da4112868a542397d56b4ff1fc1029ff6dada842abfa4f8a3280296d0649ac8c23ec82e9882",
+    "tags": [
+      [
+        "e",
+        "3b2b176d7d8770ff76d008854781785a4f7ce877adb0ba6f0c62775bc77af9cf"
+      ],
+      [
+        "p",
+        "e5272de914bd301755c439b88e6959a43c9d2664831f093c51e9c799a16a102f"
+      ],
+      [
+        "client",
+        "Nostur",
+        "31990:9be0be0fc079548233231614e4e1efc9f28b0db398011efeecf05fe570e5dd33:1685868693432"
+      ]
+    ]
+  },
+  {
+    "content": "👀",
+    "created_at": 1762208485,
+    "id": "1722647cdaf68f22666d641cc1d378cf0af31b1b42d7c0c7bb140f0fb76d4a36",
+    "kind": 7,
+    "pubkey": "df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200",
+    "sig": "065308140f192317d277c1943f565bf9d881097e5d11fef3aa2609336dab4fec85dae3b9dcd14f893818d783d51b93f4b7e92cae0b4521f784b8b851fe5d9e70",
+    "tags": [
+      [
+        "e",
+        "6d0ac08fb37225a108cda039ffa932fcdf122eb9013f13e2be0f6fc78f0f7fa5"
+      ],
+      [
+        "p",
+        "e5272de914bd301755c439b88e6959a43c9d2664831f093c51e9c799a16a102f"
+      ],
+      [
+        "client",
+        "Nostur",
+        "31990:9be0be0fc079548233231614e4e1efc9f28b0db398011efeecf05fe570e5dd33:1685868693432"
+      ]
+    ]
+  },
+  {
+    "content": "You're right, I should specify that these events can't be deleted",
+    "created_at": 1764003503,
+    "id": "b3f15304c3d1bd05ae677cbcdb5a24b3b127b3dc8f46b5ce4d704248a246caba",
+    "kind": 1111,
+    "pubkey": "97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322",
+    "sig": "72f3adc7e1c843e7546000ab41ca28e1cc9cd2432f97e8b0281a986871b3d2bd5a4be4418cd3ccecd5db869cb83d4709b93e5840259c7d90f73d15f9011ed165",
+    "tags": [
+      [
+        "A",
+        "30817:97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322:PQ2OY2CYh9jeSg5W"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "0e29efc2a3eb6966403e8c61cb8bea6d78527af5e0565a2baa0f313eff142af2",
+        "wss://relay.westernbtc.com/"
+      ],
+      [
+        "e",
+        "3798517e7dd845dbe1efb1f7a528639949a9b37bebfcd7d910703f9979f2f3cf",
+        "wss://relay.damus.io/",
+        "0e29efc2a3eb6966403e8c61cb8bea6d78527af5e0565a2baa0f313eff142af2"
+      ]
+    ]
+  },
+  {
+    "content": "These never really took off because we have kind 30023.\n\nNobody cares, if a microblog has a typo.",
+    "created_at": 1764528989,
+    "id": "fdf8257a2e5740e82dd3d3b51bda4d1894c589bb081935ea9d15172bcf556c80",
+    "kind": 1111,
+    "pubkey": "dd664d5e4016433a8cd69f005ae1480804351789b59de5af06276de65633d319",
+    "sig": "4b24e50a23dd585f4c63563ea2a4575fb231bb0ddf1951532f11a4094729da0e32ac3b5698d2618d2ca8b2c565f6397847faac0144493f874ef0802b75a6b9a6",
+    "tags": [
+      [
+        "A",
+        "30817:460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c:editable-short-notes",
+        "wss://orly-relay.imwald.eu/"
+      ],
+      [
+        "P",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c:editable-short-notes",
+        "wss://orly-relay.imwald.eu/"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "client",
+        "jumble"
+      ],
+      [
+        "alt",
+        "This event was published by https://jumble.imwald.eu."
+      ]
+    ]
+  },
+  {
+    "content": "I like the idea of re-implementing the label spec from [NIP-32](https://nostrhub.io/32). \n\n- `W` tags (upper case) represent the `context` for returned results, as well as a string representing the  `type` of data expected.\n- `[\"W\", \"<context>\", \"<type>\"]\n-  conventional values for `context` can be suggested in the NIP\n-  conventional values for `type` can be suggested in the NIP\n- `w` tags (lower case) represent the `result` for each `context`.\n- [\"w\", \"<result>\", \"<context>\",  ...  ]\n- additional values can be appended to the results tag ...\n- Relays can query for BOTH tag contexts and tag results!!\n\nHere's an example of how this might look 'on the wire' :\n\n```js\n{\n  \"kind\": 30382,\n  \"tags\": [\n    [\"d\", \"e88a691e98d9987c964521dff60025f60700378a4879180dcbbb4a5027850411\"],\n    [\"p\", \"e88a691e98d9987c964521dff60025f60700378a4879180dcbbb4a5027850411\", \"<user-home-relay-url>\"], // relay hints to find the user\n    [\"W\",\"rank\", \"number\"]\n    [\"w\", \"89\",\"rank\"],\n    [\"W\",\"arbitrary_context\", \"string\"]\n    [\"w\", \"some user derived string\",\"arbitrary_context\"],\n    [\"W\", \"followers_count\", \"number\"],\n    [\"w\", \"2100\", \"followers_count\"],\n    [\"W\", \"follower_profiles\", \"REQ:0\"],\n    [\"w\", \"5be067c0-cab3-4c5e-afc6-c009862f52ed\", \"follower_profiles\"],\n    [\"r\", \"wss://relay-for-session-requests.com\"]\n  ],\n  \"content\": \"\",\n  //...\n}\n```",
+    "created_at": 1765912467,
+    "id": "ccbd190a53bc3e9112fa9eff03675f6040d17e913bb5bac988edfd7469e234fe",
+    "kind": 1111,
+    "pubkey": "df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200",
+    "sig": "f3ea1ae43d3844e61983d9e84bccbac651c6dd8d9cfb6d892822f9c28481cf064158edea9faa1df87fa473ae443e064488e681e4e23a7a893447ce13261c8de8",
+    "tags": [
+      [
+        "A",
+        "30817:df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200:trusted-assertions"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200"
+      ],
+      [
+        "e",
+        "874f2546171957f817b94625752f00c392ad6f523bd90d3b9d28339c1a76f87c"
+      ],
+      [
+        "a",
+        "30817:df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200:trusted-assertions"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200"
+      ],
+      [
+        "i",
+        "30817:df67f9a7e41125745cbe7acfbdcd03691780c643df7bad70f5d2108f2d4fc200:trusted-assertions",
+        "root"
+      ],
+      [
+        "k",
+        "nip"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "👍",
+    "created_at": 1765999628,
+    "id": "26ed39e2b339f072f5a74efe1c54d3feb0a0e8e4ea4056bac0412558ff8830c3",
+    "kind": 7,
+    "pubkey": "e5272de914bd301755c439b88e6959a43c9d2664831f093c51e9c799a16a102f",
+    "sig": "76a81ae1dfdecf2c45e474a1f55d76607ca5dbf728db4d11d2f2eff5e43fdfe424d974b059cb4fec75a23c5057614bfc0eddfd66e54f9c01b89cfc567791ccac",
+    "tags": [
+      [
+        "e",
+        "cfd9a135483a4ea98a50f85248caf1920bd5aa36eac030b07920cce662d50b29"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "Drop me a link and ill check it out 👍 ",
+    "created_at": 1766071641,
+    "id": "46c321c2f34db7b08425bf2a00d6500d9779360cba8fc58f4fd49ad8a50d09f4",
+    "kind": 1111,
+    "pubkey": "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5",
+    "sig": "eb94539686c4da1e453bb9a9f37e93e82a2f132a2a6c49684c34aeff51b0b445285f96d94f27741ca41c75521f39f8a07199e120f39a040040b1fec974713259",
+    "tags": [
+      [
+        "A",
+        "30817:460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c:trusted-assertions"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "e",
+        "f96c3bfcac912223bbbb720ab10f8c241901987bb64b7ccf059ef4f32fcf225a",
+        "wss://relay.damus.io/",
+        "e5272de914bd301755c439b88e6959a43c9d2664831f093c51e9c799a16a102f"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "e5272de914bd301755c439b88e6959a43c9d2664831f093c51e9c799a16a102f"
+      ],
+      [
+        "client",
+        "noStrudel",
+        "31990:266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5:1686066542546"
+      ]
+    ]
+  },
+  {
+    "content": "👀",
+    "created_at": 1766072061,
+    "id": "8ba60634f448a21d25e69a72e81b8be159fdf5904cbb7f65b4eab7b4a93aff1e",
+    "kind": 7,
+    "pubkey": "c4f5e7a75a8ce3683d529cff06368439c529e5243c6b125ba68789198856cac7",
+    "sig": "c6d3f22dca5f7d2b806ae809fb7b39aef20d96d12fdb13ca206bad3622bcc0f310d1dc991ec9a5a8260eed0182e600ec2d74c3e26f821f7b21f800adf78d653f",
+    "tags": [
+      [
+        "e",
+        "a31e167653c9eb4f652c95359ce8a3aa97edafc685865bb3939a6e8e6edda029"
+      ],
+      [
+        "p",
+        "800e0fe3d8638ce3f75a56ed865df9d96fc9d9cd2f75550df0d7f5c1d8468b0b"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "client",
+        "nostrhub.io"
+      ]
+    ]
+  },
+  {
+    "content": "Reply directly from Amethyst",
+    "created_at": 1767998695,
+    "id": "c9db05734763f7c1269865bb399e53f71696d7373b188451f69c22b93dd68efe",
+    "kind": 1111,
+    "pubkey": "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c",
+    "sig": "2ef424b10336251657373211af2480f6db6ce1518b0705987fdb274ac7b3bcbe771005f04bb55bf3fcef2992df96869063b50f069deccd93ea6b12fd03b7e604",
+    "tags": [
+      [
+        "alt",
+        "Reply to nostr:nevent1qqswk2c9898lqq2tk6nect4vl5wgq6tgy9vj7ndlsmy4p39lzes54gqpz4mhxue69uhhyetvv9ujuerpd46hxtnfduhsygzxpsj7dqha57pjk5k37gkn6g4nzakewtmqmnwryyhd3jfwlpgxtspsgqqq0pssq9lhpp"
+      ],
+      [
+        "A",
+        "30817:460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c:trusted-translations",
+        "wss://relay.damus.io/"
+      ],
+      [
+        "a",
+        "30817:460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c:trusted-translations",
+        "wss://relay.damus.io/"
+      ],
+      [
+        "E",
+        "eb2b05394ff0014bb6a79c2eacfd1c80696821592f4dbf86c950c4bf16614aa0",
+        "wss://relay.damus.io/",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c",
+        "wss://nostr.wine/"
+      ],
+      [
+        "e",
+        "eb2b05394ff0014bb6a79c2eacfd1c80696821592f4dbf86c950c4bf16614aa0",
+        "wss://relay.damus.io/",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c",
+        "wss://nostr.wine/"
+      ]
+    ]
+  },
+  {
+    "content": "🚀",
+    "created_at": 1768061801,
+    "id": "c163b8ff903febdbc3c5f6fc5810342da7579440f3d1a9db782cb235f22192f3",
+    "kind": 7,
+    "pubkey": "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c",
+    "sig": "8e3ab974891cfe06f5ce93c53bb78f8485309ff654e943f661325a977293a093f84e67c31c4bff1e3d75d8b4e9ba79a62922f4a61728953309baa58d49d03d2e",
+    "tags": [
+      [
+        "e",
+        "065bab51f8ab0b64b7e9fe33584e050fe35fec449fe3c77131ef96c5fa581f86",
+        "wss://relay.damus.io/",
+        "f8ff11c7a7d3478355d3b4d174e5a473797a906ea4aa61aa9b6bc0652c1ea17a"
+      ],
+      [
+        "p",
+        "f8ff11c7a7d3478355d3b4d174e5a473797a906ea4aa61aa9b6bc0652c1ea17a",
+        "wss://relay.damus.io/"
+      ],
+      [
+        "k",
+        "1111"
+      ]
+    ]
+  },
+  {
+    "content": "🎉",
+    "created_at": 1768062265,
+    "id": "e24a22ca628d3c041e623cfa8b4764354595fdcf9771085fffac960647337389",
+    "kind": 7,
+    "pubkey": "daa41bedb68591363bf4407f687cb9789cc543ed024bb77c22d2c84d88f54153",
+    "sig": "c43f6bfd7d8c91d3fc2a0c0333048f871ce264a10167055cb9438859aa8ba23accffa751c226f51adc1a65b0fad9413bcc9ee837be4d0f8bd1bc56cbb5e34e7a",
+    "tags": [
+      [
+        "e",
+        "2ca21144a4ddb5f0ee241905be968b2cef2c11395bfd83b628bc257016cd245a",
+        "wss://nos.lol/",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c",
+        "wss://nos.lol/"
+      ],
+      [
+        "k",
+        "1111"
+      ]
+    ]
+  },
+  {
+    "content": "",
+    "created_at": 1773952084,
+    "id": "694494048b33505118103ee5fc81cd84685d9ecc56411ad37c56a783d2e0c499",
+    "kind": 9735,
+    "pubkey": "79f00d3f5a19ec806189fcab03c1be4ff81d18ee4f653c88fac41fe03570f432",
+    "sig": "22b51c1d1043cc5db75a604c81abe6d01e6bbae688ed7e066d57a801f75317c65121ec0d9c553a3588e4bfe4b65c7d9695510ecaaf66e2c3a2e15161bd237af6",
+    "tags": [
+      [
+        "p",
+        "291c75d937a45f66a1209f8ea6611df7448c59b3526520c66ca2cdcd37f1bfbe"
+      ],
+      [
+        "e",
+        "9110b6aa2e454ce7c3c6cfc15cda7654ad92ea6500c2fe481b86ba08f4bff658"
+      ],
+      [
+        "P",
+        "592295cf2b09a7f9555f43adb734cbee8a84ee892ed3f9336e6a09b6413a0db9"
+      ],
+      [
+        "bolt11",
+        "lnbc420n1p5mchpmpp5sfg2l8tdxtcg50wn8mtkpr6xa9thgmlynujprx2nsezmf9w8spzqhp5f3pggs707utrtnugngkhejcsndxl0mjddsa85vr48ccmh07255wscqzzsxqyz5vqrzjq26922n6s5n5undqrf78rjjhgpcczafws45tx8237y7pzx3fg8wwxrtavvqqjtgqqqqqqqqqqqqqqqqq2qsp5c22aa8lu3xvly6nxed5g6qk9yuk5nkme64p32um6k38z6ckns7uq9qxpqysgqvatnqq9rn7vkwak9kzac3237famm33hc0kzg2twyenwrnwkqhljyevqpms943hchdst99089zexgu85ckgehw0ech36qwkpzlvulrpcqvmra0x"
+      ],
+      [
+        "preimage",
+        "fcab40fb8d0e868fa2858fda36769ab41b2d49ff2b199d23f07ae96589b6b2e0"
+      ],
+      [
+        "description",
+        "{\"kind\":9734,\"created_at\":1773952056,\"content\":\"\",\"tags\":[[\"p\",\"291c75d937a45f66a1209f8ea6611df7448c59b3526520c66ca2cdcd37f1bfbe\"],[\"amount\",\"42000\"],[\"relays\",\"wss://premium.primal.net/\",\"wss://relay.ditto.pub/\",\"wss://relay.nsec.app/\",\"wss://relay.primal.net/\",\"wss://nos.lol/\",\"wss://nostr.mom/\",\"wss://nostr.stakey.net/\",\"wss://relay.damus.io/\",\"wss://nos.lol/\",\"wss://relay.primal.net/\",\"wss://offchain.pub/\"],[\"e\",\"9110b6aa2e454ce7c3c6cfc15cda7654ad92ea6500c2fe481b86ba08f4bff658\"],[\"k\",\"1111\"]],\"pubkey\":\"592295cf2b09a7f9555f43adb734cbee8a84ee892ed3f9336e6a09b6413a0db9\",\"id\":\"3604cf83ce646d39392bae66f608d96b6ecf574c8d3074cd84d9344f0299b6d1\",\"sig\":\"d229d9a20ad99d53ea7008fc8780dcef86544963bfffad574a478ed58013b68c0981e1f91f0bb883d6cf775c62d8664d337ded52adcbbf9909b7be94bf2daf75\"}"
+      ]
+    ]
+  },
+  {
+    "content": "Just testing nmail, and seems to work fine on my graphene phone.  Where can i find a download for laptop?",
+    "created_at": 1774570115,
+    "id": "3054a533f0a0f4bec2bdf7f78c4139da3273aeb30b7ddeb85ec3faa8c4ef12f0",
+    "kind": 1111,
+    "pubkey": "8d9d2b77930ee54ec3e46faf774ddd041dbb4e4aa35ad47c025884a286dd65fa",
+    "sig": "7d1fa8efda0435a265b0c84d92a3a97b2043cb4a14ceaed39e06cb47cebca9a2c9221ec3f4fa7d321015cf0fe87b0de15c098e22ce41aeed1d720f3655bc18ae",
+    "tags": [
+      [
+        "alt",
+        "Reply to nostr:nevent1qqs896g3vjezd20wjcwnjjmfld7nwc05tekg97u39khd6nue9frtkxqprpmhxue69uhhyetvv9ujucmpd4jkcatn9eshqup0qgsty2cxkpgl653jje4fx39xxnv4ds7uxwnltmxu4k0dz8wugys20usrqsqqq7rpvaf9x6"
+      ],
+      [
+        "A",
+        "30817:b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2:nostr-mail-large-mime-support",
+        "wss://relay.camelus.app/"
+      ],
+      [
+        "a",
+        "30817:b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2:nostr-mail-large-mime-support",
+        "wss://relay.camelus.app/"
+      ],
+      [
+        "E",
+        "72e91164b226a9ee961d394b69fb7d3761f45e6c82fb912daedd4f992a46bb18",
+        "wss://relay.camelus.app/",
+        "b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2",
+        "wss://relay.camelus.app/"
+      ],
+      [
+        "e",
+        "72e91164b226a9ee961d394b69fb7d3761f45e6c82fb912daedd4f992a46bb18",
+        "wss://relay.camelus.app/",
+        "b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2",
+        "wss://relay.camelus.app/"
+      ]
+    ]
+  },
+  {
+    "content": "One of the very first things I ever built was maps for LORD II https://relay.rodbishop.nz/187dc36bb5b2c178123aa263c6b26f12a21567928d778231f5a404eb89fc69db.jpg",
+    "created_at": 1775805897,
+    "id": "8736eb8a24b62cce1467b77d7ed416410081878c6bdb1c1ed035dff50819222b",
+    "kind": 1111,
+    "pubkey": "1bda7e1f7396bda2d1ef99033da8fd2dc362810790df9be62f591038bb97c4d9",
+    "sig": "fd67857232e694daa650f4f2f1927f9d58cc6f82274b8bf967b64614c14a73ec319df19661fadf8bcb03c2df9da47d800a4ec15028d73393bd6af52e11d00af7",
+    "tags": [
+      [
+        "alt",
+        "Reply to nostr:nevent1qqsvlfvjft85st8p5zd0vqqmqr5cl66n9pdd0d3nltz2c7lnu8v84hgpz9mhxue69uhkummnw3ezuamfdejj7q3q4rg4vrt2v374q95ezeeydu3hkdhmzglcj950mggacap4x0lv0gyqxpqqqpuxzggrlpv"
+      ],
+      [
+        "A",
+        "30817:a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08:nostrmon-decentralized-monster-taming-world-protocol",
+        "wss://nostr.wine/"
+      ],
+      [
+        "a",
+        "30817:a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08:nostrmon-decentralized-monster-taming-world-protocol",
+        "wss://nostr.wine/"
+      ],
+      [
+        "E",
+        "cfa5924acf482ce1a09af6001b00e98feb53285ad7b633fac4ac7bf3e1d87add",
+        "wss://nostr.wine/",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08",
+        "wss://relay.ditto.pub/"
+      ],
+      [
+        "e",
+        "cfa5924acf482ce1a09af6001b00e98feb53285ad7b633fac4ac7bf3e1d87add",
+        "wss://nostr.wine/",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08",
+        "wss://relay.ditto.pub/"
+      ],
+      [
+        "r",
+        "https://relay.rodbishop.nz/187dc36bb5b2c178123aa263c6b26f12a21567928d778231f5a404eb89fc69db.jpg"
+      ],
+      [
+        "imeta",
+        "url https://relay.rodbishop.nz/187dc36bb5b2c178123aa263c6b26f12a21567928d778231f5a404eb89fc69db.jpg",
+        "x 187dc36bb5b2c178123aa263c6b26f12a21567928d778231f5a404eb89fc69db",
+        "size 39650",
+        "m image/jpeg",
+        "dim 686x386",
+        "blurhash ieAof,osRSX9M^WYR8nTW8%7oaSea%W8WFWFf*j:Qin$bqWGoaj]g2brr=aSnhjJWYoJf,bYnloHZYbEkCjbofbIbYjIf|",
+        "ox 187dc36bb5b2c178123aa263c6b26f12a21567928d778231f5a404eb89fc69db",
+        "alt "
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "👏👏👏👏",
+    "created_at": 1775805913,
+    "id": "7dda30aa2fbd1e1e87a69238583164081f042d8844f6d3b86b6aa0ee2f872f3a",
+    "kind": 1111,
+    "pubkey": "1bda7e1f7396bda2d1ef99033da8fd2dc362810790df9be62f591038bb97c4d9",
+    "sig": "c2134030c62a50478273a52e335146b67d68bc24564372c7e49320eb9f1ada1fa0a3f7442552a656aad0ab1a910e6a63236aed4a10fd8d0aa649d4a14bb69330",
+    "tags": [
+      [
+        "alt",
+        "Reply to nostr:nevent1qqsvlfvjft85st8p5zd0vqqmqr5cl66n9pdd0d3nltz2c7lnu8v84hgpz9mhxue69uhkummnw3ezuamfdejj7q3q4rg4vrt2v374q95ezeeydu3hkdhmzglcj950mggacap4x0lv0gyqxpqqqpuxzggrlpv"
+      ],
+      [
+        "A",
+        "30817:a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08:nostrmon-decentralized-monster-taming-world-protocol",
+        "wss://nostr.wine/"
+      ],
+      [
+        "a",
+        "30817:a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08:nostrmon-decentralized-monster-taming-world-protocol",
+        "wss://nostr.wine/"
+      ],
+      [
+        "E",
+        "cfa5924acf482ce1a09af6001b00e98feb53285ad7b633fac4ac7bf3e1d87add",
+        "wss://nostr.wine/",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08",
+        "wss://relay.ditto.pub/"
+      ],
+      [
+        "e",
+        "cfa5924acf482ce1a09af6001b00e98feb53285ad7b633fac4ac7bf3e1d87add",
+        "wss://nostr.wine/",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08",
+        "wss://relay.ditto.pub/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "Isn't there a way to not have to declare an SP address? Ideally we want to send bitcoins to anyone even without the sp_address field. The money will be there when they use a supporting client. ",
+    "created_at": 1779108193,
+    "id": "8fbb92ed70e009fa9ee7d5ef901769f4010ef24cb4f30586020ec632a83b3a77",
+    "kind": 1111,
+    "pubkey": "aa9047325603dacd4f8142093567973566de3b1e20a89557b728c3be4c6a844b",
+    "sig": "de90ef76a682405a2322c6d4d62d0e3e30692bfae6d7fd83121bf052821f670318a368dd2dc67b5366b7025cc0c717bf08252cd4d443ea61d7197d025d30cdb4",
+    "tags": [
+      [
+        "alt",
+        "Reply to nostr:nevent1qqs9z8flgjy0w33xkpj9pxcjvlz7mdusy5kwzkrvkrmyfsfpmx9z9lspz9mhxue69uhkummnw3ezuamfdejj7q3q9yw8tkfh530kdgfqn782vcga7azgckdn2fjjp3nv5txu6dl3h7lqxpqqqpuxzfr60gg"
+      ],
+      [
+        "A",
+        "30817:291c75d937a45f66a1209f8ea6611df7448c59b3526520c66ca2cdcd37f1bfbe:nip-sp",
+        "wss://nostr.wine/"
+      ],
+      [
+        "a",
+        "30817:291c75d937a45f66a1209f8ea6611df7448c59b3526520c66ca2cdcd37f1bfbe:nip-sp",
+        "wss://nostr.wine/"
+      ],
+      [
+        "E",
+        "511d3f4488f74626b064509b1267c5edb790252ce1586cb0f644c121d98a22fe",
+        "wss://nostr.wine/",
+        "291c75d937a45f66a1209f8ea6611df7448c59b3526520c66ca2cdcd37f1bfbe"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "291c75d937a45f66a1209f8ea6611df7448c59b3526520c66ca2cdcd37f1bfbe",
+        "wss://relay.westernbtc.com/"
+      ],
+      [
+        "e",
+        "511d3f4488f74626b064509b1267c5edb790252ce1586cb0f644c121d98a22fe",
+        "wss://nostr.wine/",
+        "291c75d937a45f66a1209f8ea6611df7448c59b3526520c66ca2cdcd37f1bfbe"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "291c75d937a45f66a1209f8ea6611df7448c59b3526520c66ca2cdcd37f1bfbe",
+        "wss://relay.westernbtc.com/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "",
+    "created_at": 1779391612,
+    "id": "f6aa515a319bd6ac56b1d4e36da371d6140edece666bdbaf4188ffba76b82bdc",
+    "kind": 9735,
+    "pubkey": "beeb48407a6f087ea8f76dc384a5d88c67ced9bd9fb0cdba90930210df3d92e7",
+    "sig": "34a68ce224db9d944fc4aa1014b498183ca69c2e154ef90c982f3ab0cfe3091701a39a942cd6f3f8adc24110c7eaf7ed10d425ff8c7bc9b3c98d37cb39172214",
+    "tags": [
+      [
+        "p",
+        "a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08"
+      ],
+      [
+        "e",
+        "a5ce4bc7ca513c84afd40b941a621f327fead2273f53aebe7ed3d91604c0fc21"
+      ],
+      [
+        "bolt11",
+        "lnbc12900n1p4q7hrepp5zcjmmvx3farkwfsrqwgazjcexzecxepvkfelmr59reav76qxz4esdqqcqzzsxqyz5vqrzjqvueefmrckfdwyyu39m0lf24sqzcr9vcrmxrvgfn6empxz7phrjxvrttncqq0lcqqyqqqqlgqqqqqqgq2qsp5tvr7smn5ttprptj4rfwrrdy2h02ckkqqqre6x0juke0vn5efwj5s9qxpqysgqq2ly7g5t3h6nmzmv7s7pucfj8y5sueaefsvkffp77s5mnvaumxqzjdf27jxv7vh3rgja4843ehnqk3k34a59x986zdskaz4p25zqxssq06pfyc"
+      ],
+      [
+        "description",
+        "{\"id\":\"b17311957eaf61067f5f6209fc16a09354ccc9b2452a52748f003d102da1a882\",\"kind\":9734,\"pubkey\":\"291c75d937a45f66a1209f8ea6611df7448c59b3526520c66ca2cdcd37f1bfbe\",\"tags\":[[\"p\",\"a8d1560d6a647d501699167246f237b36fb123f89168fda11dc743533fec7a08\"],[\"amount\",\"1290000\"],[\"relays\",\"wss://premium.primal.net\",\"wss://relay.damus.io\",\"wss://relay.ditto.pub\",\"wss://relay.dreamith.to\",\"wss://relay.primal.net\"],[\"e\",\"a5ce4bc7ca513c84afd40b941a621f327fead2273f53aebe7ed3d91604c0fc21\"]],\"content\":\"\",\"created_at\":1779391610,\"sig\":\"8c2217a8a9758aef1b20fae07a844b32d75c3b6fd30776caf60d8bfbddfa3cf1f806525e8c50c92361b5008f24f0018b9653f86e81a87940f0370a26de6e2cb9\"}"
+      ]
+    ]
+  },
+  {
+    "content": "Is this your nip? I was just thinking about this and talking with someone about it last night.\nBtw, I nmailed you a bug report. \n\nAny chance drafts are in the works",
+    "created_at": 1781778844,
+    "id": "06462c85c25de0c60d77bc73f137b4c4a259a07f1afd3f2a5adcfe35d748780c",
+    "kind": 1111,
+    "pubkey": "d70d50091504b992d1838822af245d5f6b3a16b82d917acb7924cef61ed4acee",
+    "sig": "09a6d7096cce3bcd0001beb51c87feff098810f4c0b4c2a6706f2e4f19baf815b28549fed5b58cf3755dc4a550b4076a560c9111f0b0cb0ce2c5895491414940",
+    "tags": [
+      [
+        "alt",
+        "Reply to nostr:nevent1qqszdw03z2tpgckvfygz6ax7vwzefrgc2ru9pmv340as309urkj297cpr4mhxue69uhkummnw3ez6vp39eukz6mfdphkumn99e3k7mf0qgsty2cxkpgl653jje4fx39xxnv4ds7uxwnltmxu4k0dz8wugys20usrqsqqq7rpdt3fnj"
+      ],
+      [
+        "A",
+        "30817:b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2:address-book",
+        "wss://nostr-01.yakihonne.com/"
+      ],
+      [
+        "a",
+        "30817:b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2:address-book",
+        "wss://nostr-01.yakihonne.com/"
+      ],
+      [
+        "E",
+        "26b9f112961462cc49102d74de6385948d1850f850ed91abfb08bcbc1da4a2fb",
+        "wss://nostr-01.yakihonne.com/",
+        "b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2",
+        "wss://nostr-01.yakihonne.com/"
+      ],
+      [
+        "e",
+        "26b9f112961462cc49102d74de6385948d1850f850ed91abfb08bcbc1da4a2fb",
+        "wss://nostr-01.yakihonne.com/",
+        "b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2",
+        "wss://nostr-01.yakihonne.com/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "yes, it wastes relays resources no need for it to be indexed",
+    "created_at": 1782763064,
+    "id": "fd15c6ad0598a5732fc0b39f9cde274d3ce81236f4580a8b8bb8ddccd351ab15",
+    "kind": 1111,
+    "pubkey": "c21b1a6cdb247ccbd938dcb16b15a4fa382d00ffd7b12d5cbbad172a0cd4d170",
+    "sig": "8d9845d318629d1c15b2be261247e5240a34301dd083733d1b38b625093699680a0d7954362cdaf98e4fbe0055db655e32768ba9a27217a0917a222bd4e2c5dd",
+    "tags": [
+      [
+        "A",
+        "30817:0461fcbecc4c3374439932d6b8f11269ccdb7cc973ad7a50ae362db135a474dd:profile-themes"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "0461fcbecc4c3374439932d6b8f11269ccdb7cc973ad7a50ae362db135a474dd"
+      ],
+      [
+        "e",
+        "163bfe922bfd0c002b6edf064e3b83b3005ad91fd9c7c8e1c836dfdf189a2964"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fc7085c383ba71745704bdc1c6efcf7fab0197501de598c5e6c537ac0b32a4cb"
+      ],
+      [
+        "client",
+        "better-nips"
+      ]
+    ]
+  },
+  {
+    "content": "Why is img/gif a fallback only?",
+    "created_at": 1782888599,
+    "id": "daaba275358fbd2e0295f51f8681afd123123ec7aea6dfa3676f05fd935c2904",
+    "kind": 1111,
+    "pubkey": "c21b1a6cdb247ccbd938dcb16b15a4fa382d00ffd7b12d5cbbad172a0cd4d170",
+    "sig": "e01ab52ff0d0bd5dcde1c1e3fa4fca95ce14746883d70539e915b9f6245f185c9428536c4fd2f0c71849a65fcc858c7acfdd971e5457f5900d1cafdda12b79af",
+    "tags": [
+      [
+        "A",
+        "30817:daa41bedb68591363bf4407f687cb9789cc543ed024bb77c22d2c84d88f54153:animated-media-reaction-clips"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "daa41bedb68591363bf4407f687cb9789cc543ed024bb77c22d2c84d88f54153"
+      ],
+      [
+        "a",
+        "30817:daa41bedb68591363bf4407f687cb9789cc543ed024bb77c22d2c84d88f54153:animated-media-reaction-clips"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "daa41bedb68591363bf4407f687cb9789cc543ed024bb77c22d2c84d88f54153"
+      ],
+      [
+        "client",
+        "better-nips"
+      ]
+    ]
+  },
+  {
+    "content": "",
+    "created_at": 1783375101,
+    "id": "9a0a3cf93e6319bb3c8730808f72d01f67c61a0b1696bcf23bbc5ad7b9b1e94e",
+    "kind": 9735,
+    "pubkey": "a6796f8440db6169fc5bf33e5aa65f683a6ec43856c58e1f4ab9502f27b93bbc",
+    "sig": "ef8187f8aa99d415ecc6b9db3599132f98876b4d5ed33380ac316f8c2951eb899d2ef9b33a327552a6feec5c37c38ab8e73a7737324f4e46e81f8ab7c8ead887",
+    "tags": [
+      [
+        "bolt11",
+        "lnbc690n1p4ycf84pp54dm7nqve46yedp94asgmv4qeqpdy6m4wg486p89pg5adzq5y6uessp5wmxqzh5d6d9sc5fj7vspuaan7wprjgdzy6xk8zxcll2aech820mqxq9z0rgqnp4qvyndeaqzman7h898jxm98dzkm0mlrsx36s93smrur7h0azyyuxc5rzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrt49lmtcqqqqqqqqqqq86qq9qcqzpuhp55w95rj406syx6ughnmpprgvt62fyehezmvh8mehph2x96e829xls9qyyssq5xlwjw9w42yzp9d2xa2zvxqxmr72p4u40khhhvaz8ss4rp5sm9a892sg5f948un2x5yks00jk5kdltu3j0dce070pnm59nvvlkptlxqpf6a428"
+      ],
+      [
+        "description",
+        "{\"id\":\"459015e4e02e04a3106034353f3b28ae51c725a62de0630bd27d6f2c7fdab6ae\",\"pubkey\":\"daa41bedb68591363bf4407f687cb9789cc543ed024bb77c22d2c84d88f54153\",\"created_at\":1783375091,\"kind\":9734,\"tags\":[[\"relays\",\"wss://nos.lol\",\"wss://nostr.stakey.net\",\"wss://premium.primal.net\",\"wss://relay.primal.net\",\"wss://relay.damus.io\",\"wss://indexer.coracle.social\"],[\"amount\",\"69000\"],[\"lnurl\",\"lnurl1dp68gurn8ghj7cmpddjjucmpwd5z7tnhv4kxctttdehhwm30d3h82unvwqhhxar9d3kxz6twvehhyetnwsdcr4me\"],[\"p\",\"fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1\"],[\"e\",\"6926fbb1b174239f72d48b30ad353d2cb657bdf0f2a1d10e471306cd2991bd90\"]],\"content\":\"\",\"sig\":\"00f6a13688d54865c44e9e0e5cbf84f7fff5250178bf186156f59d08cf140faaa9ce442035178d9ef2fd9ebbd206d4637f4becd4e6f6ec59689f74e8039793a2\"}"
+      ],
+      [
+        "preimage",
+        "8e06ed324d0a09c7b23199e67937467a6cf975b3d52c5fb25b658f0328cb7179"
+      ],
+      [
+        "e",
+        "6926fbb1b174239f72d48b30ad353d2cb657bdf0f2a1d10e471306cd2991bd90"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "P",
+        "daa41bedb68591363bf4407f687cb9789cc543ed024bb77c22d2c84d88f54153"
+      ]
+    ]
+  },
+  {
+    "content": "",
+    "created_at": 1783377787,
+    "id": "8cfa65015aab1ddd358f4e31b000b601cdf85db016c4954b2b5f1bc19aba0228",
+    "kind": 9735,
+    "pubkey": "a6796f8440db6169fc5bf33e5aa65f683a6ec43856c58e1f4ab9502f27b93bbc",
+    "sig": "6984a953671d3564e3a99b3408825f5800ca9c3085121b2329545882503ca42961f7eb302e9eada062a8fde871dbde313bb5352413557813d7c9327d9fb39f36",
+    "tags": [
+      [
+        "bolt11",
+        "lnbc11110n1p4yctmjpp5mecws5yazpwy0cdnv2gq2kpg7t0e2jgpwd6xwjuse7ahxwx8y93ssp52lk69ne5gfkt9qjah8uecszcjvnw8ztm7669gdwlr209acc86v4qxq9z0rgqnp4qvyndeaqzman7h898jxm98dzkm0mlrsx36s93smrur7h0azyyuxc5rzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrt49lmtcqqqqqqqqqqq86qq9qcqzpuhp5mh4da8xadv72jns54ak6yxmx73e9vmfj93v56yteh7fc7jurgu4s9qyyssqxgny30ksjmar8v78x2ftry5043fz47n76cecg3k2huv27fv0qcjk9jpnuf9t8sjmx4xz375juaxmt44xs5jnn662j6rgtzy0had6jzgqlv8kvg"
+      ],
+      [
+        "description",
+        "{\"id\":\"4255b0bad5f168e9cf4c2021a94c44866ef7d556de0f61cdcb00eea4a6b79af2\",\"pubkey\":\"daa41bedb68591363bf4407f687cb9789cc543ed024bb77c22d2c84d88f54153\",\"created_at\":1783377777,\"kind\":9734,\"tags\":[[\"relays\",\"wss://nos.lol\",\"wss://nostr.stakey.net\",\"wss://premium.primal.net\",\"wss://relay.primal.net\",\"wss://relay.damus.io\",\"wss://indexer.coracle.social\"],[\"amount\",\"1111000\"],[\"lnurl\",\"lnurl1dp68gurn8ghj7cmpddjjucmpwd5z7tnhv4kxctttdehhwm30d3h82unvwqhhxar9d3kxz6twvehhyetnwsdcr4me\"],[\"p\",\"fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1\"],[\"e\",\"982787a4f56b2d6f92013904f5f5471aaebe4a5b9d5c05dcbbb05ad8e69254e9\"]],\"content\":\"\",\"sig\":\"4f1a701dc9e5a1d731fd79dfde053a6896bcfdafa88cb8e3ad6402304c81364a78f30ba13fad21525cddab301b2674475942dafc11740147e9c1f8134b5a05f5\"}"
+      ],
+      [
+        "preimage",
+        "45efe101a02c6c3a7ec6b9f70d1b0a40f44eeaad132a68cb62457531bfbeb125"
+      ],
+      [
+        "e",
+        "982787a4f56b2d6f92013904f5f5471aaebe4a5b9d5c05dcbbb05ad8e69254e9"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "P",
+        "daa41bedb68591363bf4407f687cb9789cc543ed024bb77c22d2c84d88f54153"
+      ]
+    ]
+  },
+  {
+    "content": "Based on some based feedback, this NIP has been augmented from the original PR",
+    "created_at": 1783892615,
+    "id": "b53605fdbc86eacffb58d13674dc1080e04fa1f61220d9205f513f0e86b927db",
+    "kind": 1111,
+    "pubkey": "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e",
+    "sig": "d5a9b411e61f65ab86523e4e60c8654ae1f7bc2d7c71a6300b67b68029581b54562f9d2311f48a01f9e80e0de66e32844a45701d3b73ba313366938178e6ac9e",
+    "tags": [
+      [
+        "A",
+        "30817:7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e:relay-connection-limits"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "a",
+        "30817:7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e:relay-connection-limits"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "client",
+        "better-nips"
+      ]
+    ]
+  },
+  {
+    "content": "why do we have a \"deleted\" should the metadata event also not be deleted when the file gets deleted?",
+    "created_at": 1783950229,
+    "id": "865a50f63924d38bdf03fa895bcfaf8642a701700c9293b7b3250d83d3e7a9c4",
+    "kind": 1111,
+    "pubkey": "c21b1a6cdb247ccbd938dcb16b15a4fa382d00ffd7b12d5cbbad172a0cd4d170",
+    "sig": "fdc1936c280dcdb36a9ce0dccbc88886d2267ef5f24f712e31e281808994173fd60d4effb598f616248c4af1d97961108bda29569f07e78a074a9793bb0b6d23",
+    "tags": [
+      [
+        "A",
+        "30817:a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8:nip-fs"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8"
+      ],
+      [
+        "a",
+        "30817:a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8:nip-fs"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8"
+      ],
+      [
+        "client",
+        "better-nips"
+      ]
+    ]
+  },
+  {
+    "content": "why is t tag a MUST?  feels like a COULD?",
+    "created_at": 1783950402,
+    "id": "07a11d3c9bd67342c45b47c5584f8b1b79a39ea79c43253362d445e451cc0853",
+    "kind": 1111,
+    "pubkey": "c21b1a6cdb247ccbd938dcb16b15a4fa382d00ffd7b12d5cbbad172a0cd4d170",
+    "sig": "e81554a671a4159fca88655867ee2b2aaf1eee25464544e0fa849ff6433e86cee08b869c708c61c089c3d8981f0169d7d7b52365dc3e30e2c677a3880002c772",
+    "tags": [
+      [
+        "A",
+        "30817:a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8:nip-fs"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8"
+      ],
+      [
+        "a",
+        "30817:a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8:nip-fs"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8"
+      ],
+      [
+        "client",
+        "better-nips"
+      ]
+    ]
+  },
+  {
+    "content": "Why is the seperate folder point added? that seems implied and unnecessary?",
+    "created_at": 1783950450,
+    "id": "c291d615ca0bc8e3dbb0e9d0d3ee246ba697b4149396264f77646be998245a31",
+    "kind": 1111,
+    "pubkey": "c21b1a6cdb247ccbd938dcb16b15a4fa382d00ffd7b12d5cbbad172a0cd4d170",
+    "sig": "17449fe4167af9457cca3098b5829d44a487d8b16bc60f2d4f95a980a5da758430ba67b0f1eb63414c98d55967a43ce83603e4948793a32ad487b11be3896fc5",
+    "tags": [
+      [
+        "A",
+        "30817:a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8:nip-fs"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8"
+      ],
+      [
+        "a",
+        "30817:a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8:nip-fs"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "a22dbe51e3c719ad8b2cdc3e4ffc2176f20373f3027b67a1dc6c6e976fbcd6d8"
+      ],
+      [
+        "client",
+        "better-nips"
+      ]
+    ]
+  },
+  {
+    "content": "nostr:npub1gcxzte5zlkncx26j68ez60fzkvtkm9e0vrwdcvsjakxf9mu9qewqlfnj5z nostr:npub1qdjn8j4gwgmkj3k5un775nq6q3q7mguv5tvajstmkdsqdja2havq03fqm7 nostr:npub12262qa4uhw7u8gdwlgmntqtv7aye8vdcmvszkqwgs0zchel6mz7s6cgrkj nostr:npub1ye5ptcxfyyxl5vjvdjar2ua3f0hynkjzpx552mu5snj3qmx5pzjscpknpr nostr:npub10npj3gydmv40m70ehemmal6vsdyfl7tewgvz043g54p0x23y0s8qzztl5h nostr:npub1gnwpctdec0aa00hfy4lvadftu08ccs9677mr73h9ddv2zvw8fu9smmerrq nostr:npub1636uujeewag8zv8593lcvdrwlymgqre6uax4anuq3y5qehqey05sl8qpl4 \n\nI thought about trying out #bittorrent style storage on blossom, using relays for discovery. Thoughts?",
+    "created_at": 1786866671,
+    "id": "5f1a42559bced0a2dc781b39b084ca237fa31a5eb1766c68b8f836749284efc5",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "68f3205908461cdccb8c4aa89d5a1138796b7ef499d3b16d7d43d0f9952aa79940f75ec8697414a73fcc3d877c2799b9fb9d653bca0461a2075413f768d6510b",
+    "tags": [
+      [
+        "t",
+        "bittorrent"
+      ],
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "p",
+        "036533caa872376946d4e4fdea4c1a0441eda38ca2d9d9417bb36006cbaabf58"
+      ],
+      [
+        "p",
+        "52b4a076bcbbbdc3a1aefa3735816cf74993b1b8db202b01c883c58be7fad8bd"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "p",
+        "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b"
+      ],
+      [
+        "p",
+        "d475ce4b3977507130f42c7f86346ef936800f3ae74d5ecf8089280cdc1923e9"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "Okay, no thoughts. 🤣 \n\nThat's okay. I can try to prototype it, anyway.",
+    "created_at": 1786895495,
+    "id": "b647e9e017df8ac942ccb2fc13fa2ae214df60917e55a397b60932aac9939b26",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "5ba9ba89bf164fdc2ff376c55a0994d8080637e88888fa66930120ba263cba194adebf799d8d6319e00bee78e30bd41d286f3c3e4a4f79f0b6138e2f303b0fc3",
+    "tags": [
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "p",
+        "036533caa872376946d4e4fdea4c1a0441eda38ca2d9d9417bb36006cbaabf58"
+      ],
+      [
+        "p",
+        "52b4a076bcbbbdc3a1aefa3735816cf74993b1b8db202b01c883c58be7fad8bd"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "p",
+        "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b"
+      ],
+      [
+        "p",
+        "d475ce4b3977507130f42c7f86346ef936800f3ae74d5ecf8089280cdc1923e9"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "5f1a42559bced0a2dc781b39b084ca237fa31a5eb1766c68b8f836749284efc5",
+        "wss://nostr.land/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "zero.zero thoughts :)  all I know is I've heard torrents discussed, and I think it could be neat.  how it fits with blossom, yeah more zero.  Drawin blanks over here sorray haha. 🧠",
+    "created_at": 1786895868,
+    "id": "379e18973a989b5c52db2639908194956f4221f92f88ed9c720631e331ad0f99",
+    "kind": 1111,
+    "pubkey": "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e",
+    "sig": "23471614b22d1b6fcc8728045250320ff59a6c4d8405b2cfb357b1e2d66e561f68383ace54b78b5c45f077e4a584c03829aab8fb4ad53f0d3faf04eb739aa4b0",
+    "tags": [
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "p",
+        "036533caa872376946d4e4fdea4c1a0441eda38ca2d9d9417bb36006cbaabf58"
+      ],
+      [
+        "p",
+        "52b4a076bcbbbdc3a1aefa3735816cf74993b1b8db202b01c883c58be7fad8bd"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "p",
+        "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b"
+      ],
+      [
+        "p",
+        "d475ce4b3977507130f42c7f86346ef936800f3ae74d5ecf8089280cdc1923e9"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "b647e9e017df8ac942ccb2fc13fa2ae214df60917e55a397b60932aac9939b26",
+        "wss://nostr.wine/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ]
+    ]
+  },
+  {
+    "content": "The main weakness of torrents is the centralizing factor of the list of file locations, so it seems to me like Nostr adds something there.",
+    "created_at": 1786895959,
+    "id": "f16f9b803fcf32439d3dc96855507de4a34d8b39b00f90df8649658ff8dbf8eb",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "849dc76e832905ac6b872dda31e17492bb276df71daa6a5e05cfb94fb25f75a97133014209487992a6153ad55fc135b1a95b02675c9529188d9c9744057b00e3",
+    "tags": [
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "p",
+        "036533caa872376946d4e4fdea4c1a0441eda38ca2d9d9417bb36006cbaabf58"
+      ],
+      [
+        "p",
+        "52b4a076bcbbbdc3a1aefa3735816cf74993b1b8db202b01c883c58be7fad8bd"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "p",
+        "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b"
+      ],
+      [
+        "p",
+        "d475ce4b3977507130f42c7f86346ef936800f3ae74d5ecf8089280cdc1923e9"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "379e18973a989b5c52db2639908194956f4221f92f88ed9c720631e331ad0f99",
+        "wss://nostr.land/",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "In my defense, West Coast time. I just woke up. I like torrents on nostr. Ill read after coffee.",
+    "created_at": 1786896615,
+    "id": "68229d9a89e7c87894650683904d89749ab9b77e829b640f68087c12b0f50249",
+    "kind": 1111,
+    "pubkey": "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b",
+    "sig": "d6f0976882a6c610c6516054b96b8ed18dfb3936721c5a59541e3996e7f7a6c45fe7d01be5bc145e5c3fe90368ab4091f5c144d2b1ed8bd263b2187b388d2b9a",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "e",
+        "b647e9e017df8ac942ccb2fc13fa2ae214df60917e55a397b60932aac9939b26",
+        "wss://nostr.wine/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+        "wss://nostr.land/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "Alternative would be blogs that are lists of blobs, but relays are more discoverable.",
+    "created_at": 1786896746,
+    "id": "8ff24e7eec875074e44bfcee0fd54044f92b7ee57b1cf0c112a368b39d724e39",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "7955c5e813fcbd4272bcc3cb816429e0919ffd15f05390874f93c9d0c9207c5bcc0dcccc64099d1b994d4468adb43d1b986d63af0992b3d8b0d0297da6195668",
+    "tags": [
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "p",
+        "036533caa872376946d4e4fdea4c1a0441eda38ca2d9d9417bb36006cbaabf58"
+      ],
+      [
+        "p",
+        "52b4a076bcbbbdc3a1aefa3735816cf74993b1b8db202b01c883c58be7fad8bd"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "p",
+        "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b"
+      ],
+      [
+        "p",
+        "d475ce4b3977507130f42c7f86346ef936800f3ae74d5ecf8089280cdc1923e9"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "f16f9b803fcf32439d3dc96855507de4a34d8b39b00f90df8649658ff8dbf8eb",
+        "wss://theforest.nostr1.com/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "nostr:npub1m3xdppkd0njmrqe2ma8a6ys39zvgp5k8u22mev8xsnqp4nh80srqhqa5sf I was thinking that we could allow for the content field to contain a transcript of the written text of audio and video files, or the ASCII text of a pdf. That would make that content indexable and therefore searchable. You could then search file trees for the leaf that had some particular text.",
+    "created_at": 1786897056,
+    "id": "199bc73a0fb008f72688fd5325c688e0722708412ee62ab1bdcc2df7829b2c57",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "82988a35649d7fbc3c7996686c9c1c073fb9b7a589d82063eae7f1b14010ba0ef69b55ee4e45ba4b53f4a241b56f2e9159fb99f25340d39d09620f48e2782250",
+    "tags": [
+      [
+        "p",
+        "dc4cd086cd7ce5b1832adf4fdd1211289880d2c7e295bcb0e684c01acee77c06"
+      ],
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "p",
+        "036533caa872376946d4e4fdea4c1a0441eda38ca2d9d9417bb36006cbaabf58"
+      ],
+      [
+        "p",
+        "52b4a076bcbbbdc3a1aefa3735816cf74993b1b8db202b01c883c58be7fad8bd"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "p",
+        "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b"
+      ],
+      [
+        "p",
+        "d475ce4b3977507130f42c7f86346ef936800f3ae74d5ecf8089280cdc1923e9"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "5f1a42559bced0a2dc781b39b084ca237fa31a5eb1766c68b8f836749284efc5",
+        "wss://nostr.land/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "You were working on something like that a while back. Parsing video as transcripts or with video-snippet summaries.",
+    "created_at": 1786898480,
+    "id": "5cc3c870f6e1bc2a6c919a6335a7217bb1bda7b3861722a048764763b1838b5e",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "f93f6a672119aa4a148360578b4ad212e9fd8b7987dc5ab5e32b3040996e60f33e9a7e1f2d447335f87988e8b32447fc71d83c1547f7788d07503d6e0afcf954",
+    "tags": [
+      [
+        "p",
+        "dc4cd086cd7ce5b1832adf4fdd1211289880d2c7e295bcb0e684c01acee77c06"
+      ],
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "p",
+        "036533caa872376946d4e4fdea4c1a0441eda38ca2d9d9417bb36006cbaabf58"
+      ],
+      [
+        "p",
+        "52b4a076bcbbbdc3a1aefa3735816cf74993b1b8db202b01c883c58be7fad8bd"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "p",
+        "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b"
+      ],
+      [
+        "p",
+        "d475ce4b3977507130f42c7f86346ef936800f3ae74d5ecf8089280cdc1923e9"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "199bc73a0fb008f72688fd5325c688e0722708412ee62ab1bdcc2df7829b2c57",
+        "wss://nostr.land/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "Yeah extracting videos and making them into slideshow/articles by chapter/image. This is really nice. You can have a tag for the transcript format. This is a better version than how I imagined",
+    "created_at": 1786899940,
+    "id": "4adf1f38001b4e3b7e8e4f3a1bb335a53b91b6761ec18884aa162254c980c2c5",
+    "kind": 1111,
+    "pubkey": "dc4cd086cd7ce5b1832adf4fdd1211289880d2c7e295bcb0e684c01acee77c06",
+    "sig": "6992ced16dec69746c88e5040e6b0fde6a6d976ba3e66cfcf2bdcd62ab427e8ebfc0fb708d229b9c62eba55434a072c29f5366ffe00deb704a709d2f936f3757",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "e",
+        "5cc3c870f6e1bc2a6c919a6335a7217bb1bda7b3861722a048764763b1838b5e",
+        "wss://theforest.nostr1.com/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+        "wss://nostr.land/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "what transcript formats are there?",
+    "created_at": 1786900105,
+    "id": "17fa9bd968ef4b70b019150f1bce3313f1176573d10152bd538ef8ce8a15226b",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "f3ee54a773c3040116cc424f82ae2b3d8a52397cfd3944501d97d2b06ce64797100e24ecdab2c2e40eda81b1d6424f429062fb262317f089e5c74f15cff3cc9e",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "4adf1f38001b4e3b7e8e4f3a1bb335a53b91b6761ec18884aa162254c980c2c5",
+        "wss://nostr.wine/",
+        "dc4cd086cd7ce5b1832adf4fdd1211289880d2c7e295bcb0e684c01acee77c06"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "dc4cd086cd7ce5b1832adf4fdd1211289880d2c7e295bcb0e684c01acee77c06"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "Off the top of my head, from yt, there's srt and vtt",
+    "created_at": 1786900162,
+    "id": "752acea5223c71f9846ef08db79dcb1d1e4fbe8004c5e80c2ef7a8faef479d54",
+    "kind": 1111,
+    "pubkey": "dc4cd086cd7ce5b1832adf4fdd1211289880d2c7e295bcb0e684c01acee77c06",
+    "sig": "d3d3fe0d2c264900b8b4e56133d69a3faf1ec024deb6dec0665c20091d269f381d7cfc8326db9ee1754303c1aabc3f1948dd63e752794c5ec3a49c527e4fba66",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "e",
+        "17fa9bd968ef4b70b019150f1bce3313f1176573d10152bd538ef8ce8a15226b",
+        "wss://wheat.happytavern.co/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+        "wss://nostr.land/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "Also allows users to interact with branches and leaves, rather than only with the root. So, they could discuss one scene in a film or some particular verse in a song, for instance. And each event in the tree can have its own metadata.",
+    "created_at": 1786902609,
+    "id": "19d6c7867831b45fab0a4714b2834e1c71ed022663081a639fabc25ea19f9f8e",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "4f94c01c35fa17ab986d420f01c553be764beae5d911079a352c698408aaa60a2b724a859974daed6d5a7088da21e6f7804acd2612ad609cafeca2627274fc8c",
+    "tags": [
+      [
+        "p",
+        "460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"
+      ],
+      [
+        "p",
+        "036533caa872376946d4e4fdea4c1a0441eda38ca2d9d9417bb36006cbaabf58"
+      ],
+      [
+        "p",
+        "52b4a076bcbbbdc3a1aefa3735816cf74993b1b8db202b01c883c58be7fad8bd"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "p",
+        "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b"
+      ],
+      [
+        "p",
+        "d475ce4b3977507130f42c7f86346ef936800f3ae74d5ecf8089280cdc1923e9"
+      ],
+      [
+        "p",
+        "7cc328a08ddb2afdf9f9be77beff4c83489ff979721827d628a542f32a247c0e"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "f16f9b803fcf32439d3dc96855507de4a34d8b39b00f90df8649658ff8dbf8eb",
+        "wss://nostr.wine/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "Okay, I added that to the spec and used _Gone with the Wind_ as an example, to be more concrete.",
+    "created_at": 1786905122,
+    "id": "2fd6f6d14af558e2283f4fb602cef4579e4df253b738cf90e71e5abbda59bb47",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "be0d2c933fdfce58f5da7746bf8e7e2dbf4a842e9d806105b562a2bd29f10c39b0e7ae114c7a6dcc5bfcbde2bd7b8438201a6abcfb3f77eb2515fcf5009d1279",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://theforest.nostr1.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "752acea5223c71f9846ef08db79dcb1d1e4fbe8004c5e80c2ef7a8faef479d54",
+        "wss://nostr.wine/",
+        "dc4cd086cd7ce5b1832adf4fdd1211289880d2c7e295bcb0e684c01acee77c06"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "dc4cd086cd7ce5b1832adf4fdd1211289880d2c7e295bcb0e684c01acee77c06"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "sig": "ec8c65a9c10869cb192f608277576fa4a9a67d6b51a9120d86b88f65ee0b29fac1f42efbb6ca897a9228023915c271698fe69e06487694e8320f0da8ac87966a",
+    "kind": 1111,
+    "created_at": 1786943420,
+    "id": "000003b556500965657f30914867f17b435e4e4ac775e56c363e2ba802e32093",
+    "content": "I don't understand but it looks cool.",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://nostr.wine/"
+      ],
+      [
+        "a",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://nostr.wine/"
+      ],
+      [
+        "E",
+        "caa1de7bb5ff245beae3f220ee0d808700b4f3da7860bc16289077003ae87e02",
+        "wss://nostr.wine/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+        "wss://nostr.land/"
+      ],
+      [
+        "e",
+        "caa1de7bb5ff245beae3f220ee0d808700b4f3da7860bc16289077003ae87e02",
+        "wss://nostr.wine/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+        "wss://nostr.land/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ],
+      [
+        "nonce",
+        "200Uwj",
+        "21"
+      ]
+    ],
+    "pubkey": "cf7ad05f8e99de8eadbbfbd5ca1c0f9b75499bce07074966b277688ca5e1d726"
+  },
+  {
+    "content": "",
+    "created_at": 1786943730,
+    "id": "7822f2aea56819a4890b147c641990253ed380b3879948fff96685c9975b7e8f",
+    "kind": 9735,
+    "pubkey": "597aad8ec19d367e6de121319d1996700e32ebb93a0dcdafbc444574261e915c",
+    "sig": "6368f0d81382837fcb997b117300e36ec21bbb99964a29032503c2866464fafd572f658761c541d1b2b655e19fd5fb2fdef1b862ed9d9b8b13add211e890d9fe",
+    "tags": [
+      [
+        "bolt11",
+        "lnbc1210n1p4g997zpp5tmwy456ye5km3ufl4pw5q0ws9zuee2g3mge487tgzgt5q5ze3adssp5whjccdajdvk2gesaz60sa5ww7p30w8tcgqtjhc3g2jkj8473mg3qxq9z0rgqnp4qvyndeaqzman7h898jxm98dzkm0mlrsx36s93smrur7h0azyyuxc5rzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrt49lmtcqqqqqqqqqqq86qq9qcqzpuhp599lqpmr8lrue3n8x0jdfmsnnxp3j24m66hmhtl4s4ktryd63vt4s9qyyssq2vsea5msgkd2vaf2fuvhjnp8p5hc5dpaww8d3y68ed5d6twfvnayfvtpvxezasryxe97qzkw4k44jp84jqgs3s6fepz5c0wrrgm8qacpdfpp9t"
+      ],
+      [
+        "description",
+        "{\"id\":\"da8d10c7e2a0fe5d9b0c33a8b6f697677c60d67e58383fc65a9f498552ae204d\",\"pubkey\":\"cf7ad05f8e99de8eadbbfbd5ca1c0f9b75499bce07074966b277688ca5e1d726\",\"created_at\":1786943425,\"kind\":9734,\"tags\":[[\"e\",\"caa1de7bb5ff245beae3f220ee0d808700b4f3da7860bc16289077003ae87e02\"],[\"p\",\"fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1\"],[\"relays\",\"wss://relay.damus.io/\",\"wss://relay.snort.social/\",\"wss://relay.ditto.pub/\",\"wss://nostr.land/\",\"wss://theforest.nostr1.com/\",\"ws://hfv334dgnndidbgdi2rbbvrtimp2fqy5unpys5tumixhrr7gi2sa.b32.i2p:7778/\"],[\"k\",\"30817\"],[\"a\",\"30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07\"],[\"amount\",\"121000\"],[\"lnurl\",\"lnurl1dp68gurn8ghj7cmpddjjucmpwd5z7tnhv4kxctttdehhwm30d3h82unvwqhhxar9d3kxz6twvehhyetnwsdcr4me\"],[\"client\",\"Amethyst\"]],\"content\":\"\",\"sig\":\"a91fa857f27dfb24fa3be4d706d208a6ca685db48e07c4f57c3daf4a5371191fd9c5bc88f70a58d70878e1e89997889c4740b90022d663f7fa6428e7cb6b2206\"}"
+      ],
+      [
+        "preimage",
+        "54f55250670fac96bad580f67588e4088fca00b63792599ad0f1159ec8b6d0b5"
+      ],
+      [
+        "e",
+        "caa1de7bb5ff245beae3f220ee0d808700b4f3da7860bc16289077003ae87e02"
+      ],
+      [
+        "a",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "P",
+        "cf7ad05f8e99de8eadbbfbd5ca1c0f9b75499bce07074966b277688ca5e1d726"
+      ]
+    ]
+  },
+  {
+    "content": "It takes binary files, like videos or music, and chops them up into pieces. It then sends the various pieces to different Blossom servers, and keeps track of them with events, so that the pieces can be found and glued back together, again.\n\nIt's distributed-binary storage, like Bittorrent. Nostr allows you to also widely-distribute the storage of the tracking-list, which adds censorship-resistance over what Bittorrent has.",
+    "created_at": 1786947756,
+    "id": "577625387476c39c10ed87180d9e7231ad4e1e72c0c7709c920c4ce888e0b33a",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "ec2df47dbee7b105e19d4c18d5387054c19dc34b8b50358949be5f3b9aa97dabd7562690f95a6219f1164a56c9f55287ff2de4676d204fcd7362bc00f8f45ad6",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://nostr.wine/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "000003b556500965657f30914867f17b435e4e4ac775e56c363e2ba802e32093",
+        "wss://nostr.wine/",
+        "cf7ad05f8e99de8eadbbfbd5ca1c0f9b75499bce07074966b277688ca5e1d726"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "cf7ad05f8e99de8eadbbfbd5ca1c0f9b75499bce07074966b277688ca5e1d726"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "And I added a hierarchical structure so that there are no gigantic list events, like for a long movie.",
+    "created_at": 1786947870,
+    "id": "2aa082a4723a12eb22038ead77bfbbc67b08e49f16d9a2e590ebb9eb4e62b29b",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "3a9d8871606bfb0fd2d6d701821fa5c4a52cec658dbecd01fd767f2edac806496766c4c155960d4e7b595bb2b97e3f56ccd46d671fe04ffdbe6bcc5b6079dd5e",
+    "tags": [
+      [
+        "p",
+        "cf7ad05f8e99de8eadbbfbd5ca1c0f9b75499bce07074966b277688ca5e1d726"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://nostr.wine/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "577625387476c39c10ed87180d9e7231ad4e1e72c0c7709c920c4ce888e0b33a",
+        "wss://theforest.nostr1.com/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "we demo'd something very similar with nostr:nprofile1qqszv6q4uryjzr06xfxxew34wwc5hmjfmfpqn229d72gfegsdn2q3fgpz4mhxue69uhhyetvv9ujuerpd46hxtnfduhsz9thwden5te0wfjkccte9ejxzmt4wvhxjme0qyghwumn8ghj7mn0wd68ytnhd9hx2tcche307  on Friday for serving Nix packages over blossom! except we don't try to define the hierarchy via nostr events, users publish a hashtree over nostr and push package data blobs to blossom drives. A separate index server listens to those nostr events and stores an index of package hash to blob hash. the Nix client queries the server as it would any binary cache, and knows nothing about nostr or blossom. Kinda Nix specific but similar spirit. it works 😇",
+    "created_at": 1786977348,
+    "id": "05e47d389ab1b960db110f15111150c764906344a47b14ed0869cc97c3375336",
+    "kind": 1111,
+    "pubkey": "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044",
+    "sig": "8b944f56cef4b35f93277c76eae2c09bf4b4a1f6621ef73702b93c2d634bd3a07d945b836aceb60b8009c7c81832050fcbb3d71527d7a5289e2265df99bd5c4a",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://nostr.wine/"
+      ],
+      [
+        "a",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://nostr.wine/"
+      ],
+      [
+        "E",
+        "caa1de7bb5ff245beae3f220ee0d808700b4f3da7860bc16289077003ae87e02",
+        "wss://nostr.wine/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+        "wss://nostr.land/"
+      ],
+      [
+        "e",
+        "caa1de7bb5ff245beae3f220ee0d808700b4f3da7860bc16289077003ae87e02",
+        "wss://nostr.wine/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+        "wss://nostr.land/"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5",
+        "wss://relay.damus.io/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "Ah, interesting. Is there a concrete reason you skipped using relays for discovery and interaction?",
+    "created_at": 1786978639,
+    "id": "8e63eea6cd12bb0094d4efe1f479a14d668a261c189d4dc294351d46752b99ff",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "37b67fcb4b55b5d1bcc06827e7991b5fe333f7285f5e0a22d959ceb7a02ec52dd227c33c173b797251528c1eb51b78d207a1dd2d7442a22f9f2faecb4a97dfeb",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07"
+      ],
+      [
+        "E",
+        "caa1de7bb5ff245beae3f220ee0d808700b4f3da7860bc16289077003ae87e02",
+        "",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "05e47d389ab1b960db110f15111150c764906344a47b14ed0869cc97c3375336",
+        "",
+        "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044"
+      ],
+      [
+        "p",
+        "266815e0c9210dfa324c6cba3573b14bee49da4209a9456f9484e5106cd408a5"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "the relay has the hashtree event (replaceable), so that's the discovery/publishing side. the nix client asks for packages whose definitions aren't on Nostr, they're code, and the blossom drives just hold the binary package data we're looking for. Nix still drives the interaction.",
+    "created_at": 1786991991,
+    "id": "23d04eff8c324660abfd444b4280b16373800c07317d7fe50723d4293ff2336a",
+    "kind": 1111,
+    "pubkey": "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044",
+    "sig": "8e94cca535884e54df0ae9de2d143e09b598a8fbece7864d373e0f683b77f29da80a40d01089490a51d5b522439a34201018a2cc618babc4c9d77a346292a06f",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07"
+      ],
+      [
+        "E",
+        "caa1de7bb5ff245beae3f220ee0d808700b4f3da7860bc16289077003ae87e02",
+        "",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "e",
+        "8e63eea6cd12bb0094d4efe1f479a14d668a261c189d4dc294351d46752b99ff",
+        "wss://nostr.land/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+        "wss://nostr.land/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "Ah, okay, interesting.",
+    "created_at": 1786994798,
+    "id": "afddbac3793d4c9c2453e016c0a7d814e558153f60547393408a92a21242334c",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "a55d3b0b4f1f79c5f2dd701b9c703f242aa50a75efb4c18896e20a3ab03b1668a4c05751deecb0d50c11010c73217203d2c437d98bc3dcc3f1cd91ea9c7f990c",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "23d04eff8c324660abfd444b4280b16373800c07317d7fe50723d4293ff2336a",
+        "wss://primus.nostr1.com/",
+        "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "Stealing some of your ideas. 🤔",
+    "created_at": 1787034804,
+    "id": "ad8cd589f6ba5aa9cf9d3566d6f93192b35ccf0d94f5c37d5b9d4163f62940cc",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "1271a2273e76a0e05a52b619ead6f01f482e060e959a18fdc42babddfe288bb6b5070ca943f0db0b319937391058459449975c505bfe089a5f95ad1d56a0da2b",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "23d04eff8c324660abfd444b4280b16373800c07317d7fe50723d4293ff2336a",
+        "wss://nostr21.com/",
+        "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "Nevermind, I'm not. I analyzed it and the complexity went through the roof. 🤣",
+    "created_at": 1787038782,
+    "id": "3063bc9e5f9cbe838d5f296c14e85ea5aefd12c632a3065b6da100b317d450ea",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "7a2893a9a4d276cc7d68228298bf10f9aae4b7872d231974a9417a2529fcb0a4677798c3f696267ac4239dc60a0ff795178f9ac0281daf1cb150aed5080437cc",
+    "tags": [
+      [
+        "p",
+        "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "ad8cd589f6ba5aa9cf9d3566d6f93192b35ccf0d94f5c37d5b9d4163f62940cc",
+        "wss://nostr.wine/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "they're different use cases, we don't need ordered blobs, but you do. this filesystem-over-blossom idea has plenty of room :)",
+    "created_at": 1787040356,
+    "id": "53c383454b04756646a8fb2e5307b667ef46fa09182f93efb0ced68bf18fa720",
+    "kind": 1111,
+    "pubkey": "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044",
+    "sig": "34716f00b5d2d5a345e747c5d2f781551cb45c5dc487e93c204692a0d3e1931992d7079d6b05a16542963ed678d1013ac62217785465992f1ee7f944f8005079",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "e",
+        "3063bc9e5f9cbe838d5f296c14e85ea5aefd12c632a3065b6da100b317d450ea",
+        "wss://nostr.land/",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+        "wss://nostr.land/"
+      ],
+      [
+        "client",
+        "Amethyst"
+      ]
+    ]
+  },
+  {
+    "content": "I tried merging the two concepts, but it adds multiple steps and turns the spec to gibberish.",
+    "created_at": 1787040561,
+    "id": "e10c27d03f6029b05d136c3bd4a80b10b84053bf4bb8d2ba7fec5bca5cd2213d",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "6ba9b02156ba2f2f7fe32f74cd6110ed6cc4ffb1700bd2a4d9137232a138779216279d96091861daab7a9b49617f18cb83781dde36b9dea219b2705c7cbe130e",
+    "tags": [
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "e",
+        "53c383454b04756646a8fb2e5307b667ef46fa09182f93efb0ced68bf18fa720",
+        "wss://nostr21.com/",
+        "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044"
+      ],
+      [
+        "k",
+        "1111"
+      ],
+      [
+        "p",
+        "2bb507e8086248747d2ec5009a70ccdbe0be9310fa612952923c8579e5aa8044"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  },
+  {
+    "content": "Working implementation is live, here is an example event. Unfortunately, only one #blossom server accepts the blobs (thank you, nostr:npub1gnwpctdec0aa00hfy4lvadftu08ccs9677mr73h9ddv2zvw8fu9smmerrq).\n\nnostr:naddr1qvzqqqrakqpzplfq3m5v3u5r0q9f255fdeyz8nyac6lagssx8zy4wugxjs8ajf7pqyghwumn8ghj7mn0wd68ytnvv9hxgtcpzfmhxue69uhkummnw3eryvfwvdhk6tcqz3nkc7txv9jxztt9wejku6twvukhg6tyv5xyzjz5",
+    "created_at": 1787056337,
+    "id": "7855b7f6ba3a5ad2a1e88e44f591d3251dea7c17fd83ee66913d48cc02f438e0",
+    "kind": 1111,
+    "pubkey": "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1",
+    "sig": "6828e37e1631b3ae74bd460a91f2901b72ceed618c633c85704f819594a0e7bc20d2119c322030e7fd9d72b3db41afee6dd857c5b9acf01ad81d1e619b849691",
+    "tags": [
+      [
+        "t",
+        "blossom"
+      ],
+      [
+        "q",
+        "32176:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:glyfada-evening-tide"
+      ],
+      [
+        "p",
+        "44dc1c2db9c3fbd7bee9257eceb52be3cf8c40baf7b63f46e56b58a131c74f0b"
+      ],
+      [
+        "A",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://nostr21.com/"
+      ],
+      [
+        "P",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "K",
+        "30817"
+      ],
+      [
+        "a",
+        "30817:fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1:nkbip-07",
+        "wss://nostr21.com/"
+      ],
+      [
+        "k",
+        "30817"
+      ],
+      [
+        "p",
+        "fd208ee8c8f283780a9552896e4823cc9dc6bfd442063889577106940fd927c1"
+      ],
+      [
+        "client",
+        "imwald"
+      ]
+    ]
+  }
+]

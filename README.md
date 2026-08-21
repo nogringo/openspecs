@@ -68,6 +68,20 @@ This schema is read as it already exists rather than redefined here. Anything th
 interface needs that the schema does not carry is derived from the document itself
 instead of being mandated as a new tag.
 
+## The discussion belongs to everyone rendering it
+
+Two other sites render these documents, [nostrhub.io][nostrhub] and [better-nips][], and
+both carry the conversation about them. A comment written here appears there, and theirs
+appears here, because the events are the same events: NIP-22 comments, NIP-25 reactions
+and NIP-57 zaps, in the exact shape those two already publish.
+
+The reader signs in a browser extension, a remote signer or with a key kept on this
+device, and every event goes from their browser straight to relays. This project holds no
+account and signs nothing.
+
+[nostrhub]: https://nostrhub.io
+[better-nips]: https://github.com/formstr-hq/better-nips
+
 ## Stack
 
 React Router (framework mode) for SSR, TypeScript, Tailwind. Routes read specifications

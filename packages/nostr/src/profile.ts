@@ -22,6 +22,10 @@ export type Profile = {
   nip05: string | null;
   /** The author's own description of themselves, shown on their page. */
   about: string;
+  /** A lightning address, which is where a zap is paid. */
+  lud16: string | null;
+  /** The older bech32 `lnurl` form of the same thing. */
+  lud06: string | null;
   updatedAt: number;
 };
 
@@ -39,6 +43,8 @@ const metadataSchema = z.object({
   picture: text,
   nip05: text,
   about: text,
+  lud16: text,
+  lud06: text,
 });
 
 /**
@@ -83,7 +89,7 @@ export const parseProfile = (input: unknown): Profile | null => {
   const metadata = metadataSchema.safeParse(content);
   if (!metadata.success) return null;
 
-  const { display_name, displayName, name, picture, nip05, about } = metadata.data;
+  const { display_name, displayName, name, picture, nip05, about, lud16, lud06 } = metadata.data;
   return {
     pubkey: parsed.data.pubkey,
     // A blank `display_name` is common, and the author's `name` is what it hides.
@@ -93,6 +99,10 @@ export const parseProfile = (input: unknown): Profile | null => {
     // Folded to one line: it is drawn as a paragraph, and a profile written as
     // ten lines of Markdown would take over the page it introduces.
     about: clean(about, MAX_ABOUT),
+    // Not validated here: what makes one of these usable is a server answering
+    // at the end of it, which is `fetchPayEndpoint`'s question rather than this one.
+    lud16: clean(lud16, MAX_NIP05) || null,
+    lud06: clean(lud06, MAX_URL) || null,
     updatedAt: parsed.data.created_at,
   };
 };

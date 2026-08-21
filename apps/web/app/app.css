@@ -131,6 +131,24 @@ html {
     text-decoration-color: currentColor;
   }
 
+  /*
+   * A key someone was addressed by. Set in the monospace of every other
+   * identifier on the page, and underlined only on hover: a thread that opens on
+   * seven mentions should read as a list of people, not as a wall of links.
+   */
+  .doc .mention {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    text-decoration: none;
+    color: var(--color-muted);
+  }
+
+  .doc a.mention:hover {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+  }
+
   .doc ul,
   .doc ol {
     padding-left: 1.4em;

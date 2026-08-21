@@ -1,8 +1,16 @@
 import type { MarkdownHeading } from "@openspecs/markdown";
-import { authorPath, parsePubkey, resolveNip05, specPath, toNpub } from "@openspecs/nostr";
+import {
+  authorPath,
+  parsePubkey,
+  resolveNip05,
+  specPath,
+  toCoordinate,
+  toNpub,
+} from "@openspecs/nostr";
 import { data, Link, redirect } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
+import { DISCUSSION_ID, Discussion } from "~/components/discussion/discussion";
 import { ErrorPage } from "~/components/error-page";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
@@ -14,7 +22,7 @@ import type { LinkPreview } from "~/lib/preview";
 import { loadLinkPreviews } from "~/lib/preview.server";
 import type { Author } from "~/lib/profile";
 import { loadAuthor } from "~/lib/profile.server";
-import { rebroadcastRelays } from "~/lib/relays.server";
+import { discussionRelays, rebroadcastRelays } from "~/lib/relays.server";
 import { loadSpec, type SpecPage } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
 
@@ -38,14 +46,18 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   // served under more than one origin, and only this one is canonical.
   const origin = publicOrigin(request);
   const spec = cached.page;
-  const [relays, previews, author] = await Promise.all([
+  const [relays, discussion, previews, author] = await Promise.all([
     rebroadcastRelays(pubkey),
+    discussionRelays(pubkey),
     loadLinkPreviews(spec.links),
     loadAuthor(pubkey),
   ]);
   return {
     spec,
     relays,
+    // Where the conversation about this document is, beyond the relays every
+    // client of this kind reads. Resolved here because this cache is warm.
+    discussion,
     previews,
     author,
     origin,
@@ -165,6 +177,13 @@ const Contents = ({ headings }: { headings: MarkdownHeading[] }) => (
             </a>
           </li>
         ))}
+      {/* Part of the page rather than an appendix to it: what was said about a
+          specification is one of the things a reader comes here to find. */}
+      <li className="mt-4 border-t border-rule pt-3">
+        <a href={`#${DISCUSSION_ID}`} className="text-muted hover:text-ink">
+          Discussion
+        </a>
+      </li>
     </ul>
   </nav>
 );
@@ -283,7 +302,7 @@ const CitedLinks = ({ previews }: { previews: LinkPreview[] }) => (
 );
 
 export default function Spec({ loaderData }: Route.ComponentProps) {
-  const { spec, author, previews, canonical, relays } = loaderData;
+  const { spec, author, previews, canonical, relays, discussion } = loaderData;
 
   return (
     <Shell>
@@ -306,6 +325,13 @@ export default function Spec({ loaderData }: Route.ComponentProps) {
               />
             )}
             {previews.length > 0 && <CitedLinks previews={previews} />}
+            <Discussion
+              coordinate={toCoordinate(spec)}
+              specEventId={spec.eventId}
+              pubkey={spec.pubkey}
+              relays={discussion}
+              revisedAt={spec.revisedAt > spec.publishedAt ? spec.revisedAt : null}
+            />
           </div>
         </div>
       </article>
