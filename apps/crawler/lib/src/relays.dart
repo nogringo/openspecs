@@ -9,7 +9,6 @@ const sourceRelays = [
   'wss://relay.dreamith.to',
   'wss://nos.lol',
   'wss://nostr.oxtr.dev',
-  'wss://theforest.nostr1.com',
 ];
 
 /// Where documents are copied to: large, open to anyone's writes, and run by

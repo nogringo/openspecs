@@ -16,7 +16,6 @@ export const DEFAULT_RELAYS = [
   "wss://relay.dreamith.to",
   "wss://nos.lol",
   "wss://nostr.oxtr.dev",
-  "wss://theforest.nostr1.com",
 ];
 
 /** Resolving relay lists for a whole listing would cost more than it can return. */
