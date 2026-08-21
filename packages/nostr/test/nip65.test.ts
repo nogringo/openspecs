@@ -1,6 +1,12 @@
 import { verifyEvent } from "nostr-tools/pure";
 import { describe, expect, it } from "vitest";
-import { parseRelayList, RELAY_LIST_KIND, selectRelayLists } from "../src/nip65";
+import {
+  buildRelayList,
+  MAX_RELAYS_PER_AUTHOR,
+  parseRelayList,
+  RELAY_LIST_KIND,
+  selectRelayLists,
+} from "../src/nip65";
 import { events, relayListEvents } from "./fixtures";
 
 const anEvent = relayListEvents[0];
@@ -97,5 +103,36 @@ describe("selectRelayLists", () => {
   it("ignores anything that is not a relay list", () => {
     expect(selectRelayLists(events).size).toBe(0);
     expect(selectRelayLists([null, {}, RELAY_LIST_KIND]).size).toBe(0);
+  });
+});
+
+describe("buildRelayList", () => {
+  const FOUR = [
+    "wss://relay.nmail.li",
+    "wss://relay.ditto.pub",
+    "wss://relay.dreamith.to",
+    "wss://nos.lol",
+  ];
+
+  /** What `relaySet` writes, which is where the trailing slash comes from. */
+  const NORMALIZED = FOUR.map((url) => `${url}/`);
+
+  const built = (relays: string[]) => ({ ...anEvent, ...buildRelayList(relays) });
+
+  it("names relays that read back as both, so what a key writes can be found", () => {
+    expect(parseRelayList(built(FOUR))).toEqual({ write: NORMALIZED, read: NORMALIZED });
+  });
+
+  it("survives the cap a reader truncates at", () => {
+    expect(parseRelayList(built(FOUR))?.write).toHaveLength(MAX_RELAYS_PER_AUTHOR);
+  });
+
+  it("names a relay once, however it was spelled", () => {
+    const list = parseRelayList(built(["wss://a.example/", "wss://a.example", "not-a-relay"]));
+    expect(list).toEqual({ write: ["wss://a.example/"], read: ["wss://a.example/"] });
+  });
+
+  it("names the client, like every other event this package builds", () => {
+    expect(buildRelayList(FOUR).tags.at(-1)).toEqual(["client", "openspecs"]);
   });
 });

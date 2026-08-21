@@ -1,4 +1,5 @@
-import { nostrEventSchema } from "./event";
+import { type EventDraft, nostrEventSchema } from "./event";
+import { CLIENT_NAME } from "./nip22";
 import { queryRelays, type RelayOptions, relaySet } from "./pool";
 
 export const RELAY_LIST_KIND = 10002;
@@ -17,7 +18,7 @@ export const INDEXER_RELAYS = [
  * sockets one page can open, and it is a real trade-off: a list is not ordered by
  * importance, so a document living only on the relays past this rank is missed.
  */
-const MAX_RELAYS_PER_AUTHOR = 4;
+export const MAX_RELAYS_PER_AUTHOR = 4;
 
 const RELAY_LIST_TIMEOUT_MS = 2000;
 const RELAY_LIST_TTL_MS = 30 * 60 * 1000;
@@ -50,6 +51,20 @@ export const parseRelayList = (input: unknown): RelayList | null => {
     read: read.slice(0, MAX_RELAYS_PER_AUTHOR),
   };
 };
+
+/**
+ * Every `r` tag unmarked, which is read as both read and write, above and by
+ * everything else. A key publishing its first list has no reason to split the
+ * two, and one whose list is read only is one whose documents nothing can find.
+ *
+ * How many is the caller's to decide, and `MAX_RELAYS_PER_AUTHOR` is what
+ * survives being read back: naming a fifth relay names one nobody keeps.
+ */
+export const buildRelayList = (relays: string[]): EventDraft => ({
+  kind: RELAY_LIST_KIND,
+  content: "",
+  tags: [...relaySet(relays).map((url) => ["r", url]), ["client", CLIENT_NAME]],
+});
 
 /** Indexers serve stale revisions of a relay list next to the live one, so the newest wins. */
 export const selectRelayLists = (events: unknown[]): Map<string, RelayList> => {

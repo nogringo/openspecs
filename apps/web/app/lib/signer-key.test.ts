@@ -6,8 +6,10 @@ import {
   decryptSecretKey,
   encryptSecretKey,
   keySigner,
+  newSecretKey,
   parseSecretKey,
   publicKeyOf,
+  toNsec,
 } from "./signer-key";
 
 const secret = generateSecretKey();
@@ -69,5 +71,18 @@ describe("keySigner", () => {
     });
     expect(signed.pubkey).toBe(pubkey);
     expect(signed.sig).toMatch(/^[0-9a-f]{128}$/);
+  });
+});
+
+describe("newSecretKey", () => {
+  it("is a key, and a different one every time", () => {
+    const first = newSecretKey();
+    expect(first).toHaveLength(32);
+    expect(bytesToHex(newSecretKey())).not.toBe(bytesToHex(first));
+  });
+
+  it("comes back from the form it was written down in", () => {
+    const key = newSecretKey();
+    expect(parseSecretKey(toNsec(key))).toEqual(key);
   });
 });

@@ -34,8 +34,13 @@ const Choice = ({ label, note, onPick }: { label: string; note: string; onPick: 
  * that can work here: an extension is offered when there is one to offer. What
  * each does with the key is said in the interface rather than left to be
  * guessed, since the last of them is the only one where this page holds a key.
+ *
+ * Making one comes first, because it is the only one that works for somebody who
+ * arrived with nothing, and that is most people. It is handed back to the header
+ * rather than run here: it signs its reader in halfway through, and this dialog
+ * closes the moment anybody is signed in.
  */
-export const SignInDialog = ({ onDone }: { onDone: () => void }) => {
+export const SignInDialog = ({ onDone, onMake }: { onDone: () => void; onMake: () => void }) => {
   const [way, setWay] = useState<Way | null>(null);
   const [uri, setUri] = useState<string | null>(null);
   const [bunker, setBunker] = useState("");
@@ -106,6 +111,11 @@ export const SignInDialog = ({ onDone }: { onDone: () => void }) => {
     <div className="space-y-4">
       {way === null && (
         <div className="space-y-2">
+          <Choice
+            label="Make a key"
+            note="Makes one here and puts your name to it. Start here if you have no key."
+            onPick={onMake}
+          />
           {hasExtension && (
             <Choice
               label="Browser extension"

@@ -14,20 +14,40 @@ const remote = vi.hoisted(() => ({
 vi.mock("./signer-extension", () => extension);
 vi.mock("./signer-remote", () => remote);
 
+/**
+ * The real cost takes about a second a call, and this file makes a dozen. Only
+ * the cost is replaced: everything that reads a key back has to be the real
+ * thing, or these tests pass against a mock. Decrypting needs no help, since a
+ * NIP-49 key carries the cost it was written at.
+ */
+vi.mock("./signer-key", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./signer-key")>();
+  return {
+    ...actual,
+    encryptSecretKey: (secret: Uint8Array, passphrase: string) =>
+      actual.encryptSecretKey(secret, passphrase, 8),
+  };
+});
+
 import {
   clearSession,
   logout,
   NO_SESSION,
+  protectKey,
   restoreSession,
   serverSessionState,
+  sessionNsec,
   sessionState,
   signer,
   signInWithExtension,
+  signInWithNewKey,
   signInWithSecretKey,
   subscribeSession,
+  unlock,
 } from "./session";
 import { clearStoredSession, type StoredSession, writeSession } from "./session-store";
 import { SessionLocked, SessionMissing } from "./signer";
+import { parseSecretKey, publicKeyOf } from "./signer-key";
 
 const KEY = "a".repeat(64);
 const OTHER = "b".repeat(64);
@@ -286,6 +306,122 @@ describe("signInWithSecretKey", () => {
 
   it("refuses anything that is not a private key", async () => {
     await expect(signInWithSecretKey("hunter2")).rejects.toThrow("that is not a private key");
+  });
+});
+
+const storedRecord = () => JSON.parse(localStorage.getItem("openspecs:session") ?? "{}");
+
+describe("signInWithNewKey", () => {
+  it("signs in a key nobody had to bring, and keeps the key itself", () => {
+    const pubkey = signInWithNewKey();
+
+    expect(sessionState()).toMatchObject({ pubkey, method: "key", status: "ready" });
+    expect(storedRecord().secret).toMatch(/^[0-9a-f]{64}$/);
+    expect(storedRecord().ncryptsec).toBeUndefined();
+  });
+
+  it("signs under the key it returned", async () => {
+    const pubkey = signInWithNewKey();
+    const ready = await signer();
+    const event = await ready.signEvent({ kind: 1, content: "", tags: [], created_at: 0 });
+
+    expect(event.pubkey).toBe(pubkey);
+  });
+
+  it("is still there after a reload, since nothing was left to be unlocked", async () => {
+    const pubkey = signInWithNewKey();
+
+    clearSession();
+    restoreSession();
+    expect(sessionState()).toMatchObject({ pubkey, method: "key" });
+    await expect(signer()).resolves.toBeDefined();
+  });
+
+  it("makes a different key every time", () => {
+    const first = signInWithNewKey();
+    clearSession();
+    expect(signInWithNewKey()).not.toBe(first);
+  });
+});
+
+describe("sessionNsec", () => {
+  it("is the key this tab is holding, and is that key", () => {
+    const pubkey = signInWithNewKey();
+    const written = sessionNsec();
+
+    expect(written).toMatch(/^nsec1/);
+    expect(publicKeyOf(parseSecretKey(written ?? "") ?? new Uint8Array())).toBe(pubkey);
+  });
+
+  it("has nothing to show for a session that never held a key", async () => {
+    expect(sessionNsec()).toBeNull();
+
+    extension.extensionSigner.mockResolvedValue(aSigner());
+    await signInWithExtension();
+    expect(sessionNsec()).toBeNull();
+  });
+
+  it("has nothing to show for a key nobody has unlocked", () => {
+    writeSession(LOCAL);
+    restoreSession();
+    expect(sessionNsec()).toBeNull();
+  });
+
+  it("has nothing to show once its reader has gone", async () => {
+    signInWithNewKey();
+    await logout();
+    expect(sessionNsec()).toBeNull();
+  });
+});
+
+describe("protectKey", () => {
+  it("puts a passphrase on a key that arrived without one", async () => {
+    signInWithNewKey();
+    await protectKey("1234");
+
+    expect(storedRecord().ncryptsec).toMatch(/^ncryptsec1/);
+    expect(storedRecord().secret).toBeUndefined();
+  });
+
+  /** The passphrase is for the next visit. This one was already granted. */
+  it("leaves the session signing, and the key readable", async () => {
+    const pubkey = signInWithNewKey();
+    const written = sessionNsec();
+    await protectKey("1234");
+
+    expect(sessionState()).toMatchObject({ pubkey, status: "ready" });
+    expect(sessionNsec()).toBe(written);
+    await expect(signer()).resolves.toBeDefined();
+  });
+
+  it("asks again on the next visit, and opens on the same passphrase", async () => {
+    const pubkey = signInWithNewKey();
+    await protectKey("1234");
+
+    clearSession();
+    restoreSession();
+    expect(sessionState()).toMatchObject({ pubkey, method: "key", status: "locked" });
+
+    await unlock("1234");
+    expect(sessionState().status).toBe("ready");
+  });
+
+  it("refuses one too short, and leaves the key it already had alone", async () => {
+    signInWithNewKey();
+    await expect(protectKey("123")).rejects.toThrow(/characters or more/);
+
+    expect(storedRecord().secret).toMatch(/^[0-9a-f]{64}$/);
+    expect(sessionState().status).toBe("ready");
+  });
+
+  it("has nothing to protect when nobody is signed in", async () => {
+    await expect(protectKey("1234")).rejects.toThrow(SessionMissing);
+  });
+
+  it("cannot protect a key it cannot read", async () => {
+    writeSession(LOCAL);
+    restoreSession();
+    await expect(protectKey("1234")).rejects.toThrow(SessionLocked);
   });
 });
 

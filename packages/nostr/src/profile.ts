@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { nostrEventSchema } from "./event";
+import { type EventDraft, nostrEventSchema } from "./event";
+import { CLIENT_NAME } from "./nip22";
 import { INDEXER_RELAYS } from "./nip65";
 import { queryRelays, type RelayOptions, relaySet } from "./pool";
 
@@ -104,6 +105,50 @@ export const parseProfile = (input: unknown): Profile | null => {
     lud16: clean(lud16, MAX_NIP05) || null,
     lud06: clean(lud06, MAX_URL) || null,
     updatedAt: parsed.data.created_at,
+  };
+};
+
+/** What a key says about itself. Only the fields a page here draws. */
+export type ProfileDraft = {
+  name: string;
+  about?: string;
+  picture?: string;
+  nip05?: string;
+  lud16?: string;
+};
+
+/**
+ * A kind 0 replaces the whole of a profile, every field of it, so this is for a
+ * key that has none. Editing one means reading the live revision first and
+ * writing it back whole, which is not what this does.
+ *
+ * The name goes in both `name` and `display_name`: `parseProfile` above prefers
+ * the second, half the clients in the wild prefer the first, and a key whose
+ * name shows in one client and not the next has published a bug. What was not
+ * given is left out rather than written empty, since another client reading this
+ * cannot tell an empty string from a field being cleared.
+ */
+export const buildProfile = (draft: ProfileDraft): EventDraft => {
+  const metadata: Record<string, string> = {};
+  const name = draft.name.trim();
+  if (name !== "") {
+    metadata.name = name;
+    metadata.display_name = name;
+  }
+  for (const [field, value] of [
+    ["about", draft.about],
+    ["picture", draft.picture],
+    ["nip05", draft.nip05],
+    ["lud16", draft.lud16],
+  ] as const) {
+    const trimmed = (value ?? "").trim();
+    if (trimmed !== "") metadata[field] = trimmed;
+  }
+
+  return {
+    kind: PROFILE_KIND,
+    content: JSON.stringify(metadata),
+    tags: [["client", CLIENT_NAME]],
   };
 };
 

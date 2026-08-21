@@ -1,4 +1,4 @@
-import { type Authors, toAuthor } from "./profile";
+import { type Author, type Authors, toAuthor } from "./profile";
 
 export const NO_AUTHORS: Authors = {};
 
@@ -67,6 +67,18 @@ export const wantAuthors = (pubkeys: string[]): void => {
     timer = null;
     void resolve(pending.splice(0));
   }, BATCH_MS);
+};
+
+/**
+ * An author this tab knows because it just made them. Marked as asked as well as
+ * remembered: their profile left here a moment ago and the indexers have not seen
+ * it yet, so asking would cache half an hour of nothing over a name that is
+ * already known.
+ */
+export const rememberAuthor = (pubkey: string, author: Author): void => {
+  asked.add(pubkey);
+  state = { ...state, [pubkey]: author };
+  for (const listener of listeners) listener();
 };
 
 export const clearAuthors = (): void => {

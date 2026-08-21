@@ -1,6 +1,13 @@
 import type { Profile } from "@openspecs/nostr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { authorsState, clearAuthors, subscribeAuthors, wantAuthors } from "./profiles";
+import { namedAuthor } from "./profile";
+import {
+  authorsState,
+  clearAuthors,
+  rememberAuthor,
+  subscribeAuthors,
+  wantAuthors,
+} from "./profiles";
 
 const fetchProfiles = vi.hoisted(() => vi.fn());
 vi.mock("@openspecs/nostr", () => ({ fetchProfiles }));
@@ -92,5 +99,34 @@ describe("wantAuthors", () => {
     await settle();
 
     expect(authorsState()).toEqual({});
+  });
+});
+
+describe("rememberAuthor", () => {
+  it("shows a name this tab knows before any relay has heard of it", () => {
+    const listener = vi.fn();
+    const stop = subscribeAuthors(listener);
+
+    rememberAuthor("a", namedAuthor("Alice"));
+    expect(authorsState().a?.name).toBe("Alice");
+    expect(listener).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("spends no round trip asking for what it just wrote", async () => {
+    rememberAuthor("a", namedAuthor("Alice"));
+    wantAuthors(["a"]);
+    await settle();
+
+    expect(fetchProfiles).not.toHaveBeenCalled();
+  });
+
+  it("keeps the name when a batch comes back with nothing for it", async () => {
+    fetchProfiles.mockResolvedValue(served());
+    rememberAuthor("a", namedAuthor("Alice"));
+    wantAuthors(["b"]);
+    await settle();
+
+    expect(authorsState().a?.name).toBe("Alice");
   });
 });

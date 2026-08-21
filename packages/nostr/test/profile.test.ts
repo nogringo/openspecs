@@ -2,6 +2,7 @@ import { createMockRelay, type MockRelay } from "nostr-mock-relay";
 import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
+  buildProfile,
   clearProfileCache,
   fetchProfile,
   fetchProfiles,
@@ -187,5 +188,50 @@ describe("fetchProfiles", () => {
     const profiles = await fetchProfiles([author, stranger, author], options);
 
     expect([...profiles.keys()]).toEqual([author]);
+  });
+});
+
+describe("buildProfile", () => {
+  const built = (draft: Parameters<typeof buildProfile>[0]) =>
+    finalizeEvent({ ...buildProfile(draft), created_at: 1_700_000_000 }, secretKey);
+
+  it("publishes a name a reader can be found by", () => {
+    expect(parseProfile(built({ name: "Ada" }))?.name).toBe("Ada");
+  });
+
+  it("writes the name under both keys, since clients disagree on which one to read", () => {
+    expect(JSON.parse(buildProfile({ name: "Ada" }).content)).toEqual({
+      name: "Ada",
+      display_name: "Ada",
+    });
+  });
+
+  it("leaves out what was not given, rather than clearing it", () => {
+    expect(JSON.parse(buildProfile({ name: "Ada", about: "  " }).content)).not.toHaveProperty(
+      "about",
+    );
+    expect(buildProfile({ name: "   " }).content).toBe("{}");
+  });
+
+  it("carries the fields a card is drawn from", () => {
+    const profile = parseProfile(
+      built({
+        name: " Ada ",
+        about: "Writes specifications.",
+        picture: "https://example.com/ada.png",
+        nip05: "ada@example.com",
+        lud16: "ada@example.com",
+      }),
+    );
+
+    expect(profile?.name).toBe("Ada");
+    expect(profile?.about).toBe("Writes specifications.");
+    expect(profile?.picture).toBe("https://example.com/ada.png");
+    expect(profile?.nip05).toBe("ada@example.com");
+    expect(profile?.lud16).toBe("ada@example.com");
+  });
+
+  it("names the client, like every other event this package builds", () => {
+    expect(buildProfile({ name: "Ada" }).tags).toEqual([["client", "openspecs"]]);
   });
 });

@@ -35,6 +35,17 @@ export const toAuthor = (profile: Profile | null): Author | null =>
         updatedAt: profile.updatedAt,
       };
 
+/** An author known by name alone, which is all a key made on this site has published. */
+export const namedAuthor = (name: string): Author => ({
+  name,
+  picture: null,
+  nip05: null,
+  about: "",
+  lud16: null,
+  lud06: null,
+  updatedAt: Math.floor(Date.now() / 1000),
+});
+
 /** Both ends kept: the first characters identify the key, the last ones confirm it. */
 export const shortNpub = (npub: string): string => `${npub.slice(0, 12)}...${npub.slice(-6)}`;
 

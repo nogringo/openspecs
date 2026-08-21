@@ -45,6 +45,24 @@ describe("toResult", () => {
     });
   });
 
+  /**
+   * The one answer that looks like a yes and is not: a relay nothing could even
+   * open a socket to. Counting it as accepted told a reader with no network that
+   * seven relays had taken what none of them had seen.
+   */
+  it("reports a relay it never reached as a refusal", () => {
+    const settled = {
+      status: "fulfilled",
+      value: "connection failure: Error: connection failed",
+    } as const;
+
+    expect(toResult(RELAY, settled)).toEqual({
+      relay: RELAY,
+      accepted: false,
+      message: "not reached",
+    });
+  });
+
   it("reports a refusal in the relay's own words", () => {
     expect(
       toResult(RELAY, { status: "rejected", reason: new Error("blocked: pubkey not admitted") }),
@@ -53,6 +71,25 @@ describe("toResult", () => {
       accepted: false,
       message: "blocked: pubkey not admitted",
     });
+  });
+
+  /**
+   * The behaviour the case above is written against, read from the library
+   * rather than assumed: a resolved publish is not a published event. Nothing
+   * listens on the discard port, so this asks the real pool a local question and
+   * fails the day nostr-tools words its answer differently.
+   */
+  it("is how nostr-tools really answers for a relay that cannot be opened", async () => {
+    const { SimplePool } =
+      await vi.importActual<typeof import("nostr-tools/pool")>("nostr-tools/pool");
+    const real = new SimplePool();
+    const signed = await keySigner(secret).signEvent({ ...DRAFT, created_at: 1_700_000_000 });
+
+    const [answer] = await Promise.all(real.publish(["wss://127.0.0.1:9/"], signed));
+    real.destroy();
+
+    expect(answer).toMatch(/^connection failure:/);
+    expect(toResult(RELAY, { status: "fulfilled", value: answer ?? "" }).accepted).toBe(false);
   });
 
   it("gives words to a relay that refuses without saying why", () => {

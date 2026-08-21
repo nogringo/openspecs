@@ -13,8 +13,10 @@ import {
   decryptSecretKey,
   encryptSecretKey,
   keySigner,
+  newSecretKey,
   parseSecretKey,
   publicKeyOf,
+  toNsec,
 } from "./signer-key";
 import {
   awaitConnect,
@@ -248,6 +250,12 @@ export const signInWithConnect = async (
  */
 export const MIN_PASSPHRASE = 4;
 
+const longEnough = (passphrase: string): void => {
+  if (passphrase.length < MIN_PASSPHRASE) {
+    throw new Error(`a PIN or passphrase needs ${MIN_PASSPHRASE} characters or more`);
+  }
+};
+
 /**
  * The passphrase is offered, never required. With one, what is stored is a NIP-49
  * `ncryptsec` and the key is asked for again on every visit. Without one, the key
@@ -266,9 +274,7 @@ export const signInWithSecretKey = async (input: string, passphrase = ""): Promi
       return;
     }
 
-    if (passphrase.length < MIN_PASSPHRASE) {
-      throw new Error(`a PIN or passphrase needs ${MIN_PASSPHRASE} characters or more`);
-    }
+    longEnough(passphrase);
     const ncryptsec = await encryptSecretKey(key, passphrase);
     secret = key;
     remember({ v: 1, method: "key", pubkey, ncryptsec }, keySigner(key));
@@ -276,6 +282,54 @@ export const signInWithSecretKey = async (input: string, passphrase = ""): Promi
     publish({ status: "failed", error: said(reason) });
     throw reason;
   }
+};
+
+/**
+ * A key made here rather than brought here, and kept as itself. No passphrase is
+ * asked for at this point on purpose: the key exists the moment it is generated,
+ * and a second of scrypt before it reaches storage is a second in which closing
+ * the tab loses it. One is offered on the step that shows the key, and
+ * `protectKey` is what applies it.
+ *
+ * Nothing here is awaited, and nothing here touches a relay. What this returns is
+ * a key that signs, and telling the world about it is somebody else's next step.
+ */
+export const signInWithNewKey = (): string => {
+  const key = newSecretKey();
+  const pubkey = publicKeyOf(key);
+  secret = key;
+  remember({ v: 1, method: "key", pubkey, secret: bytesToHex(key) }, keySigner(key));
+  return pubkey;
+};
+
+/**
+ * The key this tab is holding, in the form a person writes down. Read from memory
+ * and never from storage: a key kept under a passphrase nobody has given has
+ * nothing to show, and says so with null, as does every method that is not a key.
+ */
+export const sessionNsec = (): string | null =>
+  stored?.method === "key" && secret !== null ? toNsec(secret) : null;
+
+/**
+ * A passphrase put on a key that is already here: what somebody chooses on the
+ * step that showed them their key, and what somebody who pasted a bare nsec
+ * months ago can still choose.
+ *
+ * Only the stored record moves. The session does not, so a refused passphrase
+ * leaves a session that still signs, and one that is accepted does not sign
+ * anybody out: what was asked for is the next visit, not this one. The record is
+ * replaced after scrypt returns rather than before, so a failure cannot leave a
+ * key half written.
+ */
+export const protectKey = async (passphrase: string): Promise<void> => {
+  const record = stored;
+  if (record === null || record.method !== "key") throw new SessionMissing();
+  if (secret === null) throw new SessionLocked();
+  longEnough(passphrase);
+
+  const ncryptsec = await encryptSecretKey(secret, passphrase);
+  stored = { v: 1, method: "key", pubkey: record.pubkey, ncryptsec };
+  writeSession(stored);
 };
 
 /**

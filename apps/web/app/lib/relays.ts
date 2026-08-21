@@ -2,6 +2,8 @@ import {
   DEFAULT_RELAYS,
   DISCUSSION_RELAYS,
   fetchRelayLists,
+  INDEXER_RELAYS,
+  MAX_RELAYS_PER_AUTHOR,
   relaySet,
   writeRelaysOf,
 } from "@openspecs/nostr";
@@ -28,6 +30,31 @@ export const outboxRelays = async (me: string): Promise<string[]> => {
   // An author who published no list still has to be published somewhere.
   return mine.length > 0 ? mine : DEFAULT_RELAYS;
 };
+
+/**
+ * Where a key announces itself: its profile and its relay list. The indexers
+ * first, because those two are read from there and nowhere else, then the
+ * relays this site looks for documents on.
+ *
+ * Synchronous, and deliberately: a key made a second ago has no NIP-65 list to
+ * look up, and `outboxRelays` asking for one would not merely spend a round trip
+ * on nothing. It would cache the absence of a list under that key for half an
+ * hour, so every comment written afterwards would ignore the list being
+ * published here.
+ *
+ * `DISCUSSION_RELAYS` is left out. `writeRelays` already sends this reader's
+ * first comment there, so their name travels with it, and a first run has
+ * nothing to gain from three more squares.
+ */
+export const announceRelays = (): string[] => relaySet(INDEXER_RELAYS, DEFAULT_RELAYS);
+
+/**
+ * What a key made here names as its own. Four, because that is where readers
+ * stop: NIP-65 asks for two to four of each, this project's own parser keeps the
+ * first four, and a fifth would be a relay this key names and nobody reads.
+ */
+export const newKeyRelays = (): string[] =>
+  relaySet(DEFAULT_RELAYS).slice(0, MAX_RELAYS_PER_AUTHOR);
 
 /** Where somebody is reached: their inbox, which is what NIP-65 calls read. */
 export const inboxRelays = async (pubkeys: string[]): Promise<string[]> => {

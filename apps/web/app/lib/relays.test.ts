@@ -5,6 +5,8 @@ const nostr = vi.hoisted(() => ({
   writeRelaysOf: vi.fn(),
   DEFAULT_RELAYS: ["wss://relay.nmail.li", "wss://nos.lol"],
   DISCUSSION_RELAYS: ["wss://relay.ditto.pub", "wss://nos.lol"],
+  INDEXER_RELAYS: ["wss://indexer.example", "wss://nos.lol"],
+  MAX_RELAYS_PER_AUTHOR: 4,
   relaySet: (...lists: string[][]) => {
     const urls = new Set<string>();
     for (const url of lists.flat()) if (/^wss?:\/\//.test(url)) urls.add(url);
@@ -14,7 +16,13 @@ const nostr = vi.hoisted(() => ({
 
 vi.mock("@openspecs/nostr", () => nostr);
 
-import { MAX_ZAP_RELAYS, writeRelays, zapReceiptRelays } from "./relays";
+import {
+  announceRelays,
+  MAX_ZAP_RELAYS,
+  newKeyRelays,
+  writeRelays,
+  zapReceiptRelays,
+} from "./relays";
 
 const ME = "a".repeat(64);
 const AUTHOR = "b".repeat(64);
@@ -128,5 +136,33 @@ describe("zapReceiptRelays", () => {
     );
 
     expect((await zapReceiptRelays(ME, AUTHOR)).length).toBeLessThanOrEqual(MAX_ZAP_RELAYS);
+  });
+});
+
+describe("announceRelays", () => {
+  it("puts the indexers first, because a profile is read from there and nowhere else", () => {
+    expect(announceRelays()[0]).toBe("wss://indexer.example");
+  });
+
+  it("names the relays this site reads too, and names none of them twice", () => {
+    const relays = announceRelays();
+    expect(relays).toContain("wss://relay.nmail.li");
+    expect(new Set(relays).size).toBe(relays.length);
+  });
+
+  /**
+   * The whole point of the helper. A key made a second ago has no list to find,
+   * and asking for one would cache its absence over the list being published.
+   */
+  it("asks nobody where a brand new key publishes", () => {
+    announceRelays();
+    expect(nostr.writeRelaysOf).not.toHaveBeenCalled();
+    expect(nostr.fetchRelayLists).not.toHaveBeenCalled();
+  });
+});
+
+describe("newKeyRelays", () => {
+  it("names no more relays than a reader keeps", () => {
+    expect(newKeyRelays().length).toBeLessThanOrEqual(4);
   });
 });

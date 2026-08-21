@@ -21,13 +21,26 @@ const said = (value: unknown, fallback: string): string => {
 };
 
 /**
+ * A relay that could not be reached at all does not reject. `SimplePool.publish`
+ * catches the connection failure and resolves with this sentence in place of the
+ * relay's answer, so a browser with no network would otherwise be told every
+ * relay accepted what it never sent.
+ */
+const UNREACHABLE = "connection failure:";
+
+/**
  * A relay may refuse without saying why, and a blank line reads as a bug rather
  * than as a refusal, so every outcome gets words.
  */
-export const toResult = (relay: string, settled: PromiseSettledResult<string>): RelayResult =>
-  settled.status === "fulfilled"
-    ? { relay, accepted: true, message: said(settled.value, "accepted") }
-    : { relay, accepted: false, message: said(settled.reason, "refused") };
+export const toResult = (relay: string, settled: PromiseSettledResult<string>): RelayResult => {
+  if (settled.status === "rejected") {
+    return { relay, accepted: false, message: said(settled.reason, "refused") };
+  }
+  const answer = said(settled.value, "accepted");
+  return answer.startsWith(UNREACHABLE)
+    ? { relay, accepted: false, message: "not reached" }
+    : { relay, accepted: true, message: answer };
+};
 
 /**
  * Publishing is a write, and this project never writes from the server: the

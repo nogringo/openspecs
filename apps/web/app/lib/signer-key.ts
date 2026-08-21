@@ -1,6 +1,6 @@
-import { decode } from "nostr-tools/nip19";
+import { decode, nsecEncode } from "nostr-tools/nip19";
 import { decrypt, encrypt } from "nostr-tools/nip49";
-import { finalizeEvent, getPublicKey } from "nostr-tools/pure";
+import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
 import { hexToBytes, isHex32 } from "nostr-tools/utils";
 import type { AppSigner } from "./signer";
 
@@ -16,6 +16,12 @@ export const parseSecretKey = (input: string): Uint8Array | null => {
     return null;
   }
 };
+
+/** A key nobody brought here, from the same generator nostr-tools signs with. */
+export const newSecretKey = (): Uint8Array => generateSecretKey();
+
+/** The written form, which is the only form a person can copy down. */
+export const toNsec = (secret: Uint8Array): string => nsecEncode(secret);
 
 export const publicKeyOf = (secret: Uint8Array): string => getPublicKey(secret);
 

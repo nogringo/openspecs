@@ -112,10 +112,12 @@ export {
   type ZapTarget,
 } from "./nip57";
 export {
+  buildRelayList,
   clearRelayListCache,
   fetchRelayList,
   fetchRelayLists,
   INDEXER_RELAYS,
+  MAX_RELAYS_PER_AUTHOR,
   parseRelayList,
   RELAY_LIST_KIND,
   type RelayList,
@@ -131,11 +133,13 @@ export {
   relaySet,
 } from "./pool";
 export {
+  buildProfile,
   clearProfileCache,
   fetchProfile,
   fetchProfiles,
   PROFILE_KIND,
   type Profile,
+  type ProfileDraft,
   type ProfileOptions,
   parseProfile,
   selectProfiles,
