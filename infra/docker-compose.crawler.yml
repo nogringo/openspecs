@@ -1,0 +1,32 @@
+# The crawler that keeps every document alive on the mirror relays.
+#
+#   docker compose -f docker-compose.crawler.yml up -d
+#
+# A file of its own rather than a service in docker-compose.yml: mirroring the
+# corpus does not require serving the site, and whoever only wants the site
+# should not inherit a second service and its state on disk. A host that does
+# both runs them together:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.crawler.yml up -d
+services:
+  crawler:
+    image: ghcr.io/nogringo/openspecs/crawler:latest
+    restart: unless-stopped
+    # A pass in flight is not abandoned on SIGTERM, it unwinds, and a relay that
+    # went quiet holds it until `--timeout` expires. The ten seconds Docker
+    # grants by default would turn an ordinary restart into a SIGKILL.
+    stop_grace_period: 60s
+    # No port, no inbound traffic: it dials relays and nothing dials it.
+    #
+    # Which relays it walks belongs in .env rather than here, so an operator
+    # never edits a file this repository ships. Empty means the built in lists.
+    environment:
+      OPENSPECS_CRAWLER_SOURCES: ${OPENSPECS_CRAWLER_SOURCES:-}
+      OPENSPECS_CRAWLER_MIRRORS: ${OPENSPECS_CRAWLER_MIRRORS:-}
+    volumes:
+      - crawler_data:/data
+
+volumes:
+  # The cache and the sync watermarks. Losing it costs one full read of the
+  # corpus on the next start, and loses nothing else.
+  crawler_data:

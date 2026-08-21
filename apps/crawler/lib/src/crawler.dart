@@ -73,8 +73,12 @@ class Crawler {
     _ticker = Timer.periodic(interval, (_) => _tick(handle));
   }
 
-  /// Stops the ticker and the walk, then lets go of the handle. What was synced
-  /// stays in the cache, and starting again picks up where this left off.
+  /// Stops the ticker and the walk. What was synced stays in the cache, and
+  /// starting again picks up where this left off.
+  ///
+  /// Returns once the walk has actually stopped, which takes as long as the page
+  /// in flight: whatever is closed afterwards, the database first among them, is
+  /// no longer being read.
   Future<void> stop() async {
     _ticker?.cancel();
     _ticker = null;
@@ -84,11 +88,10 @@ class Crawler {
 
     await _mirroring;
 
-    final handle = _handle;
-    if (handle != null) _engine.release(handle);
-    _handle = null;
-
+    // Disposing rather than releasing the handle: this crawler owns the engine
+    // and outlives no request of its own, so there is nobody left to hold one.
     await _engine.dispose();
+    _handle = null;
   }
 
   void _tick(SyncHandle handle) {

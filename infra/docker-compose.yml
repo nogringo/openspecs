@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/nogringo/openspecs/web:${OPENSPECS_TAG:-latest}
+    image: ghcr.io/nogringo/openspecs/web:latest
     restart: unless-stopped
     environment:
       NODE_ENV: production

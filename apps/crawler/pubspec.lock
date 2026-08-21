@@ -501,10 +501,10 @@ packages:
     dependency: "direct main"
     description:
       name: sync_engine_shim_for_ndk
-      sha256: "309d7ad527fa250a1bfa43c9343dff382f88b9b0af7068b5269597b09defc054"
+      sha256: b68898e4261ccff362860167e54411254be4bba0aa32d982b1beece934d761f8
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.0"
+    version: "0.3.1"
   synchronized:
     dependency: transitive
     description:

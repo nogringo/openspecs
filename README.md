@@ -109,10 +109,29 @@ definition the same way:
 docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
 ```
 
+## Keeping documents alive
+
+A document lives exactly as long as some relay keeps it, and no relay owes anyone
+that. The crawler in `apps/crawler` reads every document from the relays this app
+queries and copies what is missing to others, over NIP-77 so only what a relay
+lacks travels. No key and no account is involved: a document carries its author's
+signature, and every relay checks it.
+
+Running one has nothing to do with hosting the site, and needs no port open:
+
+```sh
+cd infra
+docker compose -f docker-compose.crawler.yml up -d
+```
+
+The useful part is naming your own relay, in `OPENSPECS_CRAWLER_MIRRORS`. A
+corpus copied by many operators is one none of them can decide to drop.
+
 ## Layout
 
 ```
 apps/web        React Router app, SSR and static builds
+apps/crawler    Dart service copying documents to mirror relays
 packages/       shared contracts and implementations (from lot 1 on)
 infra/          Docker Compose, reverse proxy
 ```

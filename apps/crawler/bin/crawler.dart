@@ -7,56 +7,20 @@ import 'package:ndk/ndk.dart';
 import 'package:path/path.dart' as p;
 import 'package:sembast/sembast_io.dart' hide Filter;
 
-final _parser = ArgParser()
-  ..addMultiOption(
-    'source',
-    abbr: 's',
-    valueHelp: 'url',
-    help: 'Relay to read documents from.',
-    defaultsTo: sourceRelays,
-  )
-  ..addMultiOption(
-    'mirror',
-    abbr: 'm',
-    valueHelp: 'url',
-    help: 'Relay to copy documents to.',
-    defaultsTo: mirrorRelays,
-  )
-  ..addOption(
-    'data',
-    abbr: 'd',
-    valueHelp: 'dir',
-    help: 'Where the cache and the sync state live.',
-    defaultsTo: '.crawler',
-  )
-  ..addOption(
-    'interval',
-    abbr: 'i',
-    valueHelp: 'seconds',
-    help: 'How long between two looks at the source relays.',
-    defaultsTo: '300',
-  )
-  ..addOption(
-    'timeout',
-    abbr: 't',
-    valueHelp: 'seconds',
-    help: 'How long a relay may take to answer before it is left for later.',
-    defaultsTo: '30',
-  )
-  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this usage.');
-
 Future<void> main(List<String> arguments) async {
+  final parser = parserFor(Platform.environment);
+
   final ArgResults options;
   try {
-    options = _parser.parse(arguments);
+    options = parser.parse(arguments);
   } on FormatException catch (error) {
-    stderr.writeln('${error.message}\n\n${_parser.usage}');
+    stderr.writeln('${error.message}\n\n${parser.usage}');
     exitCode = 64;
     return;
   }
 
   if (options.flag('help')) {
-    stdout.writeln(_parser.usage);
+    stdout.writeln(parser.usage);
     return;
   }
 

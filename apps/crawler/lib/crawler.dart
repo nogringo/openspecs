@@ -6,4 +6,5 @@ export 'package:sync_engine_shim_for_ndk/sync_engine_shim_for_ndk.dart'
 
 export 'src/crawler.dart';
 export 'src/mirror.dart';
+export 'src/options.dart';
 export 'src/relays.dart';

@@ -15,6 +15,7 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}/web
+  CRAWLER_IMAGE: ghcr.io/${{ github.repository }}/crawler
 
 jobs:
   checks:
@@ -75,6 +76,71 @@ jobs:
         if: always()
         run: docker logs openspecs-ci || true
 
+  crawler:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/crawler
+    steps:
+      - uses: actions/checkout@v7
+
+      # No toolchain step for Rust: ndk compiles a crate through a build hook,
+      # and the runner image already ships rustup.
+      - uses: dart-lang/setup-dart@v1
+
+      - run: dart pub get
+
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: dart analyze --fatal-infos
+      - run: dart test
+
+  crawler-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # A scope of its own: the default one is shared per repository, and two
+      # images writing to it would keep evicting each other's layers.
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/Dockerfile.crawler
+          platforms: linux/amd64
+          load: true
+          tags: openspecs-crawler:ci
+          cache-from: type=gha,scope=crawler
+          cache-to: type=gha,mode=max,scope=crawler
+
+      # The crawler has no port to probe, so the questions are the ones a
+      # supervisor asks: does it start, can it write its state on a fresh
+      # volume as a user that is not root, and does it come back down on the
+      # signal it will be sent. The relays point at a closed port on purpose:
+      # this asserts the container, not the network.
+      - name: Boot the image and assert it starts, writes and stops
+        run: |
+          docker run -d --name openspecs-crawler-ci \
+            -v openspecs-crawler-ci:/data \
+            openspecs-crawler:ci \
+            --source wss://127.0.0.1:9 --mirror wss://127.0.0.1:9 --interval 5 --timeout 2
+          for _ in $(seq 1 30); do
+            docker logs openspecs-crawler-ci 2>&1 | grep -q 'reading 1 relays' && break
+            sleep 1
+          done
+          docker logs openspecs-crawler-ci 2>&1 | grep -q 'reading 1 relays, copying to 1' \
+            || { echo "::error::the crawler never announced its walk, it did not get past start"; exit 1; }
+          docker exec openspecs-crawler-ci test -f /data/sync_engine.db \
+            || { echo "::error::nothing was written to the data volume, the crawler cannot keep its watermarks"; exit 1; }
+          docker stop -t 60 openspecs-crawler-ci
+          code=$(docker inspect -f '{{.State.ExitCode}}' openspecs-crawler-ci)
+          [ "$code" = 0 ] \
+            || { echo "::error::the crawler was killed rather than stopped on SIGTERM, exit $code"; exit 1; }
+
+      - name: Container logs
+        if: always()
+        run: docker logs openspecs-crawler-ci || true
+
   # A separate job rather than conditional steps: `needs` makes the gate
   # structural, so an image that failed the boot probe cannot be published.
   publish:
@@ -118,3 +184,110 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Published apart from the site, and gated only on the crawler's own jobs: a
+  # relay mirror has no reason to wait on a web build, and whoever runs one has
+  # no reason to run the other.
+  #
+  # One runner per architecture rather than the site's single emulated build:
+  # this image compiles a Rust crate and then an ahead of time executable, which
+  # QEMU would drag out for the better part of an hour. Each leg pushes an image
+  # nobody can pull yet, addressed by digest, and the manifest that ties them
+  # under a tag is written once both have landed.
+  publish-crawler:
+    needs: [crawler, crawler-docker]
+    if: github.event_name == 'push'
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Labels are stamped here rather than on the manifest: they belong to the
+      # image, and the manifest job only ties digests together.
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.CRAWLER_IMAGE }}
+
+      - id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/Dockerfile.crawler
+          platforms: linux/${{ matrix.arch }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.CRAWLER_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=crawler-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=crawler-${{ matrix.arch }}
+
+      - name: Hand the digest to the manifest job
+        run: |
+          mkdir -p /tmp/digests
+          digest='${{ steps.build.outputs.digest }}'
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: crawler-digest-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-crawler-manifest:
+    needs: publish-crawler
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: crawler-digest-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.CRAWLER_IMAGE }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Tie both architectures under the tags
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.CRAWLER_IMAGE }}@sha256:%s ' *)
+
+      - name: Show what was published
+        run: docker buildx imagetools inspect ${{ env.CRAWLER_IMAGE }}:${{ steps.meta.outputs.version }}

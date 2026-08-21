@@ -6,6 +6,30 @@ otherwise never see it. No key and no account is involved: a document carries it
 author's signature from the day it was written, and every relay checks that
 signature itself.
 
+## Running one
+
+Anyone can, and the corpus is worth more for every one that exists: no key, no
+account, no port to open, a few megabytes of state on disk and a connection that
+wakes up every few minutes. The image is published on every push to `main`.
+
+```sh
+cd infra
+cp .env.example .env
+docker compose -f docker-compose.crawler.yml up -d
+```
+
+That pulls `ghcr.io/nogringo/openspecs/crawler` and keeps its state in a named
+volume mounted at `/data`. Which relays it walks is in the `.env` you just
+copied, rather than in the compose file this repository updates under you. The
+line that matters is your own relay, because a mirror list of one is a single
+operator deciding what survives, and a list given replaces the built in one:
+
+```sh
+OPENSPECS_CRAWLER_MIRRORS=wss://relay.example.org
+```
+
+From a checkout instead, with the Dart SDK in hand:
+
 ```sh
 dart run bin/crawler.dart
 ```
@@ -36,11 +60,20 @@ which is what a mirror should carry.
 
 | Option | Default | |
 | --- | --- | --- |
-| `--source`, `-s` | the relays the web app reads | Relay to read documents from, repeatable |
-| `--mirror`, `-m` | see `lib/src/relays.dart` | Relay to copy documents to, repeatable |
+| `--source`, `-s` | `OPENSPECS_CRAWLER_SOURCES`, else the relays the web app reads | Relay to read documents from, repeatable |
+| `--mirror`, `-m` | `OPENSPECS_CRAWLER_MIRRORS`, else see `lib/src/relays.dart` | Relay to copy documents to, repeatable |
 | `--data`, `-d` | `.crawler` | Where the cache and the sync state live |
 | `--interval`, `-i` | `300` | Seconds between two looks at the source relays |
 | `--timeout`, `-t` | `30` | Seconds a relay may take to answer before it is left for later |
 
+Both variables list relays separated by commas, and only move the default: an
+option given on the command line still wins, and a variable left empty means the
+built in list rather than no relay at all.
+
 The data directory is the whole state. Deleting it makes the next run read
 everything again, which costs bandwidth but loses nothing.
+
+A walk that is in flight when the signal arrives is not dropped, it unwinds, and
+a source that went quiet holds it until `--timeout` expires. Anything supervising
+the process has to allow at least that long before it kills: the compose file
+asks for 60 seconds, where Docker would otherwise grant 10.

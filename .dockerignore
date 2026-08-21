@@ -4,6 +4,10 @@ build
 **/build
 .react-router
 **/.react-router
+.dart_tool
+**/.dart_tool
+.crawler
+**/.crawler
 .git
 .env
 .env.*
