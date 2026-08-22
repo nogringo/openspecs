@@ -1,4 +1,4 @@
-import { type EventDraft, nostrEventSchema } from "./event";
+import { type EventDraft, type NostrEvent, newestEvent, nostrEventSchema } from "./event";
 import { CLIENT_NAME } from "./nip22";
 import { queryRelays, type RelayOptions, relaySet } from "./pool";
 
@@ -52,19 +52,57 @@ export const parseRelayList = (input: unknown): RelayList | null => {
   };
 };
 
+export type RelayEntry = {
+  url: string;
+  /** Absent is what an unmarked `r` tag means: both, and the majority case in the wild. */
+  marker?: "read" | "write";
+};
+
 /**
- * Every `r` tag unmarked, which is read as both read and write, above and by
- * everything else. A key publishing its first list has no reason to split the
- * two, and one whose list is read only is one whose documents nothing can find.
+ * Every relay an author named, in the order they named them and with their
+ * markers intact. `parseRelayList` above reads somebody else's list and cuts it
+ * to what this client will open; this is for an author reading back their own to
+ * edit it, where a relay dropped on the way in is a relay deleted on the way out.
+ */
+export const parseRelayEntries = (input: unknown): RelayEntry[] | null => {
+  const parsed = nostrEventSchema.safeParse(input);
+  if (!parsed.success || parsed.data.kind !== RELAY_LIST_KIND) return null;
+
+  const entries: RelayEntry[] = [];
+  const seen = new Set<string>();
+  for (const tag of parsed.data.tags) {
+    if (tag[0] !== "r" || !tag[1]) continue;
+    const [url] = relaySet([tag[1]]);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    const marker = tag[2];
+    entries.push(marker === "read" || marker === "write" ? { url, marker } : { url });
+  }
+  return entries;
+};
+
+/**
+ * A bare URL is written unmarked, which is read as both read and write, above
+ * and by everything else. A key publishing its first list has no reason to split
+ * the two, and one whose list is read only is one whose documents nothing can
+ * find. An entry keeps whatever marker it arrived with, so a list edited here
+ * comes back out of a form that never showed markers with its own intact.
  *
  * How many is the caller's to decide, and `MAX_RELAYS_PER_AUTHOR` is what
  * survives being read back: naming a fifth relay names one nobody keeps.
  */
-export const buildRelayList = (relays: string[]): EventDraft => ({
-  kind: RELAY_LIST_KIND,
-  content: "",
-  tags: [...relaySet(relays).map((url) => ["r", url]), ["client", CLIENT_NAME]],
-});
+export const buildRelayList = (relays: Array<string | RelayEntry>): EventDraft => {
+  const tags: string[][] = [];
+  const seen = new Set<string>();
+  for (const relay of relays) {
+    const entry = typeof relay === "string" ? { url: relay, marker: undefined } : relay;
+    const [url] = relaySet([entry.url]);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    tags.push(entry.marker === undefined ? ["r", url] : ["r", url, entry.marker]);
+  }
+  return { kind: RELAY_LIST_KIND, content: "", tags: [...tags, ["client", CLIENT_NAME]] };
+};
 
 /** Indexers serve stale revisions of a relay list next to the live one, so the newest wins. */
 export const selectRelayLists = (events: unknown[]): Map<string, RelayList> => {
@@ -127,6 +165,24 @@ export const fetchRelayList = async (
   pubkey: string,
   options: RelayListOptions = {},
 ): Promise<RelayList> => (await fetchRelayLists([pubkey], options)).get(pubkey) ?? EMPTY;
+
+/**
+ * The live kind 10002, whole and unparsed, for an author about to write one
+ * back. Uncached and uncapped, for the reasons `fetchProfileEvent` and
+ * `parseRelayEntries` give: half an hour is long enough to republish a list the
+ * author has since changed elsewhere, and four is fewer than some of them name.
+ */
+export const fetchRelayListEvent = async (
+  pubkey: string,
+  options: RelayListOptions = {},
+): Promise<NostrEvent | null> => {
+  const events = await queryRelays(
+    relaySet(options.indexers ?? INDEXER_RELAYS),
+    { kinds: [RELAY_LIST_KIND], authors: [pubkey] },
+    { ...options, timeoutMs: options.timeoutMs ?? RELAY_LIST_TIMEOUT_MS },
+  ).catch(() => []);
+  return newestEvent(events, pubkey, RELAY_LIST_KIND);
+};
 
 export const writeRelaysOf = async (
   pubkeys: string[],

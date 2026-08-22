@@ -1,4 +1,10 @@
-import { SPEC_KIND } from "@openspecs/nostr";
+import {
+  BLOSSOM_AUTH_KIND,
+  BLOSSOM_SERVER_KIND,
+  PROFILE_KIND,
+  RELAY_LIST_KIND,
+  SPEC_KIND,
+} from "@openspecs/nostr";
 import type { BunkerPointer, BunkerSigner } from "nostr-tools/nip46";
 import type { AppSigner } from "./signer";
 
@@ -19,13 +25,24 @@ export const CONNECT_RELAYS = [
   "wss://relay.primal.net",
 ];
 
-/** What this app asks a remote signer for, and nothing beyond it. */
+/**
+ * What this app asks a remote signer for, and nothing beyond it. Asked once, at
+ * the handshake: a session connected before a kind was added here is one whose
+ * signer will ask its owner about that kind every time, which is a signer doing
+ * its job rather than a bug on this side.
+ */
 const PERMISSIONS = [
   `sign_event:${SPEC_KIND}`,
   "sign_event:1111",
   "sign_event:7",
   "sign_event:5",
   "sign_event:9734",
+  `sign_event:${PROFILE_KIND}`,
+  `sign_event:${RELAY_LIST_KIND}`,
+  // An upload token, which is signed and handed to a server rather than published.
+  `sign_event:${BLOSSOM_AUTH_KIND}`,
+  // The servers holding a picture, without which its copies cannot be found.
+  `sign_event:${BLOSSOM_SERVER_KIND}`,
 ];
 
 export type RemoteSession = {
