@@ -1,6 +1,6 @@
 import type { Filter } from "nostr-tools/filter";
 import type { SpecPointer } from "./address";
-import { SPEC_KIND } from "./event";
+import { type NostrEvent, SPEC_KIND } from "./event";
 import { type RelayListOptions, writeRelaysOf } from "./nip65";
 import { queryRelays, type RelayOptions, relaySet } from "./pool";
 import { parseSpec, type Spec } from "./spec";
@@ -100,6 +100,18 @@ export const fetchSpec = async (
   );
   return specs[0] ?? null;
 };
+
+/**
+ * The live revision whole and unparsed, for an author about to write it back.
+ * `fetchSpec` already holds it: what `parseSpec` loses are the fields it derives,
+ * and the event it carries is the one the relays served. `newestEvent` is not
+ * used here on purpose, since `latestByCoordinate` above breaks a tie on the
+ * lowest id as NIP-01 does, so this loads the revision the page renders.
+ */
+export const fetchSpecEvent = async (
+  pointer: Pick<SpecPointer, "pubkey" | "identifier"> & { relays?: string[] },
+  options: FetchOptions = {},
+): Promise<NostrEvent | null> => (await fetchSpec(pointer, options))?.event ?? null;
 
 export const fetchSpecs = async (
   specQuery: SpecQuery = {},

@@ -18,6 +18,7 @@ vi.mock("@openspecs/nostr", () => nostr);
 
 import {
   announceRelays,
+  documentRelays,
   identityRelays,
   MAX_WRITE_RELAYS,
   MAX_ZAP_RELAYS,
@@ -167,6 +168,44 @@ describe("announceRelays", () => {
 describe("newKeyRelays", () => {
   it("names no more relays than a reader keeps", () => {
     expect(newKeyRelays().length).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("documentRelays", () => {
+  it("puts the author's own relays first, since that is where their readers look", async () => {
+    expect((await documentRelays(ME))[0]).toBe("wss://mine.example");
+  });
+
+  /**
+   * The case the whole function exists for: a key with a relay list of its own
+   * would otherwise publish somewhere this site's loader never reads, and no
+   * mirror would ever find the document to copy it.
+   */
+  it("always reaches the relays this site and the crawler read", async () => {
+    const relays = await documentRelays(ME);
+    expect(relays).toEqual(expect.arrayContaining(nostr.DEFAULT_RELAYS));
+  });
+
+  it("still has somewhere to publish for a key that named no relays", async () => {
+    nostr.writeRelaysOf.mockResolvedValue([]);
+    expect(await documentRelays(ME)).toEqual(expect.arrayContaining(nostr.DEFAULT_RELAYS));
+  });
+
+  it("names a relay once however many lists it appears in", async () => {
+    nostr.writeRelaysOf.mockResolvedValue(["wss://nos.lol"]);
+    const relays = await documentRelays(ME);
+    expect(relays.filter((relay) => relay === "wss://nos.lol")).toHaveLength(1);
+  });
+
+  it("does not spray a young key across the relays a rebroadcast is for", async () => {
+    expect(await documentRelays(ME)).not.toContain("wss://relay.ditto.pub");
+  });
+
+  it("stays under the backstop however malformed the list it was handed", async () => {
+    nostr.writeRelaysOf.mockResolvedValue(
+      Array.from({ length: 100 }, (_, index) => `wss://relay-${index}.example`),
+    );
+    expect((await documentRelays(ME)).length).toBeLessThanOrEqual(MAX_WRITE_RELAYS);
   });
 });
 

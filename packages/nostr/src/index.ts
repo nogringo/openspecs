@@ -183,8 +183,22 @@ export {
   DEFAULT_RELAYS,
   type FetchOptions,
   fetchSpec,
+  fetchSpecEvent,
   fetchSpecs,
   latestByCoordinate,
   type SpecQuery,
 } from "./relay";
-export { parseSpec, type Spec, type SpecFork, type SpecKindRef } from "./spec";
+export {
+  buildSpec,
+  editSpec,
+  parseSpec,
+  type Spec,
+  type SpecDraft,
+  type SpecFault,
+  type SpecFork,
+  type SpecKindEntry,
+  type SpecKindRef,
+  specDraftOf,
+  specFaults,
+  toIdentifier,
+} from "./spec";

@@ -11,6 +11,7 @@ import { data, Link, redirect } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
 import { DISCUSSION_ID, Discussion } from "~/components/discussion/discussion";
+import { EditLink } from "~/components/editor/edit-link";
 import { ErrorPage } from "~/components/error-page";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
@@ -158,7 +159,9 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 const Contents = ({ headings }: { headings: MarkdownHeading[] }) => (
   <nav
     aria-label="Contents"
-    className="hidden lg:sticky lg:top-10 lg:block lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto"
+    /* The negative margin and the padding are one pair: scrolling this rail
+       makes it clip on both axes, and a link's focus ring sits outside the link. */
+    className="hidden lg:-mx-1.5 lg:sticky lg:top-10 lg:block lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto lg:px-1.5"
   >
     <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">Contents</p>
     <ul className="mt-3 space-y-2 font-mono text-xs leading-snug">
@@ -271,6 +274,7 @@ const Masthead = ({
         title="The signed event, exactly as the relays serve it"
       />
       <Rebroadcast eventUrl={eventPath(spec.npub, spec.identifier)} relays={relays} />
+      <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
     </div>
   </header>
 );

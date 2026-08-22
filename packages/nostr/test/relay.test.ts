@@ -3,7 +3,13 @@ import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { SPEC_KIND } from "../src/event";
 import { clearRelayListCache, RELAY_LIST_KIND } from "../src/nip65";
-import { type FetchOptions, fetchSpec, fetchSpecs, latestByCoordinate } from "../src/relay";
+import {
+  type FetchOptions,
+  fetchSpec,
+  fetchSpecEvent,
+  fetchSpecs,
+  latestByCoordinate,
+} from "../src/relay";
 import { parseSpec, type Spec } from "../src/spec";
 import { caseEvents, events } from "./fixtures";
 
@@ -143,6 +149,29 @@ describe("fetchSpec", () => {
 
   it("returns null for a document no relay holds", async () => {
     expect(await fetchSpec({ pubkey: author, identifier: "never-published" }, options)).toBeNull();
+  });
+});
+
+describe("fetchSpecEvent", () => {
+  it("returns the newest revision, so an author never edits an old one", async () => {
+    expect((await fetchSpecEvent(pointer, options))?.id).toBe(live.id);
+  });
+
+  it("returns it as the relay served it, since a save starts from every tag it had", async () => {
+    const { id, pubkey, created_at, kind, tags, content, sig } = live;
+    expect(await fetchSpecEvent(pointer, options)).toEqual({
+      id,
+      pubkey,
+      created_at,
+      kind,
+      tags,
+      content,
+      sig,
+    });
+  });
+
+  it("returns nothing for a document nobody published", async () => {
+    expect(await fetchSpecEvent({ ...pointer, identifier: "never-written" }, options)).toBeNull();
   });
 });
 
