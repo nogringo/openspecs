@@ -1,5 +1,6 @@
 import type { Mention, MentionResolver } from "@openspecs/markdown";
 import { authorPath, parsePubkey, parseSpecAddress, specPath, toNpub } from "@openspecs/nostr";
+import { keyTextColor } from "./color";
 import { type Authors, shortNpub } from "./profile";
 
 /**
@@ -32,7 +33,11 @@ export const mentionResolver =
     if (pubkey !== null) {
       const npub = toNpub(pubkey);
       const name = authors[pubkey]?.name;
-      return { label: `@${name || shortNpub(npub)}`, href: authorPath(pubkey) };
+      return {
+        label: `@${name || shortNpub(npub)}`,
+        href: authorPath(pubkey),
+        color: keyTextColor(pubkey),
+      };
     }
 
     const spec = parseSpecAddress(uri);

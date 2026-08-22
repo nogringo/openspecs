@@ -104,8 +104,11 @@ const collectLinks = (links: Set<string>) => (tree: Root) => {
 /**
  * What a `nostr:` reference should be drawn as. Returning null leaves it as the
  * text it was, which is the honest outcome for a reference nothing can resolve.
+ *
+ * A `color` is what tells two people with the same name apart. It is a CSS
+ * colour the caller derives from the key itself, never anything an author wrote.
  */
-export type Mention = { label: string; href?: string };
+export type Mention = { label: string; href?: string; color?: string };
 
 export type MentionResolver = (uri: string) => Mention | null;
 
@@ -142,18 +145,21 @@ const drawMentions = (resolve: MentionResolver | undefined) => (tree: Root) => {
       if (match.index > taken) {
         children.push({ type: "text", value: node.value.slice(taken, match.index) });
       }
+      // Inline rather than a class: this plugin runs after the sanitiser, on
+      // markup it wrote itself, and the colour is one of a key's own.
+      const tint = mention.color === undefined ? {} : { style: `color:${mention.color}` };
       children.push(
         mention.href === undefined
           ? {
               type: "element",
               tagName: "span",
-              properties: { className: ["mention"] },
+              properties: { className: ["mention"], ...tint },
               children: [{ type: "text", value: mention.label }],
             }
           : {
               type: "element",
               tagName: "a",
-              properties: { href: mention.href, className: ["mention"] },
+              properties: { href: mention.href, className: ["mention"], ...tint },
               children: [{ type: "text", value: mention.label }],
             },
       );

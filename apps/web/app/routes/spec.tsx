@@ -15,6 +15,7 @@ import { ErrorPage } from "~/components/error-page";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
+import { keyTextColor } from "~/lib/color";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
 import { eventPath, oembedPath, ogImagePath } from "~/lib/paths";
@@ -223,7 +224,11 @@ const Masthead = ({
         {/* A name is what a key says about itself, so the key it belongs to stays under it. */}
         {author !== null && author.name !== "" && (
           <p title={author.name} className="mb-1.5 truncate font-mono text-sm font-medium">
-            <Link to={authorPath(spec.pubkey)} className="hover:underline">
+            <Link
+              to={authorPath(spec.pubkey)}
+              style={{ color: keyTextColor(spec.pubkey) }}
+              className="hover:underline"
+            >
               {author.name}
             </Link>
           </p>

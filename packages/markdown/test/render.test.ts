@@ -146,6 +146,27 @@ describe("cited links", () => {
   });
 });
 
+describe("mentions", () => {
+  const NPUB = "npub1qqqsyqcyq5rqwzqfpg9scrgwpugpzysnzs23v9ccrydpk8qarc0sj9uvyq";
+  const resolve = (mention: { label: string; href?: string; color?: string }) => () => mention;
+
+  it("wears the colour the resolver gave it, so two same names are told apart", () => {
+    const out = html(`Ask nostr:${NPUB} about it.`, {
+      mention: resolve({ label: "@alice", href: "/a", color: "light-dark(#db4242, #f04a4a)" }),
+    });
+    expect(out).toContain('style="color:light-dark(#db4242, #f04a4a)"');
+    expect(out).toContain("@alice");
+  });
+
+  it("stays plain when the resolver names no colour", () => {
+    const out = html(`Ask nostr:${NPUB} about it.`, {
+      mention: resolve({ label: "@alice", href: "/a" }),
+    });
+    expect(out).toContain("@alice");
+    expect(out).not.toContain("style=");
+  });
+});
+
 it("renders an empty document to nothing", () => {
   expect(renderMarkdown("")).toEqual({ html: "", headings: [], links: [] });
 });

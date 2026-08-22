@@ -1,5 +1,5 @@
-import { oklchToHex } from "./color";
-import { KEY_MARK_GRID, keyMarkCells, keyMarkHue } from "./key-mark";
+import { keyColor, keyTextHex } from "./color";
+import { KEY_MARK_GRID, keyMarkCells } from "./key-mark";
 import { type Author, shortNpub } from "./profile";
 import type { SpecPage } from "./specs.server";
 
@@ -11,7 +11,7 @@ export const OG_HEIGHT = 630;
  * describes, but it depends just as much on the drawing: without this, a palette
  * or a layout fixed today would keep serving yesterday's picture forever.
  */
-export const CARD_VERSION = 4;
+export const CARD_VERSION = 5;
 
 /**
  * The light palette of app.css, written out: this tree is rendered by satori,
@@ -65,8 +65,7 @@ const Face = ({
 };
 
 const Mark = ({ pubkey, cell = 12 }: { pubkey: string; cell?: number }) => {
-  // The light theme of the mark, since the card is always drawn on paper.
-  const color = oklchToHex(0.55, 0.13, keyMarkHue(pubkey));
+  const color = keyColor(pubkey);
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       {keyMarkCells(pubkey).map((cells, row) => (
@@ -93,7 +92,10 @@ const Signature = ({ spec, author }: { spec: SpecPage; author: Author | null }) 
   const name = drawable(author?.name ?? "");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {name !== "" && <div style={{ display: "flex", color: INK }}>{name}</div>}
+      {/* The light correction, since the card is always drawn on paper. */}
+      {name !== "" && (
+        <div style={{ display: "flex", color: keyTextHex(spec.pubkey, "light") }}>{name}</div>
+      )}
       <div style={{ display: "flex" }}>{shortNpub(spec.npub)}</div>
     </div>
   );
@@ -237,7 +239,15 @@ export const OgAuthorCard = ({ author }: { author: OgAuthor }) => {
         <Face pubkey={author.pubkey} picture={author.picture} cell={24} />
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {name !== "" && (
-            <div style={{ display: "flex", fontSize: 62, fontWeight: 500, lineClamp: 1 }}>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 62,
+                fontWeight: 500,
+                lineClamp: 1,
+                color: keyTextHex(author.pubkey, "light"),
+              }}
+            >
               {name}
             </div>
           )}

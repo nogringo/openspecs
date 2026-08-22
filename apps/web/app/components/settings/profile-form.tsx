@@ -8,6 +8,7 @@ import {
 import { useId, useMemo, useState } from "react";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { RelayReport } from "~/components/relay-results";
+import { keyTextColor } from "~/lib/color";
 import { shortNpub } from "~/lib/profile";
 import { type RelayResult, signAndPublish } from "~/lib/publish";
 import { identityRelays } from "~/lib/relays";
@@ -65,7 +66,9 @@ const Preview = ({
   <div className="flex items-start gap-4 rounded-sm border border-dashed border-rule p-4">
     <AuthorAvatar pubkey={pubkey} picture={pictureUrl(draft.picture)} size={44} />
     <div className="min-w-0 space-y-1">
-      <p className="truncate font-mono text-sm">{draft.name.trim() || shortNpub(npub)}</p>
+      <p style={{ color: keyTextColor(pubkey) }} className="truncate font-mono text-sm">
+        {draft.name.trim() || shortNpub(npub)}
+      </p>
       {draft.nip05?.trim() && (
         <p className="truncate font-mono text-[0.6875rem] text-muted">{draft.nip05}</p>
       )}

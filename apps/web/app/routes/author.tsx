@@ -12,6 +12,7 @@ import { CopyButton } from "~/components/copy-button";
 import { ErrorPage } from "~/components/error-page";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
+import { keyTextColor } from "~/lib/color";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
 import { authorAtomPath, authorOgImagePath, authorRssPath } from "~/lib/paths";
@@ -174,7 +175,10 @@ const Masthead = ({
       <div className="flex items-start gap-5">
         <AuthorAvatar pubkey={pubkey} picture={author?.picture ?? null} size={72} />
         <div className="min-w-0">
-          <h1 className="break-all font-mono text-2xl font-medium tracking-tight sm:text-3xl">
+          <h1
+            style={{ color: keyTextColor(pubkey) }}
+            className="break-all font-mono text-2xl font-medium tracking-tight sm:text-3xl"
+          >
             {authorName(author, npub)}
           </h1>
           {/* A claim the author makes about themselves, which nothing here resolves. */}

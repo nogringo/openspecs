@@ -5,8 +5,8 @@ const byteAt = (hex: string, index: number): number =>
 
 /**
  * The same mark wherever a key appears, drawn from the key itself: three columns
- * decided by the first bytes, mirrored into five. The hue comes from bytes the
- * grid does not read, so two authors with a similar pattern rarely share a colour.
+ * decided by the first bytes, mirrored into five. Only the shape is here. The
+ * colour it is filled with comes from the key too, by way of `keyColor`.
  */
 export const keyMarkCells = (pubkey: string): boolean[][] => {
   const rows: boolean[][] = [];
@@ -20,6 +20,3 @@ export const keyMarkCells = (pubkey: string): boolean[][] => {
   }
   return rows;
 };
-
-export const keyMarkHue = (pubkey: string): number =>
-  (byteAt(pubkey, 30) * 256 + byteAt(pubkey, 31)) % 360;

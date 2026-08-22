@@ -1,6 +1,7 @@
 import { toNpub } from "@openspecs/nostr";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
+import { keyTextColor } from "~/lib/color";
 import { authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import {
@@ -75,7 +76,10 @@ export const Identity = () => {
         >
           <AuthorAvatar pubkey={session.pubkey} picture={me?.picture ?? null} size={18} />
           {/* A narrow screen has room for a face and not for a name. */}
-          <span className="hidden max-w-32 truncate font-mono text-[0.6875rem] normal-case tracking-normal text-muted sm:block">
+          <span
+            style={{ color: keyTextColor(session.pubkey) }}
+            className="hidden max-w-32 truncate font-mono text-[0.6875rem] normal-case tracking-normal sm:block"
+          >
             {authorName(me, npub)}
           </span>
         </button>
@@ -99,7 +103,14 @@ export const Identity = () => {
                 <div className="flex items-start gap-3">
                   <AuthorAvatar pubkey={session.pubkey} picture={me?.picture ?? null} size={32} />
                   <div className="min-w-0">
-                    {me?.name && <p className="truncate font-mono text-xs">{me.name}</p>}
+                    {me?.name && (
+                      <p
+                        style={{ color: keyTextColor(session.pubkey) }}
+                        className="truncate font-mono text-xs"
+                      >
+                        {me.name}
+                      </p>
+                    )}
                     {/* The key stays under whatever they call themselves. */}
                     <p className="mt-1 break-all font-mono text-[0.6875rem] text-muted">{npub}</p>
                   </div>

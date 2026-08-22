@@ -4,6 +4,7 @@ import { authorPath, COMMENT_KIND, toNpub } from "@openspecs/nostr";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
+import { keyTextColor } from "~/lib/color";
 import { NO_RESPONSE, type Response } from "~/lib/discussion";
 import { mentionedKeys, mentionResolver } from "~/lib/mention";
 import { type Authors, authorName } from "~/lib/profile";
@@ -90,7 +91,15 @@ export const CommentThread = ({
 
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-baseline gap-x-3 font-mono text-xs">
-            <Link to={authorPath(comment.pubkey)} className="font-medium hover:underline">
+            {/* A name is not unique on Nostr, and a thread where two people are
+                both called alice reads as one person answering themselves. The
+                colour is the key, so the two are told apart without opening
+                either. */}
+            <Link
+              to={authorPath(comment.pubkey)}
+              style={{ color: keyTextColor(comment.pubkey) }}
+              className="font-medium hover:underline"
+            >
               {authorName(author, npub)}
             </Link>
             <span className="text-muted">{asDate(comment.createdAt)}</span>
