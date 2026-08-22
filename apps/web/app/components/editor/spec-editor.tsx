@@ -344,27 +344,19 @@ export const SpecEditor = ({
             </div>
           )}
 
+          {/* No warning about what that page will show. It was served from a
+              cache holding the revision this one replaces, and it now says so
+              itself and offers the new one, which is better than a sentence here
+              asking somebody to wait a minute and see. */}
           {state === "sent" && live !== null && (
-            <div className="space-y-2">
-              <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
-                <Link
-                  to={specPath({ pubkey: live.pubkey, identifier: draft.identifier })}
-                  className="underline decoration-rule underline-offset-2 hover:decoration-current"
-                >
-                  Read the document
-                </Link>
-              </p>
-              {/* Only after an edit, and only because the page being linked to
-                  is the one this editor was reached from, which filled this
-                  site's minute long cache with the revision just replaced. A
-                  document published for the first time was never asked for, so
-                  there is nothing stale to warn about and nothing to say. */}
-              {initial !== null && (
-                <p className={NOTE}>
-                  The document page may show the previous version for a minute.
-                </p>
-              )}
-            </div>
+            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
+              <Link
+                to={specPath({ pubkey: live.pubkey, identifier: draft.identifier })}
+                className="underline decoration-rule underline-offset-2 hover:decoration-current"
+              >
+                Read the document
+              </Link>
+            </p>
           )}
 
           {taken !== null && (

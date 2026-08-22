@@ -18,6 +18,7 @@ import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
 import { keyTextColor } from "~/lib/color";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
+import { useLiveRevision } from "~/lib/live-revision";
 import { publicOrigin } from "~/lib/origin.server";
 import { eventPath, oembedPath, ogImagePath } from "~/lib/paths";
 import type { LinkPreview } from "~/lib/preview";
@@ -25,7 +26,8 @@ import { loadLinkPreviews } from "~/lib/preview.server";
 import type { Author } from "~/lib/profile";
 import { loadAuthor } from "~/lib/profile.server";
 import { discussionRelays, rebroadcastRelays } from "~/lib/relays.server";
-import { loadSpec, type SpecPage } from "~/lib/specs.server";
+import type { SpecPage } from "~/lib/spec-page";
+import { loadSpec } from "~/lib/specs.server";
 import type { Route } from "./+types/spec";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -310,40 +312,100 @@ const CitedLinks = ({ previews }: { previews: LinkPreview[] }) => (
   </section>
 );
 
+/**
+ * Offered above the document rather than swapped into it, and drawn dashed like
+ * everything on this site that is available rather than settled.
+ */
+const Fresher = ({ revisedAt, onShow }: { revisedAt: number; onShow: () => void }) => (
+  <div className="mb-10 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border border-dashed border-rule px-4 py-3">
+    <p className="font-serif text-[0.9375rem] leading-snug text-muted">
+      Its author published a newer revision on {asDate(revisedAt)}.
+    </p>
+    <button
+      type="button"
+      onClick={onShow}
+      className="rounded-sm border border-rule px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink"
+    >
+      Show it
+    </button>
+  </div>
+);
+
+const Article = ({
+  served,
+  author,
+  previews,
+  canonical,
+  relays,
+  discussion,
+}: {
+  served: SpecPage;
+  author: Author | null;
+  previews: LinkPreview[];
+  canonical: string;
+  relays: string[];
+  discussion: string[];
+}) => {
+  const { shown, fresher, show } = useLiveRevision(served);
+
+  // A preview was fetched for the links the served revision cited. One that no
+  // longer appears in the document has no business under it.
+  const cited = previews.filter((preview) => shown.links.includes(preview.url));
+
+  return (
+    <article className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
+      {fresher !== null && <Fresher revisedAt={fresher.revisedAt} onShow={show} />}
+
+      <Masthead spec={shown} author={author} canonical={canonical} relays={relays} />
+
+      <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
+        <Contents headings={shown.headings} />
+        <div className="max-w-[40rem]">
+          {shown.isEmpty ? (
+            <p className="font-serif text-lg text-muted">
+              No text yet. Its author published this record without a body.
+            </p>
+          ) : (
+            // Sanitized by the pipeline that produced it, whether that ran on
+            // this server or in this browser: both call `renderMarkdown`.
+            <div
+              className="doc"
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: rendered Markdown
+              dangerouslySetInnerHTML={{ __html: shown.html }}
+            />
+          )}
+          {cited.length > 0 && <CitedLinks previews={cited} />}
+          <Discussion
+            coordinate={toCoordinate(shown)}
+            specEventId={shown.eventId}
+            pubkey={shown.pubkey}
+            relays={discussion}
+            revisedAt={shown.revisedAt > shown.publishedAt ? shown.revisedAt : null}
+          />
+        </div>
+      </div>
+    </article>
+  );
+};
+
 export default function Spec({ loaderData }: Route.ComponentProps) {
   const { spec, author, previews, canonical, relays, discussion } = loaderData;
 
   return (
     <Shell>
-      <article className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
-        <Masthead spec={spec} author={author} canonical={canonical} relays={relays} />
-
-        <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
-          <Contents headings={spec.headings} />
-          <div className="max-w-[40rem]">
-            {spec.isEmpty ? (
-              <p className="font-serif text-lg text-muted">
-                No text yet. Its author published this record without a body.
-              </p>
-            ) : (
-              // Sanitized in the loader, by the same pipeline that produced the markup.
-              <div
-                className="doc"
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: server rendered Markdown
-                dangerouslySetInnerHTML={{ __html: spec.html }}
-              />
-            )}
-            {previews.length > 0 && <CitedLinks previews={previews} />}
-            <Discussion
-              coordinate={toCoordinate(spec)}
-              specEventId={spec.eventId}
-              pubkey={spec.pubkey}
-              relays={discussion}
-              revisedAt={spec.revisedAt > spec.publishedAt ? spec.revisedAt : null}
-            />
-          </div>
-        </div>
-      </article>
+      {/* Keyed on the revision, so walking from one document to the next never
+          leaves the previous one's text on screen for a frame: React Router
+          renders the same component for both, and the state below would outlive
+          the document it belongs to. */}
+      <Article
+        key={spec.eventId}
+        served={spec}
+        author={author}
+        previews={previews}
+        canonical={canonical}
+        relays={relays}
+        discussion={discussion}
+      />
     </Shell>
   );
 }

@@ -1,5 +1,3 @@
-import type { MarkdownHeading } from "@openspecs/markdown";
-import { renderMarkdown } from "@openspecs/markdown";
 import type { NostrEvent } from "@openspecs/nostr";
 import {
   fetchSpec,
@@ -7,10 +5,12 @@ import {
   type Spec,
   type SpecKindRef,
   specPath,
-  toNaddr,
   toNpub,
 } from "@openspecs/nostr";
 import { createLoadCache } from "./cache.server";
+import { type SpecPage, toPage } from "./spec-page";
+
+export type { SpecPage };
 
 /**
  * How long a document is served without asking the relays again. Short, because
@@ -21,63 +21,12 @@ const FRESH_MS = 60_000;
 /** A document that does not exist yet may appear at any time, so a miss expires sooner. */
 const MISSING_MS = 10_000;
 
-export type SpecPage = {
-  kind: number;
-  title: string;
-  summary: string;
-  summaryIsDerived: boolean;
-  pubkey: string;
-  npub: string;
-  identifier: string;
-  naddr: string;
-  eventId: string;
-  status: string | null;
-  topics: string[];
-  kinds: SpecKindRef[];
-  publishedAt: number;
-  revisedAt: number;
-  isEmpty: boolean;
-  html: string;
-  headings: MarkdownHeading[];
-  links: string[];
-};
-
 /**
  * The event travels with the page through the cache but never into a loader's
  * payload: the page needs the rendered document, and only the routes that serve
  * the event itself need its 15 kilobytes of JSON.
  */
 export type CachedSpec = { page: SpecPage; event: NostrEvent };
-
-/**
- * The Markdown is rendered here rather than in the component, so the cache
- * holds the finished HTML and the parse runs once per revision instead of once
- * per request. The raw document is left behind: sending both would double the
- * payload of every page for no reader.
- */
-const toPage = (spec: Spec): SpecPage => {
-  const { html, headings, links } = renderMarkdown(spec.content, { title: spec.title });
-  return {
-    kind: spec.event.kind,
-    title: spec.title,
-    summary: spec.summary,
-    summaryIsDerived: spec.summaryIsDerived,
-    pubkey: spec.pubkey,
-    npub: toNpub(spec.pubkey),
-    identifier: spec.identifier,
-    naddr: toNaddr(spec),
-    eventId: spec.event.id,
-    status: spec.status,
-    topics: spec.topics,
-    kinds: spec.kinds,
-    publishedAt: spec.publishedAt,
-    revisedAt: spec.createdAt,
-    isEmpty: spec.isEmpty,
-    html,
-    headings,
-    links,
-  };
-};
 
 const cache = createLoadCache<CachedSpec | null>({
   max: 500,
