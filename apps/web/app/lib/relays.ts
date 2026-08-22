@@ -32,6 +32,20 @@ export const outboxRelays = async (me: string): Promise<string[]> => {
 };
 
 /**
+ * Where a document goes. Nobody is addressed by one, so unlike a comment there
+ * is no inbox in this: the author's own write relays are where their readers
+ * look, and `DEFAULT_RELAYS` is where this site's loader and the crawler read.
+ * A document that reached only the first is one this site cannot render and no
+ * mirror will ever copy.
+ *
+ * `PUBLIC_RELAYS` stays out, for the reason `writeRelays` gives below. Sending a
+ * signed document on to more relays needs no key at all, which is what the
+ * rebroadcast button on its own page is for.
+ */
+export const documentRelays = async (me: string): Promise<string[]> =>
+  relaySet(await outboxRelays(me), DEFAULT_RELAYS).slice(0, MAX_WRITE_RELAYS);
+
+/**
  * Where a key announces itself: its profile and its relay list. The indexers
  * first, because those two are read from there and nowhere else, then the
  * relays this site looks for documents on.

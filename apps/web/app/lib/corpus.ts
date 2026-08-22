@@ -1,4 +1,4 @@
-import type { Spec } from "@openspecs/nostr";
+import type { NostrEvent, Spec } from "@openspecs/nostr";
 import { mergeDocs, readStored, writeStored } from "./corpus-store";
 import type { SearchDoc } from "./search";
 
@@ -118,4 +118,25 @@ export const startCorpus = (): void => {
   if (started || typeof window === "undefined") return;
   started = true;
   void walk();
+};
+
+/**
+ * A document its author just published. The walk above happens once a session
+ * and nothing tells it a document appeared, so without this the one thing
+ * somebody wrote here is the one thing they cannot find here.
+ *
+ * Written to disk as well as held, since a walk that has not started yet reads
+ * from disk and would replace what is in memory with what is on it.
+ */
+export const rememberSpec = async (event: NostrEvent): Promise<void> => {
+  const { parseSpec, specPath, toNpub } = await import("@openspecs/nostr");
+  const spec = parseSpec(event);
+  if (spec === null || spec.isEmpty) return;
+
+  const doc = toDoc(spec, specPath, toNpub);
+  docs = mergeDocs(docs, [doc]);
+  if (started) publish(state.status);
+
+  const stored = await readStored();
+  await writeStored(mergeDocs(stored.docs, [doc]), stored.cursors);
 };

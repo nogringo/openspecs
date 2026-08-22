@@ -2,6 +2,7 @@ import { toNpub } from "@openspecs/nostr";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { keyTextColor } from "~/lib/color";
+import { newSpecPath } from "~/lib/paths";
 import { authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import {
@@ -138,6 +139,9 @@ export const Identity = () => {
               <div className="flex flex-wrap items-center gap-2">
                 {/* The only way in: everything a key says about itself is edited
                     on a page of its own, since a relay list does not fit here. */}
+                <Link to={newSpecPath()} className={CHROME} onClick={close}>
+                  Write
+                </Link>
                 <Link to="/settings" className={CHROME} onClick={close}>
                   Your profile
                 </Link>

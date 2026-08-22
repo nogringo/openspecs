@@ -56,3 +56,14 @@ export const oembedPath = (canonical: string): string =>
 /** The signed event behind a document, served as it came off the relays. */
 export const eventPath = (npub: string, identifier: string): string =>
   `/spec/${npub}/${encodeURIComponent(identifier)}/event.json`;
+
+/** A document nobody has written yet, which belongs to whichever key is connected. */
+export const newSpecPath = (): string => "/new";
+
+/**
+ * Writing a document again, under the address it already has. `specPath` is
+ * canonical and lives with the schema; this URL is this site's own, like the
+ * event above it.
+ */
+export const specEditPath = (npub: string, identifier: string): string =>
+  `/spec/${npub}/${encodeURIComponent(identifier)}/edit`;

@@ -51,6 +51,21 @@ html {
 }
 
 /*
+ * The editor writes its title and its document straight onto the page, with no
+ * box of their own. The ring above lands on a border everywhere else, where it
+ * says which field is live; here it would be the only rectangle on the page and
+ * would frame the whole document for as long as somebody writes in it. The caret
+ * says the same thing and says it quietly.
+ *
+ * Here rather than as a utility, and for the same reason the block above is:
+ * that rule is unlayered, so it beats anything Tailwind emits into a layer
+ * whatever its specificity.
+ */
+.writing:focus-visible {
+  outline: none;
+}
+
+/*
  * The document body. Prose is set in a serif at a reading measure, while every
  * structural part of it, headings, code, tables, keeps the monospace of the
  * page chrome: a specification is read as prose but navigated as a structure.

@@ -6,7 +6,7 @@ import { specsPath } from "~/lib/paths";
  * Status is a free string, so this maps the values documents actually use onto
  * three states and leaves anything else neutral rather than guessing.
  */
-const STATUS_TONE: Record<string, string> = {
+export const STATUS_TONE: Record<string, string> = {
   draft: "text-signal-open",
   proposal: "text-signal-open",
   proposed: "text-signal-open",
