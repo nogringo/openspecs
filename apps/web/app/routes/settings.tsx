@@ -1,17 +1,21 @@
 import {
   clearProfileCache,
   clearRelayListCache,
+  clearServerListCache,
   fetchProfileEvent,
   fetchRelayListEvent,
+  fetchServerListEvent,
   type NostrEvent,
   parseProfile,
   parseRelayEntries,
+  parseServerList,
   type RelayEntry,
   toNpub,
 } from "@openspecs/nostr";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { ProfileForm } from "~/components/settings/profile-form";
 import { RelayList } from "~/components/settings/relay-list";
+import { ServerList } from "~/components/settings/server-list";
 import { Shell } from "~/components/shell";
 import { Unlock } from "~/components/unlock";
 import { PAGE_HEADERS } from "~/lib/http";
@@ -62,7 +66,8 @@ export default function SettingsRoute() {
   const [reading, setReading] = useState<Reading>("reading");
   const [profile, setProfile] = useState<NostrEvent | null>(null);
   const [entries, setEntries] = useState<RelayEntry[]>([]);
-  const [found, setFound] = useState({ profile: false, relays: false });
+  const [servers, setServers] = useState<string[]>([]);
+  const [found, setFound] = useState({ profile: false, relays: false, servers: false });
 
   // The effect itself, so that trying again is running it again rather than
   // nudging a counter it happens to depend on.
@@ -75,15 +80,21 @@ export default function SettingsRoute() {
     (async () => {
       try {
         const relays = await identityRelays(me);
-        const [kind0, kind10002] = await Promise.all([
+        const [kind0, kind10002, kind10063] = await Promise.all([
           fetchProfileEvent(me, { indexers: relays }),
           fetchRelayListEvent(me, { indexers: relays }),
+          fetchServerListEvent(me, { indexers: relays }),
         ]);
         if (!live) return;
 
         setProfile(kind0);
         setEntries((kind10002 === null ? null : parseRelayEntries(kind10002)) ?? []);
-        setFound({ profile: kind0 !== null, relays: kind10002 !== null });
+        setServers((kind10063 === null ? null : parseServerList(kind10063)) ?? []);
+        setFound({
+          profile: kind0 !== null,
+          relays: kind10002 !== null,
+          servers: kind10063 !== null,
+        });
         setReading("read");
       } catch {
         if (live) setReading("failed");
@@ -116,6 +127,13 @@ export default function SettingsRoute() {
     // Or every comment written after this one is sent to the relays that were
     // replaced, which is what the cache still holds.
     clearRelayListCache();
+  };
+
+  const onServersSaved = (saved: string[]) => {
+    setServers(saved);
+    setFound((was) => ({ ...was, servers: true }));
+    // Or a picture that fails is looked for on the servers that were replaced.
+    clearServerListCache();
   };
 
   return (
@@ -161,12 +179,18 @@ export default function SettingsRoute() {
               onSaved={onProfileSaved}
             />
 
-            <section className="border-t border-rule pt-6">
+            <section className="space-y-6 border-t border-rule pt-6">
               <RelayList
                 me={me}
                 published={entries}
                 missing={!found.relays}
                 onSaved={onRelaysSaved}
+              />
+              <ServerList
+                me={me}
+                published={servers}
+                missing={!found.servers}
+                onSaved={onServersSaved}
               />
             </section>
           </div>

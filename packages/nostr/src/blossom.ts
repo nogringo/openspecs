@@ -1,4 +1,4 @@
-import { type EventDraft, type NostrEvent, nostrEventSchema } from "./event";
+import { type EventDraft, type NostrEvent, newestEvent, nostrEventSchema } from "./event";
 import { CLIENT_NAME } from "./nip22";
 import { INDEXER_RELAYS } from "./nip65";
 import { queryRelays, type RelayOptions, relaySet } from "./pool";
@@ -16,12 +16,14 @@ const SERVER_LIST_TTL_MS = 30 * 60 * 1000;
 const AUTH_TTL_S = 300;
 
 /**
- * How many servers hold one picture. Not a preference: a blob lives exactly as
- * long as the servers holding it, and a picture on one server is a picture that
- * a server going down, filling up or deciding it does not like its author
- * deletes for good. Bounded because each copy is one more upload.
+ * How many other servers are asked for a picture that has gone. Not a limit on
+ * how many hold it, which is the author's to decide and the more the better:
+ * this bounds a browser drawing a page, where every try is a request that has to
+ * fail before the next one starts and a mark shown late reads as a page still
+ * loading. The copies are made in list order, so the first few are where a blob
+ * is if it is anywhere.
  */
-export const MAX_BLOSSOM_SERVERS = 4;
+export const MAX_RECOVERY_TRIES = 4;
 
 /**
  * Where a picture goes when a key has named no server of its own. All of them,
@@ -216,14 +218,20 @@ export const mirrorBlob = async (
   }
 };
 
-/** BUD-03. The order is the author's, most trusted first, and is kept. */
+/**
+ * BUD-03. The order is the author's, most trusted first, and is kept.
+ *
+ * Uncapped: every caller that opens sockets or sends files bounds itself, and
+ * this one is also what an author reads their own list back from to edit it,
+ * where a server dropped on the way in is a server deleted on the way out.
+ */
 export const parseServerList = (input: unknown): string[] | null => {
   const parsed = nostrEventSchema.safeParse(input);
   if (!parsed.success || parsed.data.kind !== BLOSSOM_SERVER_KIND) return null;
 
   return serverSet(
     parsed.data.tags.filter((tag) => tag[0] === "server").map((tag) => tag[1] ?? ""),
-  ).slice(0, MAX_BLOSSOM_SERVERS);
+  );
 };
 
 /**
@@ -232,16 +240,15 @@ export const parseServerList = (input: unknown): string[] | null => {
  * no way to know a copy exists: BUD-03 says a client takes the hash out of the
  * dead URL and walks this list. Without it, replicating is storage nobody can
  * find.
+ *
+ * Uncapped, like the list it was read from. How many servers an author wants to
+ * be on is theirs to decide, and no bound this client draws pages with is a
+ * reason to delete one they named: other clients read this list too.
  */
 export const buildServerList = (servers: string[]): EventDraft => ({
   kind: BLOSSOM_SERVER_KIND,
   content: "",
-  tags: [
-    ...serverSet(servers)
-      .slice(0, MAX_BLOSSOM_SERVERS)
-      .map((url) => ["server", url]),
-    ["client", CLIENT_NAME],
-  ],
+  tags: [...serverSet(servers).map((url) => ["server", url]), ["client", CLIENT_NAME]],
 });
 
 /** A blob is addressed by its hash, with an extension only so browsers know what it is. */
@@ -278,7 +285,7 @@ export const blobUrls = (url: string, servers: string[]): string[] => {
 
   return serverSet(servers)
     .filter((server) => server !== parsed.origin)
-    .slice(0, MAX_BLOSSOM_SERVERS)
+    .slice(0, MAX_RECOVERY_TRIES)
     .map((server) => `${server}/${hash}${found?.[2] ?? ""}`);
 };
 
@@ -317,6 +324,23 @@ export const fetchServerList = async (
   pubkey: string,
   options: ServerListOptions = {},
 ): Promise<string[]> => (await ask([pubkey], options)).get(pubkey) ?? [];
+
+/**
+ * The live event rather than the list in it, so an author editing their own can
+ * be told apart from an author who has none: a form that cannot tell those two
+ * apart offers to publish a first list over an existing one.
+ */
+export const fetchServerListEvent = async (
+  pubkey: string,
+  options: ServerListOptions = {},
+): Promise<NostrEvent | null> => {
+  const events = await queryRelays(
+    relaySet(options.indexers ?? INDEXER_RELAYS),
+    { kinds: [BLOSSOM_SERVER_KIND], authors: [pubkey] },
+    { ...options, timeoutMs: options.timeoutMs ?? SERVER_LIST_TIMEOUT_MS },
+  ).catch(() => []);
+  return newestEvent(events, pubkey, BLOSSOM_SERVER_KIND);
+};
 
 const cache = new Map<string, { expiresAt: number; servers: Promise<string[]> }>();
 

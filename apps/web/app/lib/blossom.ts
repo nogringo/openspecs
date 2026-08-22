@@ -6,22 +6,31 @@ import {
   buildUploadAuth,
   DEFAULT_BLOSSOM_SERVERS,
   fetchServerList,
-  MAX_BLOSSOM_SERVERS,
   mirrorBlob,
   serverSet,
   sha256Hex,
   uploadBlob,
 } from "@openspecs/nostr";
+import { cleanPicture } from "./picture";
 import { signAndPublish } from "./publish";
 import { identityRelays } from "./relays";
 import { signer } from "./session";
 
 /**
- * A picture, not a document. Every server here has a limit of its own and will
- * say so, but a phone camera hands over eight megabytes without being asked and
- * there is no reason to send that to four servers to be refused by each.
+ * What is read off the disk, before anything is done to it. Not what is sent:
+ * the picture is redrawn and shrunk first, and what leaves is smaller than this
+ * by a lot. This only stops a browser being asked to decode a photograph the
+ * size of a film frame.
  */
-export const MAX_PICTURE_BYTES = 4 * 1024 * 1024;
+export const MAX_PICTURE_BYTES = 16 * 1024 * 1024;
+
+/**
+ * A backstop, not a policy. How many servers hold a picture is the author's to
+ * decide and more is better, so nothing here trims a list somebody meant. This
+ * only stops a malformed one from opening fifty uploads, and it sits far above
+ * any list anybody keeps.
+ */
+export const MAX_PICTURE_SERVERS = 16;
 
 export type Upload = {
   blob: BlobDescriptor;
@@ -31,9 +40,11 @@ export type Upload = {
   refused: string[];
   /** Whether this key's server list had to be published to name the copies. */
   listed: "already" | "published" | "unheard";
+  /** An animation that came out as its first frame, which re-encoding cannot keep. */
+  stilled: boolean;
 };
 
-export type UploadStep = "reading" | "signing" | "sending" | "copying" | "naming";
+export type UploadStep = "cleaning" | "signing" | "sending" | "copying" | "naming";
 
 export const isImage = (file: File): boolean => file.type.startsWith("image/");
 
@@ -83,15 +94,19 @@ export const uploadPicture = async (
     );
   }
 
-  onStep?.("reading");
-  // Resolved while the file is being read, the way every other write here
+  onStep?.("cleaning");
+  // Resolved while the picture is being redrawn, the way every other write here
   // overlaps a lookup with the work in front of it.
   const relays = identityRelays(me);
   const listing = relays
     .then((targets) => fetchServerList(me, { indexers: targets }))
     .catch(() => [] as string[]);
 
-  const sha256 = await sha256Hex(await file.arrayBuffer());
+  // Before the hash, and that is the whole point of the order: what is hashed is
+  // what is sent, and what is sent has had everything but its pixels taken off.
+  const cleaned = await cleanPicture(file);
+  const sending = cleaned.file;
+  const sha256 = await sha256Hex(await sending.arrayBuffer());
 
   onStep?.("signing");
   const ready = await signer();
@@ -100,8 +115,14 @@ export const uploadPicture = async (
     created_at: Math.floor(Date.now() / 1000),
   });
 
-  const named = await listing;
-  const servers = serverSet(named, DEFAULT_BLOSSOM_SERVERS).slice(0, MAX_BLOSSOM_SERVERS);
+  // An author's own servers, or the well-known ones, and never the two mixed.
+  // Naming a server has to mean something, and a list of two that quietly became
+  // those two plus four strangers is a choice taken away from whoever made it.
+  const named = serverSet(await listing);
+  const servers = (named.length > 0 ? named : serverSet(DEFAULT_BLOSSOM_SERVERS)).slice(
+    0,
+    MAX_PICTURE_SERVERS,
+  );
   const refused: string[] = [];
 
   onStep?.("sending");
@@ -113,7 +134,7 @@ export const uploadPicture = async (
       continue;
     }
     try {
-      first = { blob: await uploadBlob(server, file, auth, sha256), server };
+      first = { blob: await uploadBlob(server, sending, auth, sha256), server };
     } catch (reason) {
       refused.push(said(reason, server));
     }
@@ -132,7 +153,7 @@ export const uploadPicture = async (
         // Mirroring is optional, and a server that will not do it may still take
         // the file the ordinary way.
         try {
-          await uploadBlob(server, file, auth, sha256);
+          await uploadBlob(server, sending, auth, sha256);
           return server;
         } catch (reason) {
           refused.push(said(reason, server));
@@ -159,5 +180,5 @@ export const uploadPicture = async (
     }
   }
 
-  return { blob: first.blob, stored, refused, listed };
+  return { blob: first.blob, stored, refused, listed, stilled: cleaned.stilled };
 };

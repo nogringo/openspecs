@@ -8,7 +8,7 @@ import {
   blobUrls,
   buildServerList,
   buildUploadAuth,
-  MAX_BLOSSOM_SERVERS,
+  MAX_RECOVERY_TRIES,
   parseServerList,
   selectServerLists,
   serverOrigin,
@@ -134,9 +134,10 @@ describe("blobUrls", () => {
     ]);
   });
 
-  it("stops where a reader stops rather than trying a dozen servers in a row", () => {
+  /** Every try is a request that has to fail before the next one is made. */
+  it("stops trying rather than working through a dozen servers in a row", () => {
     const many = Array.from({ length: 9 }, (_, i) => `https://s${i}.example`);
-    expect(blobUrls(gone, many)).toHaveLength(MAX_BLOSSOM_SERVERS);
+    expect(blobUrls(gone, many)).toHaveLength(MAX_RECOVERY_TRIES);
   });
 
   it("has nowhere to look for a picture that is not addressed by its hash", () => {
@@ -176,11 +177,14 @@ describe("buildServerList", () => {
     ]);
   });
 
-  it("stops where a reader stops, so a server it names is one somebody looks at", () => {
+  /**
+   * A save that dropped the fifth would delete a server its author had just
+   * added, and this list is read by clients that do not share this one's bounds.
+   */
+  it("names every server it was given, however many that is", () => {
     const many = Array.from({ length: 9 }, (_, i) => `https://s${i}.example`);
-    expect(buildServerList(many).tags.filter((tag) => tag[0] === "server")).toHaveLength(
-      MAX_BLOSSOM_SERVERS,
-    );
+    expect(buildServerList(many).tags.filter((tag) => tag[0] === "server")).toHaveLength(9);
+    expect(parseServerList({ ...serverListEvent([]), ...buildServerList(many) })).toHaveLength(9);
   });
 
   it("names the client, like every other event this package builds", () => {
@@ -205,6 +209,12 @@ describe("parseServerList", () => {
       ["server", "https://good.example"],
     ]);
     expect(parseServerList(list)).toEqual(["https://good.example"]);
+  });
+
+  /** An author reading their own list back to edit it must see all of it. */
+  it("keeps every server, and leaves the bounding to whoever opens connections", () => {
+    const tags = Array.from({ length: 9 }, (_, i) => ["server", `https://s${i}.example`]);
+    expect(parseServerList(serverListEvent(tags))).toHaveLength(9);
   });
 
   it("rejects another kind", () => {
