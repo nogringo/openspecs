@@ -56,6 +56,28 @@ export const announceRelays = (): string[] => relaySet(INDEXER_RELAYS, DEFAULT_R
 export const newKeyRelays = (): string[] =>
   relaySet(DEFAULT_RELAYS).slice(0, MAX_RELAYS_PER_AUTHOR);
 
+/**
+ * Where a key's own profile and relay list are read from and written back to.
+ * The same set for both directions, deliberately: an edit that read from fewer
+ * places than the last save wrote to would find nothing and offer to replace a
+ * profile that exists with a blank one.
+ *
+ * `announceRelays` covers the indexers, which is where those two kinds are
+ * aggregated, and the relays this site reads, which is where `MakeKey` sent them
+ * minutes ago and no indexer may have them yet. The author's own list is added
+ * for a key that publishes somewhere this site has never heard of.
+ */
+export const identityRelays = async (me: string): Promise<string[]> =>
+  relaySet(announceRelays(), await outboxRelays(me)).slice(0, MAX_WRITE_RELAYS);
+
+/**
+ * The same, plus the list being published, so the relays a key has just named
+ * hold the event that names them. Capped like any other write: this is the one
+ * relay set with a length nobody but the reader decides.
+ */
+export const relayListRelays = async (me: string, chosen: string[]): Promise<string[]> =>
+  relaySet(announceRelays(), await outboxRelays(me), chosen).slice(0, MAX_WRITE_RELAYS);
+
 /** Where somebody is reached: their inbox, which is what NIP-65 calls read. */
 export const inboxRelays = async (pubkeys: string[]): Promise<string[]> => {
   const lists = await fetchRelayLists(pubkeys.filter((pubkey) => pubkey !== ""));

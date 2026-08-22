@@ -18,8 +18,11 @@ vi.mock("@openspecs/nostr", () => nostr);
 
 import {
   announceRelays,
+  identityRelays,
+  MAX_WRITE_RELAYS,
   MAX_ZAP_RELAYS,
   newKeyRelays,
+  relayListRelays,
   writeRelays,
   zapReceiptRelays,
 } from "./relays";
@@ -164,5 +167,45 @@ describe("announceRelays", () => {
 describe("newKeyRelays", () => {
   it("names no more relays than a reader keeps", () => {
     expect(newKeyRelays().length).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("identityRelays", () => {
+  it("puts the indexers first, because a profile is read from there and nowhere else", async () => {
+    expect((await identityRelays(ME))[0]).toBe("wss://indexer.example");
+  });
+
+  it("reaches where this site reads, so a profile published minutes ago is found", async () => {
+    const relays = await identityRelays(ME);
+    expect(relays).toEqual(expect.arrayContaining(nostr.DEFAULT_RELAYS));
+  });
+
+  it("reaches a relay only this key publishes to", async () => {
+    expect(await identityRelays(ME)).toContain("wss://mine.example");
+  });
+
+  it("names a relay once however many lists it appears in", async () => {
+    nostr.writeRelaysOf.mockResolvedValue(["wss://nos.lol"]);
+    const relays = await identityRelays(ME);
+    expect(relays.filter((relay) => relay === "wss://nos.lol")).toHaveLength(1);
+  });
+});
+
+describe("relayListRelays", () => {
+  it("tells the relays a key has just named that it names them", async () => {
+    expect(await relayListRelays(ME, ["wss://chosen.example"])).toContain("wss://chosen.example");
+  });
+
+  /**
+   * The relays being replaced have to hear it too, or a client reading the old
+   * list from the old relay keeps sending this key's readers to the wrong place.
+   */
+  it("still reaches the relays the list is moving away from", async () => {
+    expect(await relayListRelays(ME, ["wss://chosen.example"])).toContain("wss://mine.example");
+  });
+
+  it("stays within one page's worth of sockets, however long a list is typed", async () => {
+    const many = Array.from({ length: 60 }, (_, index) => `wss://chosen-${index}.example`);
+    expect((await relayListRelays(ME, many)).length).toBe(MAX_WRITE_RELAYS);
   });
 });
