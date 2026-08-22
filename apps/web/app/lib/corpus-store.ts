@@ -5,9 +5,10 @@ import type { SearchDoc } from "./search";
  * Where the corpus waits between visits, so a reader who has already searched
  * once does not download every document again to search a second time.
  *
- * A deletion is not carried: nothing here reacts to a kind 5, so a document its
- * author retracted stays searchable until this store is dropped. Relays are the
- * source of truth, and this is a cache that admits it.
+ * A document withdrawn in this browser is dropped from it, and nothing else is:
+ * no kind 5 is read here, so a document somebody else retracted stays searchable
+ * until a walk stops finding it. Relays are the source of truth, and this is a
+ * cache that admits it.
  */
 const DB = "openspecs";
 const VERSION = 1;
@@ -33,6 +34,10 @@ export const mergeDocs = (existing: SearchDoc[], incoming: SearchDoc[]): SearchD
   }
   return [...live.values()];
 };
+
+/** The one document at a coordinate, gone. Its author withdrew it. */
+export const withoutDoc = (docs: SearchDoc[], pubkey: string, identifier: string): SearchDoc[] =>
+  docs.filter((doc) => coordinateOf(doc) !== `${pubkey}:${identifier}`);
 
 const open = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {

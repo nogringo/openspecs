@@ -1,5 +1,5 @@
 import type { NostrEvent, Spec } from "@openspecs/nostr";
-import { mergeDocs, readStored, writeStored } from "./corpus-store";
+import { mergeDocs, readStored, withoutDoc, writeStored } from "./corpus-store";
 import type { SearchDoc } from "./search";
 
 export type CorpusStatus = "idle" | "loading" | "syncing" | "ready" | "failed";
@@ -139,4 +139,21 @@ export const rememberSpec = async (event: NostrEvent): Promise<void> => {
 
   const stored = await readStored();
   await writeStored(mergeDocs(stored.docs, [doc]), stored.cursors);
+};
+
+/**
+ * A document its author just withdrew. Written back the same way, and for the
+ * same reason: a walk that has not started yet reads from disk and would put
+ * back what this took out of memory.
+ *
+ * A later walk may find it again on a relay that kept serving it, and it should:
+ * this searches what the relays hold, and correcting them here would be an index
+ * that disagrees with every page it links to.
+ */
+export const forgetSpec = async (pubkey: string, identifier: string): Promise<void> => {
+  docs = withoutDoc(docs, pubkey, identifier);
+  if (started) publish(state.status);
+
+  const stored = await readStored();
+  await writeStored(withoutDoc(stored.docs, pubkey, identifier), stored.cursors);
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeDocs } from "./corpus-store";
+import { mergeDocs, withoutDoc } from "./corpus-store";
 import type { SearchDoc } from "./search";
 
 const doc = (identifier: string, revisedAt: number, title = identifier): SearchDoc => ({
@@ -43,5 +43,28 @@ describe("mergeDocs", () => {
 
   it("reads an empty store as nothing to merge", () => {
     expect(mergeDocs([], [])).toEqual([]);
+  });
+});
+
+describe("withoutDoc", () => {
+  const author = "a".repeat(64);
+
+  it("drops the document at that coordinate and leaves the rest", () => {
+    expect(titles(withoutDoc([doc("a", 1), doc("b", 1)], author, "a"))).toEqual(["b"]);
+  });
+
+  it("leaves another author's document of the same identifier alone", () => {
+    const theirs = { ...doc("shared", 1, "theirs"), pubkey: "b".repeat(64) };
+    expect(titles(withoutDoc([doc("shared", 1, "mine"), theirs], author, "shared"))).toEqual([
+      "theirs",
+    ]);
+  });
+
+  it("drops every revision held for it, not the newest one", () => {
+    expect(withoutDoc([doc("a", 1), doc("a", 2)], author, "a")).toEqual([]);
+  });
+
+  it("is nothing to do when the document was never stored", () => {
+    expect(titles(withoutDoc([doc("a", 1)], author, "gone"))).toEqual(["a"]);
   });
 });
