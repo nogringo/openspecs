@@ -22,6 +22,9 @@ const NOTE = "font-serif text-[0.8125rem] leading-snug text-muted";
 
 const WRONG = "font-serif text-[0.8125rem] leading-snug text-signal-closed";
 
+const ROW_ACTION =
+  "shrink-0 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:text-ink disabled:text-rule disabled:hover:text-rule";
+
 /** Dashed, because these are addresses on offer rather than anything of this key's yet. */
 const SUGGESTION =
   "rounded-sm border border-dashed border-rule px-2 py-1 font-mono text-[0.6875rem] text-muted hover:border-muted hover:text-ink";
@@ -91,6 +94,18 @@ export const ServerList = ({
     setState("editing");
   };
 
+  const move = (from: number, to: number) => {
+    const next = [...servers];
+    const moved = next[from];
+    const displaced = next[to];
+    if (moved === undefined || displaced === undefined) return;
+
+    next[from] = displaced;
+    next[to] = moved;
+    setServers(next);
+    setState("editing");
+  };
+
   const save = async () => {
     setState("sending");
     setResults([]);
@@ -154,13 +169,38 @@ export const ServerList = ({
                     </span>
                   )}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => remove(server)}
-                  className="shrink-0 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:text-signal-closed"
-                >
-                  Remove
-                </button>
+                <div className="flex shrink-0 items-center gap-3">
+                  {/* One server has no order to argue about. */}
+                  {servers.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => move(index, index - 1)}
+                        disabled={index === 0}
+                        className={ROW_ACTION}
+                        aria-label={`Move ${host(server)} up`}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => move(index, index + 1)}
+                        disabled={index === servers.length - 1}
+                        className={ROW_ACTION}
+                        aria-label={`Move ${host(server)} down`}
+                      >
+                        ↓
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => remove(server)}
+                    className="shrink-0 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:text-signal-closed"
+                  >
+                    Remove
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
