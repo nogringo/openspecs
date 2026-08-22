@@ -12,6 +12,7 @@ import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
 import { DISCUSSION_ID, Discussion } from "~/components/discussion/discussion";
 import { EditLink } from "~/components/editor/edit-link";
+import { Withdraw } from "~/components/editor/withdraw";
 import { ErrorPage } from "~/components/error-page";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
@@ -277,6 +278,7 @@ const Masthead = ({
       />
       <Rebroadcast eventUrl={eventPath(spec.npub, spec.identifier)} relays={relays} />
       <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
+      <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
     </div>
   </header>
 );
@@ -315,19 +317,28 @@ const CitedLinks = ({ previews }: { previews: LinkPreview[] }) => (
 /**
  * Offered above the document rather than swapped into it, and drawn dashed like
  * everything on this site that is available rather than settled.
+ *
+ * A revision with nothing in it is an author withdrawing their document, so it
+ * is said in those words: "a newer revision" over a blank record reads as an
+ * edit somebody would want to see. Nothing is offered alongside it either, since
+ * what there is to show is an empty page, and the sentence already is that.
  */
-const Fresher = ({ revisedAt, onShow }: { revisedAt: number; onShow: () => void }) => (
+const Fresher = ({ fresher, onShow }: { fresher: SpecPage; onShow: () => void }) => (
   <div className="mb-10 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border border-dashed border-rule px-4 py-3">
     <p className="font-serif text-[0.9375rem] leading-snug text-muted">
-      Its author published a newer revision on {asDate(revisedAt)}.
+      {fresher.isEmpty
+        ? `Its author withdrew this document on ${asDate(fresher.revisedAt)}. What is below is the copy this page was served.`
+        : `Its author published a newer revision on ${asDate(fresher.revisedAt)}.`}
     </p>
-    <button
-      type="button"
-      onClick={onShow}
-      className="rounded-sm border border-rule px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink"
-    >
-      Show it
-    </button>
+    {!fresher.isEmpty && (
+      <button
+        type="button"
+        onClick={onShow}
+        className="rounded-sm border border-rule px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink"
+      >
+        Show it
+      </button>
+    )}
   </div>
 );
 
@@ -354,7 +365,7 @@ const Article = ({
 
   return (
     <article className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
-      {fresher !== null && <Fresher revisedAt={fresher.revisedAt} onShow={show} />}
+      {fresher !== null && <Fresher fresher={fresher} onShow={show} />}
 
       <Masthead spec={shown} author={author} canonical={canonical} relays={relays} />
 

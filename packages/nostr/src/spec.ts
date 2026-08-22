@@ -8,6 +8,7 @@ import {
 } from "./event";
 import { deriveSummary, firstHeading } from "./markdown";
 import { CLIENT_NAME } from "./nip22";
+import { DELETION_KIND } from "./nip25";
 
 export type SpecKindRef = {
   /** The `k` value exactly as published. Not always a number. */
@@ -268,6 +269,44 @@ export const editSpec = (live: NostrEvent | null, draft: SpecDraft): EventDraft 
 
 /** The same, for a document nobody has published yet: there is no live revision to read first. */
 export const buildSpec = (draft: SpecDraft): EventDraft => editSpec(null, draft);
+
+/**
+ * The empty revision an author replaces their own document with, and the first
+ * half of withdrawing it.
+ *
+ * Nothing of the live event is carried over, which is the whole point and also
+ * why this needs no live event to build: a `d` is what makes the address, and
+ * everything else was the document. A relay that never honours the deletion
+ * request below keeps serving this instead, and what it serves is blank rather
+ * than the document. `isEmpty` is then what drops it from every listing.
+ */
+export const withdrawSpec = (identifier: string): EventDraft => ({
+  kind: SPEC_KIND,
+  content: "",
+  tags: [
+    ["d", identifier.trim()],
+    ["client", CLIENT_NAME],
+  ],
+});
+
+/**
+ * NIP-09, and the second half: the request that the revisions above be forgotten.
+ *
+ * An `a` and never an `e`. A relay honouring `a` drops every revision at the
+ * coordinate up to this request's `created_at`, the empty one included, and the
+ * document 404s. A relay that only understands `e` would instead drop whichever
+ * single revision was named and leave the one before it live, so naming the
+ * empty revision here would republish the document it was sent to withdraw.
+ */
+export const buildSpecDeletion = (coordinate: string): EventDraft => ({
+  kind: DELETION_KIND,
+  content: "",
+  tags: [
+    ["a", coordinate],
+    ["k", String(SPEC_KIND)],
+    ["client", CLIENT_NAME],
+  ],
+});
 
 /**
  * A `d` derived from a title, which the schema allows in as many words. Only

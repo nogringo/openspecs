@@ -1,14 +1,19 @@
 import { finalizeEvent, generateSecretKey, getPublicKey, verifyEvent } from "nostr-tools/pure";
 import { describe, expect, it } from "vitest";
-import { SPEC_KIND } from "../src/event";
+import { parseCoordinate, toCoordinate } from "../src/address";
+import { SPEC_KIND, tagValue } from "../src/event";
+import { latestByCoordinate } from "../src/relay";
 import {
   buildSpec,
+  buildSpecDeletion,
   editSpec,
   parseSpec,
+  type Spec,
   type SpecDraft,
   specDraftOf,
   specFaults,
   toIdentifier,
+  withdrawSpec,
 } from "../src/spec";
 import { caseEvents, events } from "./fixtures";
 
@@ -462,6 +467,73 @@ describe("buildSpec", () => {
     expect(named(buildSpec(draftOf({ identifier: "untitled" })), "alt")).toEqual([
       ["alt", "A specification: untitled"],
     ]);
+  });
+});
+
+describe("withdrawSpec", () => {
+  it("writes an address and nothing that was ever the document", () => {
+    expect(withdrawSpec("x")).toEqual({
+      kind: SPEC_KIND,
+      content: "",
+      tags: [
+        ["d", "x"],
+        ["client", "openspecs"],
+      ],
+    });
+  });
+
+  it("carries none of a live revision, whatever that revision held", () => {
+    for (const event of specs) {
+      const identifier = parseSpec(event)?.identifier as string;
+      const withdrawn = withdrawSpec(identifier);
+      expect(withdrawn.tags.map((tag) => tag[0])).toEqual(["d", "client"]);
+      expect(withdrawn.content).toBe("");
+    }
+  });
+
+  it("parses as the same document, emptied, so it replaces rather than adds one", () => {
+    const live = specEvent(
+      [
+        ["d", "here"],
+        ["title", "Here"],
+      ],
+      "# Here\n\nSomething.",
+    );
+    const withdrawn = parseSpec(sign(withdrawSpec("here"), live.created_at + 1));
+    expect(withdrawn?.identifier).toBe("here");
+    expect(withdrawn?.pubkey).toBe(parseSpec(live)?.pubkey);
+    expect(withdrawn?.isEmpty).toBe(true);
+    expect(latestByCoordinate([parseSpec(live) as Spec, withdrawn as Spec])).toEqual([withdrawn]);
+  });
+
+  it("trims the identifier, as every other builder here does", () => {
+    expect(named(withdrawSpec("  spaced  "), "d")).toEqual([["d", "spaced"]]);
+  });
+});
+
+describe("buildSpecDeletion", () => {
+  it("asks for a coordinate, and says which kind it names", () => {
+    expect(buildSpecDeletion("30817:abc:x")).toEqual({
+      kind: 5,
+      content: "",
+      tags: [
+        ["a", "30817:abc:x"],
+        ["k", "30817"],
+        ["client", "openspecs"],
+      ],
+    });
+  });
+
+  // A relay that only understands `e` would drop the revision named and leave
+  // the one before it live, which republishes the document being withdrawn.
+  it("names no event id", () => {
+    expect(named(buildSpecDeletion("30817:abc:x"), "e")).toEqual([]);
+  });
+
+  it("round trips a coordinate holding colons of its own", () => {
+    const pointer = { pubkey: "a".repeat(64), identifier: "stele:space:stele-test-docs" };
+    const coordinate = tagValue(sign(buildSpecDeletion(toCoordinate(pointer))), "a");
+    expect(parseCoordinate(coordinate)).toEqual({ ...pointer, relays: [] });
   });
 });
 

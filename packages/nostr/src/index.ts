@@ -190,6 +190,7 @@ export {
 } from "./relay";
 export {
   buildSpec,
+  buildSpecDeletion,
   editSpec,
   parseSpec,
   type Spec,
@@ -201,4 +202,5 @@ export {
   specDraftOf,
   specFaults,
   toIdentifier,
+  withdrawSpec,
 } from "./spec";

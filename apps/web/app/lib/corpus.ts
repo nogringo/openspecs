@@ -1,10 +1,11 @@
 import type { NostrEvent, Spec } from "@openspecs/nostr";
-import { mergeDocs, readStored, writeStored } from "./corpus-store";
+import { mergeDocs, readStored, writeStored, written } from "./corpus-store";
 import type { SearchDoc } from "./search";
 
 export type CorpusStatus = "idle" | "loading" | "syncing" | "ready" | "failed";
 
 export type CorpusState = {
+  /** Only the documents with something in them: a withdrawn one is held, never shown. */
   docs: SearchDoc[];
   status: CorpusStatus;
   /** Documents read from the relays during this run, so a long walk can be watched. */
@@ -17,6 +18,7 @@ export const EMPTY_CORPUS: CorpusState = { docs: [], status: "idle", read: 0 };
 const NOTIFY_MS = 150;
 
 let state = EMPTY_CORPUS;
+/** Every revision the walk resolved, blank ones included. `state` is what is shown. */
 let docs: SearchDoc[] = [];
 let read = 0;
 let started = false;
@@ -31,7 +33,7 @@ const publish = (status: CorpusStatus): void => {
     clearTimeout(timer);
     timer = null;
   }
-  state = { docs, status, read };
+  state = { docs: written(docs), status, read };
   for (const listener of listeners) listener();
 };
 
@@ -89,19 +91,23 @@ const walk = async (): Promise<void> => {
     // nostr-tools comes with the search, not with the page: someone who only
     // reads should not download a relay client to do it.
     const { specPath, syncSpecs, toNpub } = await import("@openspecs/nostr");
-    const usable = (page: Spec[]): SearchDoc[] =>
-      page.filter((spec) => !spec.isEmpty).map((spec) => toDoc(spec, specPath, toNpub));
+    // Blank revisions come through with the rest, rather than being dropped
+    // here: one is how an author says a document is withdrawn, and `mergeDocs`
+    // is where the newest revision of a coordinate wins whatever it says. Pages
+    // arrive from several relays in no order, so a walk that filtered them out
+    // would settle a withdrawn document on whichever relay answered last.
+    const asDocs = (page: Spec[]): SearchDoc[] => page.map((spec) => toDoc(spec, specPath, toNpub));
 
     const { specs, cursors } = await syncSpecs({
       cursors: stored.cursors,
       onPage: (page) => {
-        docs = mergeDocs(docs, usable(page));
+        docs = mergeDocs(docs, asDocs(page));
         read += page.length;
         publishSoon();
       },
     });
 
-    docs = mergeDocs(docs, usable(specs));
+    docs = mergeDocs(docs, asDocs(specs));
     publish("ready");
     // A relay that answered nothing keeps the cursor it had, rather than losing
     // its place because it was unreachable once.
@@ -121,9 +127,15 @@ export const startCorpus = (): void => {
 };
 
 /**
- * A document its author just published. The walk above happens once a session
+ * A revision its author just published. The walk above happens once a session
  * and nothing tells it a document appeared, so without this the one thing
  * somebody wrote here is the one thing they cannot find here.
+ *
+ * A blank revision is one of these too, and is why there is no `forgetSpec`
+ * beside this: withdrawing a document is publishing an empty one over it, so it
+ * arrives the same way, outranks what it replaces by being newer, and drops out
+ * of the search because there is nothing in it rather than because something
+ * here went looking for it.
  *
  * Written to disk as well as held, since a walk that has not started yet reads
  * from disk and would replace what is in memory with what is on it.
@@ -131,7 +143,7 @@ export const startCorpus = (): void => {
 export const rememberSpec = async (event: NostrEvent): Promise<void> => {
   const { parseSpec, specPath, toNpub } = await import("@openspecs/nostr");
   const spec = parseSpec(event);
-  if (spec === null || spec.isEmpty) return;
+  if (spec === null) return;
 
   const doc = toDoc(spec, specPath, toNpub);
   docs = mergeDocs(docs, [doc]);
