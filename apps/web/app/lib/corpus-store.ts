@@ -5,11 +5,12 @@ import type { SearchDoc } from "./search";
  * Where the corpus waits between visits, so a reader who has already searched
  * once does not download every document again to search a second time.
  *
- * A document withdrawn in this browser is dropped from it, and nothing else is.
- * A walk only ever adds and replaces, and the empty revision that would say a
- * document was withdrawn is filtered out before it gets here, so one somebody
- * else retracted stays searchable until this store is dropped. Relays are the
- * source of truth, and this is a cache that admits it.
+ * A withdrawn document is kept here, blank, rather than deleted. Its author
+ * replaced it with an empty revision, and that revision is a document's newest
+ * one like any other: holding it is what makes `mergeDocs` refuse the written
+ * revision it superseded, whichever relay serves that one and whenever it
+ * arrives. Deleting the row instead would let the next walk that met an old copy
+ * put the document back. `written` below is what keeps the blanks off screen.
  */
 const DB = "openspecs";
 const VERSION = 1;
@@ -36,9 +37,13 @@ export const mergeDocs = (existing: SearchDoc[], incoming: SearchDoc[]): SearchD
   return [...live.values()];
 };
 
-/** The one document at a coordinate, gone. Its author withdrew it. */
-export const withoutDoc = (docs: SearchDoc[], pubkey: string, identifier: string): SearchDoc[] =>
-  docs.filter((doc) => coordinateOf(doc) !== `${pubkey}:${identifier}`);
+/**
+ * The documents there is something to read, which is what a search is of. A
+ * blank one is an address its author withdrew, and it is carried everywhere
+ * except in front of somebody.
+ */
+export const written = (docs: SearchDoc[]): SearchDoc[] =>
+  docs.filter((doc) => doc.content.trim() !== "");
 
 const open = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {

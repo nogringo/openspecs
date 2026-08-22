@@ -2,7 +2,7 @@ import { authorPath, buildSpecDeletion, toCoordinate, withdrawSpec } from "@open
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { RelayReport } from "~/components/relay-results";
-import { forgetSpec } from "~/lib/corpus";
+import { rememberSpec } from "~/lib/corpus";
 import { type RelayResult, signAndPublish } from "~/lib/publish";
 import { documentRelays } from "~/lib/relays";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
@@ -94,9 +94,10 @@ export const Withdraw = ({ pubkey, identifier }: { pubkey: string; identifier: s
     }
 
     setReplaced(true);
-    // Dropped from the search here rather than after the request below: what
-    // makes this stop being a document is the blank revision, not the asking.
-    void forgetSpec(pubkey, identifier);
+    // The blank revision goes into the search the way a written one does, and
+    // drops out of it by being blank. Here rather than after the request below:
+    // what stops this being a document is the revision, not the asking.
+    void rememberSpec(empty.event);
     setStage("retracting");
 
     try {

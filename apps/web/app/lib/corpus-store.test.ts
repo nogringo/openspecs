@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeDocs, withoutDoc } from "./corpus-store";
+import { mergeDocs, written } from "./corpus-store";
 import type { SearchDoc } from "./search";
 
 const doc = (identifier: string, revisedAt: number, title = identifier): SearchDoc => ({
@@ -14,6 +14,13 @@ const doc = (identifier: string, revisedAt: number, title = identifier): SearchD
   topics: [],
   publishedAt: 1_700_000_000,
   revisedAt,
+  content: `# ${title}`,
+});
+
+/** What an author replaced a document with to withdraw it: an address and no text. */
+const blank = (identifier: string, revisedAt: number): SearchDoc => ({
+  ...doc(identifier, revisedAt, identifier),
+  title: identifier,
   content: "",
 });
 
@@ -46,25 +53,42 @@ describe("mergeDocs", () => {
   });
 });
 
-describe("withoutDoc", () => {
-  const author = "a".repeat(64);
-
-  it("drops the document at that coordinate and leaves the rest", () => {
-    expect(titles(withoutDoc([doc("a", 1), doc("b", 1)], author, "a"))).toEqual(["b"]);
+describe("mergeDocs and a withdrawal", () => {
+  it("lets a blank revision supersede the document it replaced", () => {
+    expect(written(mergeDocs([doc("a", 1)], [blank("a", 2)]))).toEqual([]);
   });
 
-  it("leaves another author's document of the same identifier alone", () => {
+  it("holds the blank revision, so it is there to outrank an older copy later", () => {
+    const merged = mergeDocs([doc("a", 1)], [blank("a", 2)]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.content).toBe("");
+  });
+
+  /* Pages arrive from several relays in no order. One serving the revision a
+     withdrawal replaced must not undo the withdrawal by answering last. */
+  it("keeps a document withdrawn when an older copy arrives afterwards", () => {
+    const withdrawn = mergeDocs([doc("a", 1)], [blank("a", 2)]);
+    expect(written(mergeDocs(withdrawn, [doc("a", 1)]))).toEqual([]);
+  });
+
+  it("lets an author publish again at an address they withdrew", () => {
+    const withdrawn = mergeDocs([doc("a", 1)], [blank("a", 2)]);
+    expect(titles(written(mergeDocs(withdrawn, [doc("a", 3, "again")])))).toEqual(["again"]);
+  });
+
+  it("withdraws one document without touching another author's at the same address", () => {
     const theirs = { ...doc("shared", 1, "theirs"), pubkey: "b".repeat(64) };
-    expect(titles(withoutDoc([doc("shared", 1, "mine"), theirs], author, "shared"))).toEqual([
-      "theirs",
-    ]);
+    const merged = mergeDocs([doc("shared", 1, "mine"), theirs], [blank("shared", 2)]);
+    expect(titles(written(merged))).toEqual(["theirs"]);
+  });
+});
+
+describe("written", () => {
+  it("keeps the documents there is something to read", () => {
+    expect(titles(written([doc("a", 1), blank("b", 1), doc("c", 1)]))).toEqual(["a", "c"]);
   });
 
-  it("drops every revision held for it, not the newest one", () => {
-    expect(withoutDoc([doc("a", 1), doc("a", 2)], author, "a")).toEqual([]);
-  });
-
-  it("is nothing to do when the document was never stored", () => {
-    expect(titles(withoutDoc([doc("a", 1)], author, "gone"))).toEqual(["a"]);
+  it("counts a document of nothing but whitespace as blank", () => {
+    expect(written([{ ...doc("a", 1), content: "  \n\t " }])).toEqual([]);
   });
 });
