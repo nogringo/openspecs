@@ -8,7 +8,7 @@ import {
 import { useState } from "react";
 import { RelayReport } from "~/components/relay-results";
 import { type RelayResult, signAndPublish } from "~/lib/publish";
-import { relayListRelays } from "~/lib/relays";
+import { newKeyRelays, relayListRelays } from "~/lib/relays";
 
 type State = "editing" | "sending" | "sent" | "failed";
 
@@ -21,6 +21,10 @@ const ACTION =
 const NOTE = "font-serif text-[0.8125rem] leading-snug text-muted";
 
 const WRONG = "font-serif text-[0.8125rem] leading-snug text-signal-closed";
+
+/** Dashed, because these are addresses on offer rather than anything of this key's yet. */
+const SUGGESTION =
+  "rounded-sm border border-dashed border-rule px-2 py-1 font-mono text-[0.6875rem] text-muted hover:border-muted hover:text-ink";
 
 const hostOf = (relay: string): string => relay.replace(/^wss?:\/\//, "").replace(/\/$/, "");
 
@@ -56,6 +60,16 @@ export const RelayList = ({
 
   const changed = JSON.stringify(entries) !== JSON.stringify(published);
 
+  const suggestions = newKeyRelays().filter((url) => !entries.some((entry) => entry.url === url));
+
+  // No marker: a relay named here is one to publish to and be reached at, and
+  // that is what an `r` tag with nothing after it means.
+  const include = (url: string) => {
+    setEntries([...entries, { url }]);
+    setAddError(null);
+    setState("editing");
+  };
+
   const add = (event: React.FormEvent) => {
     event.preventDefault();
     const url = relayUrl(adding);
@@ -68,12 +82,8 @@ export const RelayList = ({
       return;
     }
 
-    // No marker: a relay named here is one to publish to and be reached at, and
-    // that is what an `r` tag with nothing after it means.
-    setEntries([...entries, { url }]);
+    include(url);
     setAdding("");
-    setAddError(null);
-    setState("editing");
   };
 
   const remove = (url: string) => {
@@ -171,6 +181,25 @@ export const RelayList = ({
             </button>
           </div>
           {addError !== null && <p className={WRONG}>{addError}</p>}
+
+          {/* What a key made here is given. Somebody who arrived with an empty
+              list has no way to find an address to type, and these are the ones
+              this site publishes to and reads from anyway. */}
+          {suggestions.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {suggestions.map((url) => (
+                <button
+                  key={url}
+                  type="button"
+                  className={SUGGESTION}
+                  onClick={() => include(url)}
+                  aria-label={`Add ${hostOf(url)}`}
+                >
+                  + {hostOf(url)}
+                </button>
+              ))}
+            </div>
+          )}
         </form>
 
         {entries.length === 0 && (

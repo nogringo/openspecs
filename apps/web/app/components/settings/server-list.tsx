@@ -1,4 +1,10 @@
-import { buildServerList, parseServerList, serverOrigin } from "@openspecs/nostr";
+import {
+  buildServerList,
+  DEFAULT_BLOSSOM_SERVERS,
+  parseServerList,
+  serverOrigin,
+  serverSet,
+} from "@openspecs/nostr";
 import { useState } from "react";
 import { RelayReport } from "~/components/relay-results";
 import { type RelayResult, signAndPublish } from "~/lib/publish";
@@ -15,6 +21,10 @@ const ACTION =
 const NOTE = "font-serif text-[0.8125rem] leading-snug text-muted";
 
 const WRONG = "font-serif text-[0.8125rem] leading-snug text-signal-closed";
+
+/** Dashed, because these are addresses on offer rather than anything of this key's yet. */
+const SUGGESTION =
+  "rounded-sm border border-dashed border-rule px-2 py-1 font-mono text-[0.6875rem] text-muted hover:border-muted hover:text-ink";
 
 const host = (server: string): string => server.replace(/^https:\/\//, "");
 
@@ -50,6 +60,16 @@ export const ServerList = ({
 
   const changed = JSON.stringify(servers) !== JSON.stringify(published);
 
+  const suggestions = serverSet(DEFAULT_BLOSSOM_SERVERS).filter(
+    (origin) => !servers.includes(origin),
+  );
+
+  const include = (origin: string) => {
+    setServers([...servers, origin]);
+    setAddError(null);
+    setState("editing");
+  };
+
   const add = (event: React.FormEvent) => {
     event.preventDefault();
     const origin = serverOrigin(adding);
@@ -62,10 +82,8 @@ export const ServerList = ({
       return;
     }
 
-    setServers([...servers, origin]);
+    include(origin);
     setAdding("");
-    setAddError(null);
-    setState("editing");
   };
 
   const remove = (origin: string) => {
@@ -164,6 +182,25 @@ export const ServerList = ({
             </button>
           </div>
           {addError !== null && <p className={WRONG}>{addError}</p>}
+
+          {/* Where a picture goes when nothing is named, so a list filled in from
+              here holds what the site would have used anyway. An addition lands
+              last, which leaves a server named above it as the upload target. */}
+          {suggestions.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {suggestions.map((origin) => (
+                <button
+                  key={origin}
+                  type="button"
+                  className={SUGGESTION}
+                  onClick={() => include(origin)}
+                  aria-label={`Add ${host(origin)}`}
+                >
+                  + {host(origin)}
+                </button>
+              ))}
+            </div>
+          )}
         </form>
 
         {servers.length === 0 && (
