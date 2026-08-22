@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type EventDraft, nostrEventSchema } from "./event";
+import { type EventDraft, type NostrEvent, newestEvent, nostrEventSchema } from "./event";
 import { CLIENT_NAME } from "./nip22";
 import { INDEXER_RELAYS } from "./nip65";
 import { queryRelays, type RelayOptions, relaySet } from "./pool";
@@ -117,24 +117,47 @@ export type ProfileDraft = {
   lud16?: string;
 };
 
+/** The live metadata, or nothing at all: a profile nobody can read is one to start over from. */
+const liveMetadata = (live: NostrEvent | null): Record<string, unknown> => {
+  if (live === null || live.kind !== PROFILE_KIND) return {};
+  try {
+    const content: unknown = JSON.parse(live.content);
+    return typeof content === "object" && content !== null && !Array.isArray(content)
+      ? { ...(content as Record<string, unknown>) }
+      : {};
+  } catch {
+    return {};
+  }
+};
+
 /**
- * A kind 0 replaces the whole of a profile, every field of it, so this is for a
- * key that has none. Editing one means reading the live revision first and
- * writing it back whole, which is not what this does.
+ * A kind 0 replaces the whole of a profile, every field of it, so an edit starts
+ * from the live one and hands back every field it had. Most profiles in the wild
+ * carry fields written by clients this one has never heard of, a banner or a
+ * website, and a save that knew only the five below would delete them.
+ *
+ * The draft is the whole of what this client has an opinion about: a field left
+ * blank in it is cleared rather than left alone. That is the difference between
+ * a form and a patch, and this takes a form.
  *
  * The name goes in both `name` and `display_name`: `parseProfile` above prefers
  * the second, half the clients in the wild prefer the first, and a key whose
- * name shows in one client and not the next has published a bug. What was not
- * given is left out rather than written empty, since another client reading this
- * cannot tell an empty string from a field being cleared.
+ * name shows in one client and not the next has published a bug. A camel-cased
+ * `displayName` left by another client is dropped for the same reason.
  */
-export const buildProfile = (draft: ProfileDraft): EventDraft => {
-  const metadata: Record<string, string> = {};
+export const editProfile = (live: NostrEvent | null, draft: ProfileDraft): EventDraft => {
+  const metadata = liveMetadata(live);
+
   const name = draft.name.trim();
-  if (name !== "") {
+  delete metadata.displayName;
+  if (name === "") {
+    delete metadata.name;
+    delete metadata.display_name;
+  } else {
     metadata.name = name;
     metadata.display_name = name;
   }
+
   for (const [field, value] of [
     ["about", draft.about],
     ["picture", draft.picture],
@@ -142,15 +165,21 @@ export const buildProfile = (draft: ProfileDraft): EventDraft => {
     ["lud16", draft.lud16],
   ] as const) {
     const trimmed = (value ?? "").trim();
-    if (trimmed !== "") metadata[field] = trimmed;
+    // Removed rather than written empty: another client reading this cannot tell
+    // an empty string from a field somebody meant to clear.
+    if (trimmed === "") delete metadata[field];
+    else metadata[field] = trimmed;
   }
 
   return {
     kind: PROFILE_KIND,
     content: JSON.stringify(metadata),
-    tags: [["client", CLIENT_NAME]],
+    tags: [...(live?.tags ?? []).filter((tag) => tag[0] !== "client"), ["client", CLIENT_NAME]],
   };
 };
+
+/** The same, for a key that has published nothing: there is no live revision to read first. */
+export const buildProfile = (draft: ProfileDraft): EventDraft => editProfile(null, draft);
 
 /** Indexers serve stale revisions of a profile next to the live one, so the newest wins. */
 export const selectProfiles = (events: unknown[]): Map<string, Profile> => {
@@ -211,3 +240,22 @@ export const fetchProfile = async (
   pubkey: string,
   options: ProfileOptions = {},
 ): Promise<Profile | null> => (await fetchProfiles([pubkey], options)).get(pubkey) ?? null;
+
+/**
+ * The live kind 0, whole and unparsed, for an author about to write one back.
+ * Neither cached nor parsed, and both on purpose: the cache above holds the
+ * fields a page draws and drops the rest, which is exactly what an edit must not
+ * lose, and it holds them for half an hour, which is how old a profile would be
+ * before this republished it as current.
+ */
+export const fetchProfileEvent = async (
+  pubkey: string,
+  options: ProfileOptions = {},
+): Promise<NostrEvent | null> => {
+  const events = await queryRelays(
+    relaySet(options.indexers ?? INDEXER_RELAYS),
+    { kinds: [PROFILE_KIND], authors: [pubkey] },
+    { ...options, timeoutMs: options.timeoutMs ?? PROFILE_TIMEOUT_MS },
+  ).catch(() => []);
+  return newestEvent(events, pubkey, PROFILE_KIND);
+};

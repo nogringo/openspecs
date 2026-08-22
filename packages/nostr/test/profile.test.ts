@@ -4,9 +4,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   buildProfile,
   clearProfileCache,
+  editProfile,
   fetchProfile,
+  fetchProfileEvent,
   fetchProfiles,
   PROFILE_KIND,
+  type ProfileDraft,
   type ProfileOptions,
   parseProfile,
   selectProfiles,
@@ -233,5 +236,111 @@ describe("buildProfile", () => {
 
   it("names the client, like every other event this package builds", () => {
     expect(buildProfile({ name: "Ada" }).tags).toEqual([["client", "openspecs"]]);
+  });
+});
+
+describe("editProfile", () => {
+  const content = (live: Parameters<typeof editProfile>[0], draft: ProfileDraft) =>
+    JSON.parse(editProfile(live, draft).content);
+
+  const live = profileEvent({
+    name: "ada",
+    display_name: "Ada",
+    about: "Writes specifications.",
+    banner: "https://example.com/banner.png",
+    website: "https://ada.example.com",
+  });
+
+  it("keeps the fields this client has never heard of", () => {
+    expect(content(live, { name: "Ada", about: "Writes more of them." })).toEqual({
+      name: "Ada",
+      display_name: "Ada",
+      about: "Writes more of them.",
+      banner: "https://example.com/banner.png",
+      website: "https://ada.example.com",
+    });
+  });
+
+  it("clears a field left blank, since the draft is the whole of what it knows", () => {
+    expect(content(live, { name: "Ada" })).not.toHaveProperty("about");
+  });
+
+  it("drops a camel-cased name another client left, so both are not read at once", () => {
+    const camel = profileEvent({ displayName: "Ada", name: "ada" });
+    expect(content(camel, { name: "Adah" })).toEqual({ name: "Adah", display_name: "Adah" });
+  });
+
+  it("starts over from a profile nobody can read", () => {
+    for (const unreadable of ["not json", "[]", '"a string"', "null"]) {
+      expect(content(profileEvent(unreadable), { name: "Ada" })).toEqual({
+        name: "Ada",
+        display_name: "Ada",
+      });
+    }
+  });
+
+  it("writes a first profile for a key that has none", () => {
+    expect(editProfile(null, { name: "Ada" })).toEqual(buildProfile({ name: "Ada" }));
+  });
+
+  it("keeps the tags the live event carried, and names this client once", () => {
+    const tagged = finalizeEvent(
+      {
+        kind: PROFILE_KIND,
+        created_at: 1_700_000_000,
+        tags: [
+          ["client", "another-one"],
+          ["alt", "a profile"],
+        ],
+        content: "{}",
+      },
+      secretKey,
+    );
+
+    expect(editProfile(tagged, { name: "Ada" }).tags).toEqual([
+      ["alt", "a profile"],
+      ["client", "openspecs"],
+    ]);
+  });
+
+  it("reads back as the profile a card is drawn from", () => {
+    const edited = finalizeEvent(
+      {
+        ...editProfile(live, { name: "Ada", lud16: "ada@example.com" }),
+        created_at: 1_700_000_100,
+      },
+      secretKey,
+    );
+
+    expect(parseProfile(edited)?.lud16).toBe("ada@example.com");
+    expect(parseProfile(edited)?.about).toBe("");
+  });
+});
+
+/**
+ * Read through a mock relay of its own: the profile fetches above share one that
+ * is seeded once, and this asks the same question without the cache in the way.
+ */
+describe("fetchProfileEvent", () => {
+  it("returns the revision the author published last, whole and unparsed", async () => {
+    const event = await fetchProfileEvent(author, options);
+
+    expect(JSON.parse(event?.content ?? "{}").name).toBe("The name published last");
+    expect(event?.sig).toBeDefined();
+  });
+
+  it("returns null for an author who published no profile", async () => {
+    expect(await fetchProfileEvent(getPublicKey(generateSecretKey()), options)).toBeNull();
+  });
+
+  it("does not answer from the cache, which holds a parsed subset half an hour old", async () => {
+    const gone = createMockRelay();
+    await gone.start();
+    gone.seed([profileEvent({ name: "Alice" })]);
+    const ownIndexer = { indexers: [gone.url ?? ""] };
+
+    expect(await fetchProfileEvent(author, ownIndexer)).not.toBeNull();
+    await gone.stop();
+    expect(await fetchProfileEvent(author, ownIndexer)).toBeNull();
   });
 });

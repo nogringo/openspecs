@@ -22,6 +22,26 @@ export type NostrEvent = z.infer<typeof nostrEventSchema>;
  */
 export type EventDraft = { kind: number; content: string; tags: string[][] };
 
+/**
+ * The revision an author published last. Relays and indexers serve the stale
+ * copies of a replaceable event next to the live one, and an author reading
+ * their own back to edit it must start from the newest or publish an old one.
+ */
+export const newestEvent = (
+  events: NostrEvent[],
+  pubkey: string,
+  kind: number,
+): NostrEvent | null =>
+  events.reduce<NostrEvent | null>(
+    (newest, event) =>
+      event.pubkey !== pubkey || event.kind !== kind
+        ? newest
+        : newest === null || event.created_at > newest.created_at
+          ? event
+          : newest,
+    null,
+  );
+
 export const firstTag = (event: NostrEvent, name: string): string[] | undefined =>
   event.tags.find((tag) => tag[0] === name);
 

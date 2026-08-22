@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildRelayList,
   MAX_RELAYS_PER_AUTHOR,
+  parseRelayEntries,
   parseRelayList,
   RELAY_LIST_KIND,
   selectRelayLists,
@@ -106,6 +107,56 @@ describe("selectRelayLists", () => {
   });
 });
 
+describe("parseRelayEntries", () => {
+  it("keeps every relay, not the four a reader stops at", () => {
+    const tags = Array.from({ length: 9 }, (_, i) => ["r", `wss://relay${i}.example.com`]);
+    expect(parseRelayEntries({ ...anEvent, tags })).toHaveLength(9);
+  });
+
+  it("keeps the markers and the order the author named them in", () => {
+    expect(
+      parseRelayEntries({
+        ...anEvent,
+        tags: [
+          ["r", "wss://both.example.com"],
+          ["r", "wss://out.example.com", "write"],
+          ["r", "wss://in.example.com", "read"],
+        ],
+      }),
+    ).toEqual([
+      { url: "wss://both.example.com/" },
+      { url: "wss://out.example.com/", marker: "write" },
+      { url: "wss://in.example.com/", marker: "read" },
+    ]);
+  });
+
+  it("names a relay once, however it was spelled, and ignores what is not one", () => {
+    expect(
+      parseRelayEntries({
+        ...anEvent,
+        tags: [
+          ["r", "wss://a.example/"],
+          ["r", "wss://a.example"],
+          ["r", "https://not-a-relay.example.com"],
+          ["client", "vidstr.example.com"],
+          ["r"],
+        ],
+      }),
+    ).toEqual([{ url: "wss://a.example/" }]);
+  });
+
+  it("reads a marker it does not know as no marker at all", () => {
+    expect(
+      parseRelayEntries({ ...anEvent, tags: [["r", "wss://a.example", "sometimes"]] }),
+    ).toEqual([{ url: "wss://a.example/" }]);
+  });
+
+  it("rejects another kind", () => {
+    expect(parseRelayEntries({ ...anEvent, kind: 10003 })).toBeNull();
+    expect(parseRelayEntries(null)).toBeNull();
+  });
+});
+
 describe("buildRelayList", () => {
   const FOUR = [
     "wss://relay.nmail.li",
@@ -117,7 +168,10 @@ describe("buildRelayList", () => {
   /** What `relaySet` writes, which is where the trailing slash comes from. */
   const NORMALIZED = FOUR.map((url) => `${url}/`);
 
-  const built = (relays: string[]) => ({ ...anEvent, ...buildRelayList(relays) });
+  const built = (relays: Parameters<typeof buildRelayList>[0]) => ({
+    ...anEvent,
+    ...buildRelayList(relays),
+  });
 
   it("names relays that read back as both, so what a key writes can be found", () => {
     expect(parseRelayList(built(FOUR))).toEqual({ write: NORMALIZED, read: NORMALIZED });
@@ -134,5 +188,30 @@ describe("buildRelayList", () => {
 
   it("names the client, like every other event this package builds", () => {
     expect(buildRelayList(FOUR).tags.at(-1)).toEqual(["client", "openspecs"]);
+  });
+
+  it("gives back a list edited elsewhere with the markers it arrived with", () => {
+    const entries = parseRelayEntries({
+      ...anEvent,
+      tags: [
+        ["r", "wss://both.example.com"],
+        ["r", "wss://out.example.com", "write"],
+        ["r", "wss://in.example.com", "read"],
+      ],
+    });
+
+    expect(parseRelayEntries(built(entries ?? []))).toEqual(entries);
+  });
+
+  it("adds a relay unmarked beside the ones that are marked", () => {
+    const edited = built([
+      { url: "wss://in.example.com", marker: "read" },
+      "wss://new.example.com",
+    ]);
+
+    expect(parseRelayList(edited)).toEqual({
+      write: ["wss://new.example.com/"],
+      read: ["wss://in.example.com/", "wss://new.example.com/"],
+    });
   });
 });
