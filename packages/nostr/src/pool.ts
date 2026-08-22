@@ -36,6 +36,19 @@ export const relaySet = (...lists: string[][]): string[] => {
   return [...urls];
 };
 
+/**
+ * What somebody typed, read as a relay. `relaySet` above takes what a relay list
+ * says, which is already a URL. This takes what a person types into a box, where
+ * the scheme is the part nobody remembers and `https://` is what the browser bar
+ * hands them when they copy the address of a relay's own page.
+ */
+export const relayUrl = (typed: string): string | null => {
+  const value = typed.trim();
+  if (value === "") return null;
+  const url = /^wss?:\/\//i.test(value) ? value : `wss://${value.replace(/^https?:\/\//i, "")}`;
+  return relaySet([url])[0] ?? null;
+};
+
 export const queryRelays = async (
   relays: string[],
   filter: Filter,

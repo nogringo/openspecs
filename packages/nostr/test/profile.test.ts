@@ -12,6 +12,7 @@ import {
   type ProfileDraft,
   type ProfileOptions,
   parseProfile,
+  profileDraftOf,
   selectProfiles,
 } from "../src/profile";
 import { events } from "./fixtures";
@@ -236,6 +237,53 @@ describe("buildProfile", () => {
 
   it("names the client, like every other event this package builds", () => {
     expect(buildProfile({ name: "Ada" }).tags).toEqual([["client", "openspecs"]]);
+  });
+});
+
+describe("profileDraftOf", () => {
+  it("hands back what was published, not what a page shows of it", () => {
+    const long = "a".repeat(500);
+    const draft = profileDraftOf(profileEvent({ name: "ada", about: long }));
+
+    expect(draft.about).toBe(long);
+    expect(draft.about).not.toContain("...");
+  });
+
+  it("prefers the display name, then the camel cased one, then the name", () => {
+    const nameOf = (metadata: unknown) => profileDraftOf(profileEvent(metadata)).name;
+
+    expect(nameOf({ name: "ada", display_name: "Ada", displayName: "A" })).toBe("Ada");
+    expect(nameOf({ name: "ada", displayName: "A" })).toBe("A");
+    expect(nameOf({ name: "ada" })).toBe("ada");
+    expect(nameOf({ name: "ada", display_name: "  " })).toBe("ada");
+  });
+
+  it("leaves every field blank for a key that has published nothing", () => {
+    expect(profileDraftOf(null)).toEqual({
+      name: "",
+      about: "",
+      picture: "",
+      nip05: "",
+      lud16: "",
+    });
+  });
+
+  it("ignores a field of the wrong type rather than reading it back as one", () => {
+    expect(profileDraftOf(profileEvent({ name: "ada", picture: 42 })).picture).toBe("");
+  });
+
+  /** A form nobody typed in saves what was there, which is the whole of the round trip. */
+  it("edits back to what it was read from, untouched", () => {
+    const live = profileEvent({
+      display_name: "Ada",
+      name: "Ada",
+      about: "a".repeat(500),
+      banner: "https://example.com/banner.png",
+    });
+
+    expect(JSON.parse(editProfile(live, profileDraftOf(live)).content)).toEqual(
+      JSON.parse(live.content),
+    );
   });
 });
 

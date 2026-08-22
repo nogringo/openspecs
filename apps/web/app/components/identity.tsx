@@ -1,5 +1,6 @@
 import { toNpub } from "@openspecs/nostr";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { Link } from "react-router";
 import { authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import {
@@ -9,12 +10,12 @@ import {
   sessionNsec,
   sessionState,
   subscribeSession,
-  unlock,
 } from "~/lib/session";
 import { AuthorAvatar } from "./author-avatar";
 import { CopyButton } from "./copy-button";
 import { MakeKey } from "./make-key";
 import { SignInDialog } from "./sign-in-dialog";
+import { Unlock } from "./unlock";
 
 const CHROME =
   "rounded-sm border border-rule px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink";
@@ -29,42 +30,6 @@ const Panel = ({ children }: { children: React.ReactNode }) => (
     {children}
   </div>
 );
-
-const Unlock = ({ onDone }: { onDone: () => void }) => {
-  const [passphrase, setPassphrase] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  return (
-    <form
-      className="space-y-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        setBusy(true);
-        setError(null);
-        unlock(passphrase)
-          .then(onDone)
-          .catch(() => setError("That does not open this key."))
-          .finally(() => setBusy(false));
-      }}
-    >
-      <p className="font-serif text-[0.8125rem] leading-snug text-muted">
-        Your key is on this device, under a PIN or passphrase.
-      </p>
-      <input
-        className="w-full rounded-sm border border-rule bg-paper px-3 py-2 font-mono text-xs text-ink"
-        type="password"
-        value={passphrase}
-        onChange={(event) => setPassphrase(event.target.value)}
-        autoComplete="current-password"
-      />
-      <button type="submit" className={CHROME} disabled={busy || passphrase === ""}>
-        {busy ? "Unlocking" : "Unlock"}
-      </button>
-      {error !== null && <p className="font-serif text-[0.8125rem] text-signal-closed">{error}</p>}
-    </form>
-  );
-};
 
 /**
  * The header's own control. The server renders it signed out, because the server
@@ -160,6 +125,11 @@ export const Identity = () => {
               )}
 
               <div className="flex flex-wrap items-center gap-2">
+                {/* The only way in: everything a key says about itself is edited
+                    on a page of its own, since a relay list does not fit here. */}
+                <Link to="/settings" className={CHROME} onClick={close}>
+                  Your profile
+                </Link>
                 {/* Offered because disconnecting forgets it, and a key made here
                     may exist nowhere else at all. Named for which of the two keys
                     it is: the other one is on screen right above it. */}

@@ -10,6 +10,31 @@ export {
   toNpub,
 } from "./address";
 export {
+  authExpiry,
+  authorizationHeader,
+  BLOSSOM_AUTH_KIND,
+  BLOSSOM_SERVER_KIND,
+  type BlobDescriptor,
+  BlossomError,
+  blobHash,
+  blobUrls,
+  buildServerList,
+  buildUploadAuth,
+  clearServerListCache,
+  DEFAULT_BLOSSOM_SERVERS,
+  fetchServerList,
+  fetchServerLists,
+  MAX_BLOSSOM_SERVERS,
+  mirrorBlob,
+  parseServerList,
+  type ServerListOptions,
+  selectServerLists,
+  serverOrigin,
+  serverSet,
+  sha256Hex,
+  uploadBlob,
+} from "./blossom";
+export {
   type Cursors,
   type RelayCursor,
   type SyncOptions,
@@ -135,6 +160,7 @@ export {
   type RelayOptions,
   relayPool,
   relaySet,
+  relayUrl,
 } from "./pool";
 export {
   buildProfile,
@@ -148,6 +174,8 @@ export {
   type ProfileDraft,
   type ProfileOptions,
   parseProfile,
+  pictureUrl,
+  profileDraftOf,
   selectProfiles,
 } from "./profile";
 export {

@@ -65,7 +65,7 @@ const clean = (value: string | undefined, max: number): string => {
  * URL survives: a `javascript:` or `data:` picture is the author's code wearing
  * their face, and an http one is blocked as mixed content anyway.
  */
-const pictureUrl = (value: string | undefined): string | null => {
+export const pictureUrl = (value: string | undefined): string | null => {
   const raw = (value ?? "").trim();
   if (raw === "" || raw.length > MAX_URL) return null;
   try {
@@ -180,6 +180,30 @@ export const editProfile = (live: NostrEvent | null, draft: ProfileDraft): Event
 
 /** The same, for a key that has published nothing: there is no live revision to read first. */
 export const buildProfile = (draft: ProfileDraft): EventDraft => editProfile(null, draft);
+
+/**
+ * What a form editing this profile starts filled with: the fields as they were
+ * published, rather than as `parseProfile` shows them. That one folds a
+ * description to one line, truncates it and strips what would reorder the line a
+ * name sits on, all of which is right for drawing somebody else's profile and
+ * wrong for handing an author their own back: a form filled from it would save
+ * the truncation over the thing it truncated.
+ */
+export const profileDraftOf = (live: NostrEvent | null): ProfileDraft => {
+  const metadata = liveMetadata(live);
+  const field = (name: string): string => {
+    const value = metadata[name];
+    return typeof value === "string" ? value.trim() : "";
+  };
+
+  return {
+    name: field("display_name") || field("displayName") || field("name"),
+    about: field("about"),
+    picture: field("picture"),
+    nip05: field("nip05"),
+    lud16: field("lud16"),
+  };
+};
 
 /** Indexers serve stale revisions of a profile next to the live one, so the newest wins. */
 export const selectProfiles = (events: unknown[]): Map<string, Profile> => {
