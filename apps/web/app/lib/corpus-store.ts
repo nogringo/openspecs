@@ -5,10 +5,11 @@ import type { SearchDoc } from "./search";
  * Where the corpus waits between visits, so a reader who has already searched
  * once does not download every document again to search a second time.
  *
- * A document withdrawn in this browser is dropped from it, and nothing else is:
- * no kind 5 is read here, so a document somebody else retracted stays searchable
- * until a walk stops finding it. Relays are the source of truth, and this is a
- * cache that admits it.
+ * A document withdrawn in this browser is dropped from it, and nothing else is.
+ * A walk only ever adds and replaces, and the empty revision that would say a
+ * document was withdrawn is filtered out before it gets here, so one somebody
+ * else retracted stays searchable until this store is dropped. Relays are the
+ * source of truth, and this is a cache that admits it.
  */
 const DB = "openspecs";
 const VERSION = 1;
