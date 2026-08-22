@@ -1,5 +1,13 @@
-import { allTags, type NostrEvent, nostrEventSchema, SPEC_KIND, tagValue } from "./event";
+import {
+  allTags,
+  type EventDraft,
+  type NostrEvent,
+  nostrEventSchema,
+  SPEC_KIND,
+  tagValue,
+} from "./event";
 import { deriveSummary, firstHeading } from "./markdown";
+import { CLIENT_NAME } from "./nip22";
 
 export type SpecKindRef = {
   /** The `k` value exactly as published. Not always a number. */
@@ -29,6 +37,7 @@ export type Spec = {
   content: string;
   kinds: SpecKindRef[];
   topics: string[];
+  /** Read from `s` before `status`: the schema names neither, and `s` is the one in the wild. */
   status: string | null;
   createdAt: number;
   publishedAt: number;
@@ -116,10 +125,198 @@ export const parseSpec = (input: unknown): Spec | null => {
     topics: allTags(event, "t")
       .map((tag) => (tag[1] ?? "").trim().toLowerCase())
       .filter((topic) => topic !== ""),
-    status: tagValue(event, "status") || null,
+    status: tagValue(event, "s") || tagValue(event, "status") || null,
     createdAt: event.created_at,
     publishedAt: Number.isFinite(publishedAt) && publishedAt > 0 ? publishedAt : event.created_at,
     forks: parseForks(event),
     isEmpty: content.trim() === "",
   };
+};
+
+/** A `k` tag as it will be written: the value, and the name that may follow it. */
+export type SpecKindEntry = { raw: string; name: string };
+
+/**
+ * The whole of what this editor has an opinion about. Every field is required
+ * and a blank one clears its tag, which is the difference between a form and a
+ * patch, and this takes a form.
+ */
+export type SpecDraft = {
+  identifier: string;
+  title: string;
+  summary: string;
+  content: string;
+  status: string;
+  /** In the order they were published, and not folded to lower case. */
+  topics: string[];
+  kinds: SpecKindEntry[];
+};
+
+const EMPTY_DRAFT: SpecDraft = {
+  identifier: "",
+  title: "",
+  summary: "",
+  content: "",
+  status: "",
+  topics: [],
+  kinds: [],
+};
+
+/**
+ * What a form editing this document starts filled with: the fields as they were
+ * published, rather than as a page shows them. `parseSpec` invents a title from
+ * the first heading, cuts a description to a hundred and sixty characters and
+ * folds topics to lower case, all of which is right for drawing somebody else's
+ * document and wrong for handing an author their own back. A form filled from it
+ * would publish the invention over the thing it stood in for.
+ */
+export const specDraftOf = (live: NostrEvent | null): SpecDraft => {
+  const parsed = nostrEventSchema.safeParse(live);
+  if (!parsed.success || parsed.data.kind !== SPEC_KIND) return EMPTY_DRAFT;
+
+  const event = parsed.data;
+  const identifier = tagValue(event, "d");
+  if (identifier === "") return EMPTY_DRAFT;
+
+  return {
+    identifier,
+    title: tagValue(event, "title"),
+    summary: tagValue(event, "summary"),
+    content: event.content,
+    status: tagValue(event, "s") || tagValue(event, "status"),
+    topics: allTags(event, "t")
+      .map((tag) => (tag[1] ?? "").trim())
+      .filter((topic) => topic !== ""),
+    kinds: parseKinds(event).map((ref) => ({ raw: ref.raw, name: ref.name ?? "" })),
+  };
+};
+
+/**
+ * Every tag this editor decides. Anything else on the live event is another
+ * client's, and is copied through untouched: the fork markers, the pages and
+ * icons of a documentation space, the `update` and `extends` of a proposal. A
+ * save that knew only the fields below would delete them.
+ */
+const OWNED = new Set(["d", "title", "summary", "published_at", "s", "status", "t", "k", "alt"]);
+
+/**
+ * Kept from the live event, or taken from when it was first signed. Never set on
+ * a first publish: `created_at` is stamped at signing time, seconds or minutes
+ * after this runs, so a moment computed here would land before it and the
+ * document would show a revision date on the day it was written.
+ */
+const publishedAt = (live: NostrEvent): string[][] => {
+  const published = tagValue(live, "published_at");
+  const seconds = Number(published);
+  return [
+    ["published_at", Number.isFinite(seconds) && seconds > 0 ? published : `${live.created_at}`],
+  ];
+};
+
+/**
+ * A document replaces the whole of its previous revision, so an edit starts from
+ * the live one and hands back every tag it had.
+ *
+ * The status is written as `s` and only as `s`. The schema names no status tag
+ * at all, and the one client publishing them writes `s`, so this reads both and
+ * sends the one that already exists. A `status` left by anyone else is removed
+ * rather than kept, or a document would carry two of them and show a different
+ * answer on each site rendering it.
+ */
+export const editSpec = (live: NostrEvent | null, draft: SpecDraft): EventDraft => {
+  const identifier = draft.identifier.trim();
+  const title = draft.title.trim();
+  const summary = draft.summary.trim();
+  const status = draft.status.trim();
+
+  const topics: string[] = [];
+  for (const topic of draft.topics) {
+    const trimmed = topic.trim();
+    if (trimmed !== "" && !topics.includes(trimmed)) topics.push(trimmed);
+  }
+
+  return {
+    kind: SPEC_KIND,
+    content: draft.content,
+    tags: [
+      ["d", identifier],
+      // Removed rather than written empty: another client reading this cannot
+      // tell an empty string from a field somebody meant to clear.
+      ...(title === "" ? [] : [["title", title]]),
+      ...(summary === "" ? [] : [["summary", summary]]),
+      ...(live === null ? [] : publishedAt(live)),
+      ...(status === "" ? [] : [["s", status]]),
+      ...topics.map((topic) => ["t", topic]),
+      ...draft.kinds
+        .filter((entry) => entry.raw.trim() !== "")
+        .map((entry) =>
+          entry.name.trim() === ""
+            ? ["k", entry.raw.trim()]
+            : ["k", entry.raw.trim(), entry.name.trim()],
+        ),
+      ...(live?.tags ?? []).filter((tag) => {
+        const name = tag[0] ?? "";
+        return name !== "" && name !== "client" && !OWNED.has(name);
+      }),
+      // NIP-31, for the clients that do not know this kind. Owned rather than
+      // preserved: an alt naming the previous title is worse than none.
+      ["alt", `A specification: ${title || identifier}`],
+      ["client", CLIENT_NAME],
+    ],
+  };
+};
+
+/** The same, for a document nobody has published yet: there is no live revision to read first. */
+export const buildSpec = (draft: SpecDraft): EventDraft => editSpec(null, draft);
+
+/**
+ * A `d` derived from a title, which the schema allows in as many words. Only
+ * ever a suggestion for a field that stays editable: an identifier somebody
+ * typed is published verbatim, colons and capitals and all, and changing a `d`
+ * publishes a second document rather than renaming the first.
+ */
+export const toIdentifier = (title: string, max = 64): string => {
+  const slug = title
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    // Dropped rather than turned into a separator, so a possessive stays one
+    // word: every document in the corpus titled with one is filed that way.
+    .replace(/['\u2019]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (slug.length <= max) return slug;
+  const cut = slug.slice(0, max);
+  const lastWord = cut.lastIndexOf("-");
+  return (lastWord > 0 ? cut.slice(0, lastWord) : cut).replace(/-+$/, "");
+};
+
+/** Why a draft cannot be published. Codes, not sentences: the form writes the words. */
+export type SpecFault =
+  | "no-identifier"
+  | "no-title"
+  | "identifier-has-slash"
+  | "identifier-too-long";
+
+const MAX_IDENTIFIER = 256;
+
+/**
+ * An empty document is not a fault. `parseSpec` accepts a blank one on purpose,
+ * and refusing it here would refuse a draft its author has not written yet.
+ */
+export const specFaults = (draft: SpecDraft): SpecFault[] => {
+  const identifier = draft.identifier.trim();
+  const faults: SpecFault[] = [];
+
+  if (identifier === "") faults.push("no-identifier");
+  // `specPath` only encodes the identifier, so a slash arrives as %2F in a path
+  // segment, which proxies and servers are free to normalise or refuse.
+  if (identifier.includes("/")) faults.push("identifier-has-slash");
+  if (identifier.length > MAX_IDENTIFIER) faults.push("identifier-too-long");
+  // The schema calls a title required, and this sends what the schema asks for
+  // even though `parseSpec` above tolerates a document published without one.
+  if (draft.title.trim() === "") faults.push("no-title");
+
+  return faults;
 };
