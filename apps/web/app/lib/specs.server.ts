@@ -102,12 +102,18 @@ export const loadSpecs = (filter: SpecFilter = {}, limit = 30): Promise<SpecCard
     },
   );
 
-/** A page of what one author signed. Long, because it is their whole shelf. */
-const AUTHOR_LIMIT = 60;
+/**
+ * How far down a listing can be paged. The window is fetched whole and cut into
+ * pages here rather than walked with a relay cursor: an `until` is a `created_at`,
+ * and a corpus mirrored from git carries whole commits' worth of documents on the
+ * same second, which no cursor can step past.
+ */
+export const LISTING_WINDOW = 240;
 
 /**
- * The page, its card and its feeds ask for the same list under the same key, so
- * an unfurled link costs one relay query rather than three.
+ * The whole shelf, unpaged: the page, its card and its feeds ask for the same
+ * list under the same key, so an unfurled link costs one relay query rather than
+ * three, and each of them counts what the key actually signed.
  */
 export const loadAuthorSpecs = (pubkey: string): Promise<SpecCard[]> =>
-  loadSpecs({ author: pubkey }, AUTHOR_LIMIT);
+  loadSpecs({ author: pubkey }, LISTING_WINDOW);

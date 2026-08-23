@@ -1,4 +1,8 @@
-export type SpecsQuery = { topic?: string; kind?: string | number; q?: string };
+export type SpecsQuery = { topic?: string; kind?: string | number; q?: string; page?: number };
+
+/** The first page is the listing itself, so it never carries a number of its own. */
+const pageParam = (page: number | undefined): string | null =>
+  page !== undefined && page > 1 ? String(page) : null;
 
 const withFilter = (base: string, query: SpecsQuery = {}): string => {
   const params = new URLSearchParams();
@@ -6,16 +10,19 @@ const withFilter = (base: string, query: SpecsQuery = {}): string => {
   if (query.q) params.set("q", query.q);
   if (query.topic) params.set("topic", query.topic);
   if (query.kind !== undefined && query.kind !== "") params.set("kind", String(query.kind));
+  // Last, since it narrows nothing: it only says where in the result you are.
+  const page = pageParam(query.page);
+  if (page !== null) params.set("page", page);
   const search = params.toString();
   return search === "" ? base : `${base}?${search}`;
 };
 
 export const specsPath = (query: SpecsQuery = {}): string => withFilter("/specs", query);
 
-/** A feed cannot replay a search, so `q` never reaches one. */
-export const rssPath = (query: Omit<SpecsQuery, "q"> = {}): string => withFilter("/rss.xml", query);
-export const atomPath = (query: Omit<SpecsQuery, "q"> = {}): string =>
-  withFilter("/atom.xml", query);
+/** A feed cannot replay a search and has no pages, so neither reaches one. */
+export type FeedQuery = Omit<SpecsQuery, "q" | "page">;
+export const rssPath = (query: FeedQuery = {}): string => withFilter("/rss.xml", query);
+export const atomPath = (query: FeedQuery = {}): string => withFilter("/atom.xml", query);
 
 export const listingTitle = (query: SpecsQuery = {}): string => {
   if (query.q) return `Search results for "${query.q}"`;
@@ -41,6 +48,15 @@ export const ogImagePath = (npub: string, identifier: string): string =>
 
 /** The same, for an author, drawn from their profile and their shelf. */
 export const authorOgImagePath = (npub: string): string => `/og/${npub}`;
+
+/**
+ * Further down one author's shelf. `authorPath` in the schema names the key, and
+ * that address is not the place to say which page of it you are reading.
+ */
+export const authorPagePath = (npub: string, page?: number): string => {
+  const value = pageParam(page);
+  return value === null ? `/${npub}` : `/${npub}?page=${value}`;
+};
 
 /**
  * An author's feeds hang under the author, not under the listing: what a reader

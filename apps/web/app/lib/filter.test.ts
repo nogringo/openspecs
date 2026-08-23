@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseSearchQuery, parseSpecFilter } from "./filter";
+import { parsePage, parseSearchQuery, parseSpecFilter } from "./filter";
 
 const filterOf = (query: string) => parseSpecFilter(new URLSearchParams(query));
 const searchOf = (query: string) => parseSearchQuery(new URLSearchParams(query));
+const pageOf = (query: string) => parsePage(new URLSearchParams(query));
 
 describe("parseSpecFilter", () => {
   it("reads a topic and a kind", () => {
@@ -31,6 +32,24 @@ describe("parseSpecFilter", () => {
 
   it("ignores a search query, which no relay can answer", () => {
     expect(filterOf("q=relay+discovery")).toEqual({});
+  });
+});
+
+describe("parsePage", () => {
+  it("reads the page asked for", () => {
+    expect(pageOf("page=2")).toBe(2);
+    expect(pageOf("topic=nostr&page=12")).toBe(12);
+  });
+
+  it("is page one when nothing was asked for", () => {
+    expect(pageOf("")).toBe(1);
+    expect(pageOf("topic=nostr")).toBe(1);
+  });
+
+  it("is page one for anything that is not a page number", () => {
+    for (const query of ["page=abc", "page=0", "page=-2", "page=1.5", "page=", "page=9999"]) {
+      expect(pageOf(query), query).toBe(1);
+    }
   });
 });
 

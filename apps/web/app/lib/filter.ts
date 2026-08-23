@@ -2,6 +2,7 @@ export type SpecFilterParams = { topic?: string; kind?: number };
 
 const TOPIC = /^[a-z0-9][a-z0-9\-_.]{0,63}$/;
 const KIND = /^\d{1,7}$/;
+const PAGE = /^\d{1,3}$/;
 /** Long enough for a sentence, short enough that a URL stays a URL. */
 const MAX_QUERY = 100;
 
@@ -18,6 +19,16 @@ export const parseSpecFilter = (params: URLSearchParams): SpecFilterParams => {
     ...(TOPIC.test(topic) && { topic }),
     ...(KIND.test(kind) && { kind: Number(kind) }),
   };
+};
+
+/**
+ * Anything that is not a page number is page one, on the same rule as the filter
+ * above: the caller rebuilds its canonical URL from what survived here, so a
+ * listing is never indexed under a dozen spellings of its first page.
+ */
+export const parsePage = (params: URLSearchParams): number => {
+  const page = params.get("page")?.trim() ?? "";
+  return PAGE.test(page) ? Math.max(1, Number(page)) : 1;
 };
 
 /**
