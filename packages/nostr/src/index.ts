@@ -185,7 +185,9 @@ export {
   fetchSpec,
   fetchSpecEvent,
   fetchSpecs,
+  IMPORT_RELAYS,
   latestByCoordinate,
+  READ_RELAYS,
   type SpecQuery,
 } from "./relay";
 export {

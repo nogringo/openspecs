@@ -17,6 +17,7 @@ export const STATUS_TONE: Record<string, string> = {
   final: "text-signal-settled",
   stable: "text-signal-settled",
   deprecated: "text-signal-closed",
+  unrecommended: "text-signal-closed",
   obsolete: "text-signal-closed",
   rejected: "text-signal-closed",
   retired: "text-signal-closed",

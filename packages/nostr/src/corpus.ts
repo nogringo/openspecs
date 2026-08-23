@@ -1,7 +1,7 @@
 import type { Filter } from "nostr-tools/filter";
 import { type NostrEvent, SPEC_KIND } from "./event";
 import { queryRelays, type RelayOptions, relaySet } from "./pool";
-import { DEFAULT_RELAYS, latestByCoordinate } from "./relay";
+import { latestByCoordinate, READ_RELAYS } from "./relay";
 import { parseSpec, type Spec } from "./spec";
 
 /** What is known about one relay since the last synchronisation. */
@@ -100,7 +100,7 @@ const syncRelay = async (relay: string, options: SyncOptions): Promise<RelaySync
  * written, and nothing is lost by trusting it once the relay answers again.
  */
 export const syncSpecs = async (options: SyncOptions = {}): Promise<SyncResult> => {
-  const relays = relaySet(options.relays ?? DEFAULT_RELAYS);
+  const relays = relaySet(options.relays ?? READ_RELAYS);
   const settled = await Promise.allSettled(relays.map((relay) => syncRelay(relay, options)));
 
   const events: NostrEvent[] = [];

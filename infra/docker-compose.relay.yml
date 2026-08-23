@@ -1,0 +1,41 @@
+# The relay the imported corpus is published to.
+#
+#   docker compose -f docker-compose.relay.yml up -d
+#
+# A relay of its own, and a file of its own. The documents mirrored from git are
+# signed by keys this project runs, so they are held where this project can take
+# them back: emptying a relay you operate is a command, while asking the network
+# to forget an event is a request most of it ignores. Until the corpus has been
+# read and is worth keeping, that difference is the whole plan.
+#
+# Loopback by default, like the site: a relay reachable from outside is a relay
+# whose address you decided to publish.
+#
+# strfry, because the crawler mirrors over NIP-77 and this is the relay that
+# speaks it, in the image its own author builds.
+services:
+  relay:
+    image: ghcr.io/hoytech/strfry:latest
+    restart: unless-stopped
+    # Two settings the shipped config gets wrong for this. It binds the loopback
+    # of the container, which no published port can reach, so Docker draws that
+    # boundary in `ports` instead. And it refuses events older than three years,
+    # which is a spam rule written for what people say, not for what they wrote
+    # once and left alone: a specification carries the date of the commit that
+    # last changed it, and one nobody has touched since 2023 is not stale, it is
+    # finished.
+    command:
+      - "--set"
+      - "relay.bind=0.0.0.0"
+      - "--set"
+      - "events.rejectEventsOlderThanSeconds=946080000"
+      - "relay"
+    ports:
+      - "${OPENSPECS_RELAY_BIND:-127.0.0.1:7777}:7777"
+    volumes:
+      - relay_data:/app/strfry-db
+
+volumes:
+  # The corpus itself. Losing it costs one run of the importer, which is what an
+  # import that reproduces its own output is for.
+  relay_data:

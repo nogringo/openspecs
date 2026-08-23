@@ -37,9 +37,9 @@ export type RenderOptions = {
    */
   headingOffset?: number;
   /**
-   * How to draw a `nostr:` reference. Left out, they stay the bech32 text they
-   * were: this package knows nothing about keys, and the caller that does can
-   * turn one into a name.
+   * How to draw a `nostr:` reference, and where to point a link already written
+   * as one. Left out, they stay the text they were: this package knows nothing
+   * about keys, and the caller that does can turn one into a name.
    */
   mention?: MentionResolver;
 };
@@ -175,6 +175,32 @@ const drawMentions = (resolve: MentionResolver | undefined) => (tree: Root) => {
   });
 };
 
+/**
+ * Where a `nostr:` link points. The text is the author's own, so only the
+ * destination is resolved, and a reference nothing can resolve keeps the URI it
+ * was: a reader whose browser handles the scheme still follows it.
+ *
+ * A fragment survives. NIP-21 defines none, but bech32's alphabet has no `#`,
+ * so an identifier ends where a fragment starts, and a link into a section of
+ * another document has no other way to be written.
+ */
+const pointLinks = (resolve: MentionResolver | undefined) => (tree: Root) => {
+  if (resolve === undefined) return;
+
+  visit(tree, "element", (node: Element) => {
+    if (node.tagName !== "a") return;
+    const href = String(node.properties.href ?? "");
+    if (!/^nostr:/i.test(href)) return;
+
+    const rest = href.slice("nostr:".length);
+    const cut = rest.indexOf("#");
+    const mention = resolve(cut === -1 ? rest : rest.slice(0, cut));
+    if (mention?.href === undefined) return;
+
+    node.properties.href = cut === -1 ? mention.href : mention.href + rest.slice(cut);
+  });
+};
+
 const collectHeadings = (headings: MarkdownHeading[]) => (tree: Root) => {
   visit(tree, "element", (node: Element) => {
     // The footnote label is generated, not written, and belongs to no section.
@@ -211,7 +237,16 @@ const linkHeadings = (headings: MarkdownHeading[]): AutolinkOptions => ({
  * clobbering are the ones this pipeline generates itself, and prefixing them
  * would only break the footnote links pointing at them.
  */
-const schema = { ...defaultSchema, clobberPrefix: "" };
+const schema = {
+  ...defaultSchema,
+  clobberPrefix: "",
+  // NIP-21, added to a list of protocols a browser might act on. This one it
+  // cannot: an unresolved `nostr:` link goes nowhere rather than somewhere.
+  protocols: {
+    ...defaultSchema.protocols,
+    href: [...(defaultSchema.protocols?.href ?? []), "nostr"],
+  },
+};
 
 /**
  * Sanitizing before slugs and link hardening rather than last: those plugins
@@ -234,6 +269,8 @@ export const renderMarkdown = (content: string, options: RenderOptions = {}): Re
     .use(collectLinks, links)
     // After the collection: a mention is a reference to a key, not a cited link.
     .use(drawMentions, options.mention)
+    // After the mentions: a reference already written as a link keeps its text.
+    .use(pointLinks, options.mention)
     .use(hardenLinks)
     .use(rehypeStringify)
     .processSync(content)

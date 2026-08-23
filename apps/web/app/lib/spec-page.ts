@@ -1,6 +1,7 @@
 import type { MarkdownHeading } from "@openspecs/markdown";
 import { renderMarkdown } from "@openspecs/markdown";
 import { type Spec, type SpecKindRef, toNaddr, toNpub } from "@openspecs/nostr";
+import { mentionResolver } from "./mention";
 
 export type SpecPage = {
   kind: number;
@@ -38,7 +39,13 @@ export type SpecPage = {
  * payload of every page for no reader.
  */
 export const toPage = (spec: Spec): SpecPage => {
-  const { html, headings, links } = renderMarkdown(spec.content, { title: spec.title });
+  const { html, headings, links } = renderMarkdown(spec.content, {
+    title: spec.title,
+    // Without names: a body is rendered here on the server and again in the
+    // browser, and neither has profiles to hand. A key still becomes a link,
+    // wearing the short form of itself, and a document becomes its address.
+    mention: mentionResolver({}),
+  });
   return {
     kind: spec.event.kind,
     title: spec.title,

@@ -18,6 +18,19 @@ export const DEFAULT_RELAYS = [
   "wss://nostr.oxtr.dev",
 ];
 
+/**
+ * Read alongside the ones above, and never written to. The specifications
+ * mirrored from git live here, and this stays a list of its own because
+ * `DEFAULT_RELAYS` is not only where this site reads: it is where a document
+ * signed here is published, what a key made here declares as its own, and where
+ * the rebroadcast button aims. A relay holding a copy of somebody else's
+ * specifications has no business collecting any of that.
+ */
+export const IMPORT_RELAYS = ["wss://relay.openspecs.uid.ovh"];
+
+/** Everything a reader is shown comes from one of these. */
+export const READ_RELAYS = [...DEFAULT_RELAYS, ...IMPORT_RELAYS];
+
 /** Resolving relay lists for a whole listing would cost more than it can return. */
 const MAX_OUTBOX_AUTHORS = 20;
 
@@ -82,7 +95,7 @@ const querySpecs = async (
       : writeRelaysOf(authors, options).then((relays) => queryRelays(relays, filter, options));
 
   const [fromDefaults, fromOutbox] = await Promise.all([
-    queryRelays(relaySet(options.relays ?? DEFAULT_RELAYS, hints), filter, options),
+    queryRelays(relaySet(options.relays ?? READ_RELAYS, hints), filter, options),
     outbox,
   ]);
   return latestByCoordinate(parseAll([...fromDefaults, ...fromOutbox]));
@@ -126,8 +139,12 @@ export const fetchSpecs = async (
   if (specQuery.until !== undefined) filter.until = specQuery.until;
   if (specQuery.limit !== undefined) filter.limit = specQuery.limit;
 
+  // On the revision rather than on the first publication, which is what a relay
+  // answering a `limit` selected: it returns its newest by `created_at`, so
+  // ordering the window on anything else would show a list neither the query nor
+  // the sort ever asked for.
   const specs = (await querySpecs(filter, specQuery.authors ?? [], options)).sort(
-    (a, b) => b.publishedAt - a.publishedAt,
+    (a, b) => b.createdAt - a.createdAt,
   );
   // The filter limit is per relay, so it only caps what comes in. The caller asked
   // for a number of documents, not a number of documents per operator.

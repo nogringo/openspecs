@@ -4,11 +4,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { SPEC_KIND } from "../src/event";
 import { clearRelayListCache, RELAY_LIST_KIND } from "../src/nip65";
 import {
+  DEFAULT_RELAYS,
   type FetchOptions,
   fetchSpec,
   fetchSpecEvent,
   fetchSpecs,
+  IMPORT_RELAYS,
   latestByCoordinate,
+  READ_RELAYS,
 } from "../src/relay";
 import { parseSpec, type Spec } from "../src/spec";
 import { caseEvents, events } from "./fixtures";
@@ -184,5 +187,62 @@ describe("fetchSpecs", () => {
   it("returns nothing for an author who published nothing", async () => {
     const stranger = getPublicKey(generateSecretKey());
     expect(await fetchSpecs({ authors: [stranger] }, options)).toEqual([]);
+  });
+});
+
+describe("READ_RELAYS", () => {
+  it("is the defaults and the relays the imported corpus lives on", () => {
+    expect(READ_RELAYS).toEqual([...DEFAULT_RELAYS, ...IMPORT_RELAYS]);
+  });
+
+  /**
+   * `DEFAULT_RELAYS` is where a document signed here is published, what a key
+   * made here declares as its own, and where the rebroadcast button aims. This
+   * is what keeps a relay holding a copy of somebody else's specifications from
+   * quietly becoming all of that.
+   */
+  it("never lets a corpus relay reach the list this project writes to", () => {
+    for (const relay of IMPORT_RELAYS) expect(DEFAULT_RELAYS).not.toContain(relay);
+  });
+});
+
+describe("fetchSpecs", () => {
+  const dated = (id: string, createdAt: number, publishedAt: number) =>
+    finalizeEvent(
+      {
+        kind: SPEC_KIND,
+        created_at: createdAt,
+        tags: [
+          ["d", id],
+          ["title", id],
+          ["published_at", String(publishedAt)],
+        ],
+        content: `# ${id}\n\nA specification, in one paragraph.`,
+      },
+      secretKey,
+    );
+
+  /**
+   * A relay answering a `limit` hands back its newest by `created_at`, so a
+   * listing ordered on anything else shows a window chosen one way and sorted
+   * another. This is what keeps the two in step.
+   */
+  it("puts the newest revision first, whatever it says about its first publication", async () => {
+    const relay = await startRelay();
+    relay.seed([
+      dated("published-long-ago-revised-yesterday", 1_800_000_200, 1_500_000_000),
+      dated("published-recently-untouched-since", 1_800_000_100, 1_700_000_000),
+    ]);
+
+    const specs = await fetchSpecs(
+      {},
+      { relays: [relay.url ?? ""], outbox: false, timeoutMs: 2000 },
+    );
+
+    expect(specs.map((spec) => spec.identifier)).toEqual([
+      "published-long-ago-revised-yesterday",
+      "published-recently-untouched-since",
+    ]);
+    await relay.stop();
   });
 });

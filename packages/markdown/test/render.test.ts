@@ -167,6 +167,42 @@ describe("mentions", () => {
   });
 });
 
+describe("references", () => {
+  const NADDR =
+    "naddr1qvzqqqrcvypzpzvm2zlskr58g4u4k3m54454y087r30hedgtavyn75q4yp55dm9lqqrxuat595ergwfsx56rgvfe";
+  const point = (href?: string) => () => (href === undefined ? null : { label: "x", href });
+
+  it("points a link written as a reference at wherever the resolver says", () => {
+    const out = html(`see [BUD-01](nostr:${NADDR})`, { mention: point("/spec/npub1a/bud-01") });
+    expect(out).toContain('<a href="/spec/npub1a/bud-01">BUD-01</a>');
+  });
+
+  it("keeps the fragment, so a link into a section still lands on it", () => {
+    const out = html(`[get](nostr:${NADDR}#get-blob)`, { mention: point("/spec/npub1a/bud-01") });
+    expect(out).toContain('href="/spec/npub1a/bud-01#get-blob"');
+  });
+
+  it("leaves the reference itself when nothing resolves it", () => {
+    const out = html(`see [BUD-01](nostr:${NADDR})`, { mention: point() });
+    expect(out).toContain(`href="nostr:${NADDR}"`);
+  });
+
+  it("keeps the reference when no resolver was given, rather than dropping it", () => {
+    expect(html(`see [BUD-01](nostr:${NADDR})`)).toContain(`href="nostr:${NADDR}"`);
+  });
+
+  it("does not cite a reference as an outgoing link", () => {
+    const { links } = renderMarkdown(`[one](nostr:${NADDR}) and [two](https://example.com)`, {
+      mention: point("/spec/npub1a/bud-01"),
+    });
+    expect(links).toEqual(["https://example.com"]);
+  });
+
+  it("still drops a scripting protocol", () => {
+    expect(html("[click](javascript:alert(1))")).toContain("<a>click</a>");
+  });
+});
+
 it("renders an empty document to nothing", () => {
   expect(renderMarkdown("")).toEqual({ html: "", headings: [], links: [] });
 });

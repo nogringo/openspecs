@@ -1,0 +1,234 @@
+{
+  "name": "nuts",
+  "title": "Cashu NUTs",
+  "npub": "npub169nculhev5m5h04rpzsjz4sf57phdhq4sfm604jhdq8e6hhatsuq0xuard",
+  "repo": "https://github.com/cashubtc/nuts",
+  "branch": "main",
+  "license": "MIT",
+  "topics": ["cashu", "ecash", "nut"],
+  "specs": [
+    {
+      "file": "00.md",
+      "d": "nut-00",
+      "title": "NUT-00: Notation, Utilization, and Terminology",
+      "status": "mandatory",
+      "summary": "The notation, models and cryptography the rest of the specification is written in: blinding, signing, proofs, and how a token is serialised."
+    },
+    {
+      "file": "01.md",
+      "d": "nut-01",
+      "title": "NUT-01: Mint public key exchange",
+      "status": "mandatory",
+      "summary": "How a wallet fetches a mint's active public keys, one per amount, and what a keyset is."
+    },
+    {
+      "file": "02.md",
+      "d": "nut-02",
+      "title": "NUT-02: Keysets and fees",
+      "status": "mandatory",
+      "summary": "Keysets: how an id is derived from one, how a mint rotates them, and the input fee a wallet pays when spending ecash from one."
+    },
+    {
+      "file": "03.md",
+      "d": "nut-03",
+      "title": "NUT-03: Swap tokens",
+      "status": "mandatory",
+      "summary": "The swap operation, where a wallet hands proofs to the mint and receives new blind signatures in return."
+    },
+    {
+      "file": "04.md",
+      "d": "nut-04",
+      "title": "NUT-04: Mint tokens",
+      "status": "mandatory",
+      "summary": "Minting: the two-step flow where a wallet requests a quote, pays it, and then asks the mint to issue ecash."
+    },
+    {
+      "file": "05.md",
+      "d": "nut-05",
+      "title": "NUT-05: Melting tokens",
+      "status": "mandatory",
+      "summary": "Melting: the two-step flow where a wallet asks the mint to pay a request and spends ecash to cover it."
+    },
+    {
+      "file": "06.md",
+      "d": "nut-06",
+      "title": "NUT-06: Mint information",
+      "status": "mandatory",
+      "summary": "The info endpoint, where a mint declares its name, its keys, its contacts, and which NUTs it supports."
+    },
+    {
+      "file": "07.md",
+      "d": "nut-07",
+      "title": "NUT-07: Token state check",
+      "status": "optional",
+      "summary": "How a wallet asks the mint whether a proof is unspent, pending, or already spent."
+    },
+    {
+      "file": "08.md",
+      "d": "nut-08",
+      "title": "NUT-08: Lightning fee return",
+      "status": "optional",
+      "summary": "Blank outputs, which let a mint return the Lightning fees a wallet overpaid when melting."
+    },
+    {
+      "file": "09.md",
+      "d": "nut-09",
+      "title": "NUT-09: Restore signatures",
+      "status": "optional",
+      "summary": "How a wallet asks the mint to reissue blind signatures it once received, so a lost wallet can be restored."
+    },
+    {
+      "file": "10.md",
+      "d": "nut-10",
+      "title": "NUT-10: Spending conditions",
+      "status": "optional",
+      "summary": "The well-known secret format that turns a proof's secret into a spending condition the mint enforces."
+    },
+    {
+      "file": "11.md",
+      "d": "nut-11",
+      "title": "NUT-11: Pay to Public Key (P2PK)",
+      "status": "optional",
+      "summary": "Locking ecash to a public key, redeemable only against a Schnorr signature from the key that owns it."
+    },
+    {
+      "file": "12.md",
+      "d": "nut-12",
+      "title": "NUT-12: Offline ecash signature validation",
+      "status": "optional",
+      "summary": "DLEQ proofs, which let anyone verify a mint's signature offline with nothing but its public keys."
+    },
+    {
+      "file": "13.md",
+      "d": "nut-13",
+      "title": "NUT-13: Deterministic Secrets",
+      "status": "optional",
+      "summary": "Secrets derived from a seed phrase, so a wallet can regenerate its ecash after losing the device that held it."
+    },
+    {
+      "file": "14.md",
+      "d": "nut-14",
+      "title": "NUT-14: Hashed Timelock Contracts (HTLCs)",
+      "status": "optional",
+      "summary": "Ecash locked to the hash of a preimage and a deadline, which makes atomic swaps between users possible."
+    },
+    {
+      "file": "15.md",
+      "d": "nut-15",
+      "title": "NUT-15: Partial multi-path payments",
+      "status": "optional",
+      "summary": "Paying one Lightning invoice from several mints at once, all of them or none."
+    },
+    {
+      "file": "16.md",
+      "d": "nut-16",
+      "title": "NUT-16: Animated QR codes",
+      "status": "optional",
+      "summary": "How to show a token too large for a static QR code as an animated one, using the UR protocol."
+    },
+    {
+      "file": "17.md",
+      "d": "nut-17",
+      "title": "NUT-17: WebSockets",
+      "status": "optional",
+      "summary": "A JSON-RPC WebSocket protocol for subscribing to quote and proof state changes instead of polling for them."
+    },
+    {
+      "file": "18.md",
+      "d": "nut-18",
+      "title": "NUT-18: Payment Requests",
+      "status": "optional",
+      "summary": "A request format carrying everything a sending wallet needs, so a transaction can be started by whoever is being paid."
+    },
+    {
+      "file": "19.md",
+      "d": "nut-19",
+      "title": "NUT-19: Cached Responses",
+      "status": "optional",
+      "summary": "Response caching on the critical endpoints, so a wallet can safely replay a request that a network error interrupted."
+    },
+    {
+      "file": "20.md",
+      "d": "nut-20",
+      "title": "NUT-20: Signature on Mint Quote",
+      "status": "optional",
+      "summary": "Binding a mint quote to a public key, so only the holder of the matching secret key can redeem it."
+    },
+    {
+      "file": "21.md",
+      "d": "nut-21",
+      "title": "NUT-21: Clear Authentication",
+      "status": "optional",
+      "summary": "How a mint restricts its endpoints to users holding a token from an OpenID Connect service it trusts."
+    },
+    {
+      "file": "22.md",
+      "d": "nut-22",
+      "title": "NUT-22: Blind Authentication",
+      "status": "optional",
+      "summary": "Blind authentication tokens, which let a mint restrict access to registered users without learning which one is calling."
+    },
+    {
+      "file": "23.md",
+      "d": "nut-23",
+      "title": "NUT-23: BOLT11",
+      "status": "optional",
+      "summary": "Minting and melting with bolt11 Lightning invoices, the method specifics on top of the shared mint and melt flows."
+    },
+    {
+      "file": "24.md",
+      "d": "nut-24",
+      "title": "NUT-24: HTTP 402 Payment Required",
+      "status": "optional",
+      "summary": "How an HTTP server demands payment with a 402 response carrying a Cashu payment request."
+    },
+    {
+      "file": "25.md",
+      "d": "nut-25",
+      "title": "NUT-25: BOLT12",
+      "status": "optional",
+      "summary": "Minting and melting with bolt12 Lightning offers."
+    },
+    {
+      "file": "26.md",
+      "d": "nut-26",
+      "title": "NUT-26: Payment Request Bech32m Encoding",
+      "status": "optional",
+      "summary": "A bech32m encoding of payment requests, smaller than the CBOR form and friendlier to QR codes."
+    },
+    {
+      "file": "27.md",
+      "d": "nut-27",
+      "title": "NUT-27: Nostr Mint Backup",
+      "status": "optional",
+      "summary": "How a wallet backs up its mint list to Nostr relays, encrypted under keys derived from its own seed phrase.",
+      "kinds": [
+        {
+          "kind": 30078,
+          "name": "Application-specific data"
+        }
+      ]
+    },
+    {
+      "file": "28.md",
+      "d": "nut-28",
+      "title": "NUT-28: Pay to Blinded Key (P2BK)",
+      "status": "optional",
+      "summary": "Blinding the receiver's public key on each payment, so the mint cannot link several of them to the same person."
+    },
+    {
+      "file": "29.md",
+      "d": "nut-29",
+      "title": "NUT-29: Batched Minting",
+      "status": "optional",
+      "summary": "Minting several quotes in one atomic request."
+    },
+    {
+      "file": "30.md",
+      "d": "nut-30",
+      "title": "NUT-30: Payment Method: Onchain",
+      "status": "optional",
+      "summary": "Minting and melting with onchain Bitcoin payments."
+    }
+  ]
+}
