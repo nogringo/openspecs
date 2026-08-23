@@ -1,0 +1,116 @@
+{
+  "name": "buds",
+  "title": "Blossom Upgrade Documents",
+  "repo": "https://github.com/hzrd149/blossom",
+  "branch": "master",
+  "license": "Unlicense",
+  "topics": [
+    "blossom",
+    "bud"
+  ],
+  "specs": [
+    {
+      "file": "buds/00.md",
+      "d": "bud-00",
+      "title": "BUD-00: Blossom Upgrade Documents",
+      "status": "draft",
+      "summary": "Defines the language every other BUD is written in, and what a blob is: raw binary data addressed by the sha256 hash of that data."
+    },
+    {
+      "file": "buds/01.md",
+      "d": "bud-01",
+      "title": "BUD-01: Server requirements and blob retrieval",
+      "status": "draft",
+      "summary": "The base every Blossom server implements: the CORS headers, the error reporting, and the GET and HEAD endpoints that serve a blob by its hash."
+    },
+    {
+      "file": "buds/02.md",
+      "d": "bud-02",
+      "title": "BUD-02: Blob upload",
+      "status": "draft",
+      "summary": "Defines PUT /upload and the blob descriptor, the JSON object describing a stored blob: its url, hash, size, mime type and upload time."
+    },
+    {
+      "file": "buds/03.md",
+      "d": "bud-03",
+      "title": "BUD-03: User Server List",
+      "status": "draft",
+      "summary": "Defines kind 10063, the replaceable event where a user lists the Blossom servers holding their blobs, most trusted first.",
+      "kinds": [
+        {
+          "kind": 10063,
+          "name": "User server list"
+        }
+      ]
+    },
+    {
+      "file": "buds/04.md",
+      "d": "bud-04",
+      "title": "BUD-04: Mirroring blobs",
+      "status": "draft",
+      "summary": "Defines PUT /mirror, which asks a server to fetch a blob from a URL itself instead of having the client upload the same bytes twice."
+    },
+    {
+      "file": "buds/05.md",
+      "d": "bud-05",
+      "title": "BUD-05: Media optimization endpoints",
+      "status": "draft",
+      "summary": "Defines PUT /media, where a server transcodes and optimises what it is given rather than storing the bytes untouched."
+    },
+    {
+      "file": "buds/06.md",
+      "d": "bud-06",
+      "title": "BUD-06: Upload requirements",
+      "status": "draft",
+      "summary": "Defines HEAD /upload, a preflight request telling a client whether an upload would be accepted before it sends the bytes."
+    },
+    {
+      "file": "buds/07.md",
+      "d": "bud-07",
+      "title": "BUD-07: Paid upload and download",
+      "status": "draft",
+      "summary": "How a server charges for an endpoint: a 402 response carrying the payment terms, for uploads, downloads or media processing."
+    },
+    {
+      "file": "buds/08.md",
+      "d": "bud-08",
+      "title": "BUD-08: Nostr File Metadata Tags",
+      "status": "draft",
+      "summary": "How a server returns NIP-94 file metadata alongside a blob descriptor, so a client can publish the file without recomputing it."
+    },
+    {
+      "file": "buds/09.md",
+      "d": "bud-09",
+      "title": "BUD-09: Blob Report",
+      "status": "draft",
+      "summary": "Defines PUT /report, where a client submits a signed NIP-56 report naming the blobs it objects to."
+    },
+    {
+      "file": "buds/10.md",
+      "d": "bud-10",
+      "title": "BUD-10: Blossom URI Schema",
+      "status": "draft",
+      "summary": "Defines the blossom: URI, which carries a blob hash, its extension, and hints about the servers where it can be found."
+    },
+    {
+      "file": "buds/11.md",
+      "d": "bud-11",
+      "title": "BUD-11: Nostr Authorization",
+      "status": "draft",
+      "summary": "Defines the kind 24242 event a user signs to prove to a server that they allowed an application to act on their behalf.",
+      "kinds": [
+        {
+          "kind": 24242,
+          "name": "Blossom authorization"
+        }
+      ]
+    },
+    {
+      "file": "buds/12.md",
+      "d": "bud-12",
+      "title": "BUD-12: Blob management endpoints",
+      "status": "draft",
+      "summary": "Defines the management endpoints: listing what a pubkey uploaded, and deleting a blob by its hash."
+    }
+  ]
+}

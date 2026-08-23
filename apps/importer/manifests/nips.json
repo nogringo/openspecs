@@ -1,0 +1,1445 @@
+{
+  "name": "nips",
+  "title": "Nostr Implementation Possibilities",
+  "repo": "https://github.com/nostr-protocol/nips",
+  "branch": "master",
+  "license": "public domain",
+  "topics": [
+    "nostr",
+    "nip"
+  ],
+  "specs": [
+    {
+      "file": "01.md",
+      "d": "nip-01",
+      "title": "NIP-01: Basic protocol flow description",
+      "status": "draft",
+      "summary": "The core protocol: the event object, how its id and signature are computed, what makes a kind regular, replaceable or addressable, and the messages clients and relays exchange.",
+      "kinds": [
+        {
+          "kind": 0,
+          "name": "User Metadata"
+        }
+      ]
+    },
+    {
+      "file": "02.md",
+      "d": "nip-02",
+      "title": "NIP-02: Follow List",
+      "status": "final",
+      "summary": "Kind 3, the follow list: one p tag per followed key, each carrying an optional relay hint and petname.",
+      "kinds": [
+        {
+          "kind": 3,
+          "name": "Follows"
+        }
+      ]
+    },
+    {
+      "file": "03.md",
+      "d": "nip-03",
+      "title": "NIP-03: OpenTimestamps Attestations for Events",
+      "status": "unrecommended",
+      "summary": "Kind 1040, which carries an OpenTimestamps proof that another event existed before a given Bitcoin block.",
+      "kinds": [
+        {
+          "kind": 1040,
+          "name": "OpenTimestamps"
+        }
+      ]
+    },
+    {
+      "file": "04.md",
+      "d": "nip-04",
+      "title": "NIP-04: Encrypted Direct Message",
+      "status": "unrecommended",
+      "summary": "Kind 4, encrypted direct messages built on a shared secret and aes-256-cbc, superseded by NIP-17.",
+      "kinds": [
+        {
+          "kind": 4,
+          "name": "Encrypted Direct Messages"
+        }
+      ]
+    },
+    {
+      "file": "05.md",
+      "d": "nip-05",
+      "title": "NIP-05: Mapping Nostr keys to DNS-based internet identifiers",
+      "status": "final",
+      "summary": "How a key claims an email-like address, by serving a nostr.json document under the domain that maps a name to that pubkey."
+    },
+    {
+      "file": "06.md",
+      "d": "nip-06",
+      "title": "NIP-06: Basic key derivation from mnemonic seed phrase",
+      "status": "unrecommended",
+      "summary": "Deriving a key from a BIP39 mnemonic along the m/44'/1237' path."
+    },
+    {
+      "file": "07.md",
+      "d": "nip-07",
+      "title": "NIP-07: `window.nostr` capability for web browsers",
+      "status": "draft",
+      "summary": "The window.nostr object a browser extension exposes, letting a web page read a public key and have events signed without ever seeing the private key."
+    },
+    {
+      "file": "08.md",
+      "d": "nip-08",
+      "title": "NIP-08: Handling Mentions",
+      "status": "unrecommended",
+      "summary": "The old #[index] notation for mentioning events and pubkeys inside a note, replaced by NIP-27."
+    },
+    {
+      "file": "09.md",
+      "d": "nip-09",
+      "title": "NIP-09: Event Deletion Request",
+      "status": "draft",
+      "summary": "Kind 5, the deletion request, where an author asks relays to drop events they signed earlier.",
+      "kinds": [
+        {
+          "kind": 5,
+          "name": "Event Deletion Request"
+        }
+      ]
+    },
+    {
+      "file": "10.md",
+      "d": "nip-10",
+      "title": "NIP-10: Text Notes and Threads",
+      "status": "draft",
+      "summary": "How kind 1 notes thread: the markers on e tags that name the root and the parent, and the q tags that cite another event.",
+      "kinds": [
+        {
+          "kind": 1,
+          "name": "Short Text Note"
+        }
+      ]
+    },
+    {
+      "file": "11.md",
+      "d": "nip-11",
+      "title": "NIP-11: Relay Information Document",
+      "status": "draft",
+      "summary": "The JSON document a relay serves over HTTP to describe itself: its name, its contacts, the NIPs it supports, its limits and its policies."
+    },
+    {
+      "file": "13.md",
+      "d": "nip-13",
+      "title": "NIP-13: Proof of Work",
+      "status": "draft",
+      "summary": "Proof of work over an event id, mined with a nonce tag and measured in leading zero bits."
+    },
+    {
+      "file": "14.md",
+      "d": "nip-14",
+      "title": "NIP-14: Subject tag in text events",
+      "status": "draft",
+      "summary": "The subject tag, which gives a note a heading the way an email has one."
+    },
+    {
+      "file": "15.md",
+      "d": "nip-15",
+      "title": "NIP-15: Nostr Marketplace (for resilient marketplaces)",
+      "status": "unrecommended",
+      "summary": "A marketplace protocol built from stalls, products and order messages, kept for the clients that implemented it.",
+      "kinds": [
+        {
+          "kind": 1021,
+          "name": "Bid"
+        },
+        {
+          "kind": 1022,
+          "name": "Bid confirmation"
+        },
+        {
+          "kind": 30017,
+          "name": "Create or update a stall"
+        },
+        {
+          "kind": 30018,
+          "name": "Create or update a product"
+        },
+        {
+          "kind": 30019,
+          "name": "Marketplace UI/UX"
+        },
+        {
+          "kind": 30020,
+          "name": "Product sold as an auction"
+        }
+      ]
+    },
+    {
+      "file": "17.md",
+      "d": "nip-17",
+      "title": "NIP-17: Private Direct Messages",
+      "status": "draft",
+      "summary": "Private direct messages, built from NIP-44 encryption and NIP-59 gift wraps, where the set of participants is what defines a room.",
+      "kinds": [
+        {
+          "kind": 14,
+          "name": "Direct Message"
+        },
+        {
+          "kind": 15,
+          "name": "File Message"
+        },
+        {
+          "kind": 10050,
+          "name": "Relay list to receive DMs"
+        }
+      ]
+    },
+    {
+      "file": "18.md",
+      "d": "nip-18",
+      "title": "NIP-18: Reposts",
+      "status": "draft",
+      "summary": "Kind 6, the repost, which carries the reposted note in its content and points at it with an e tag.",
+      "kinds": [
+        {
+          "kind": 6,
+          "name": "Repost"
+        },
+        {
+          "kind": 16,
+          "name": "Generic Repost"
+        }
+      ]
+    },
+    {
+      "file": "19.md",
+      "d": "nip-19",
+      "title": "NIP-19: bech32-encoded entities",
+      "status": "draft",
+      "summary": "The bech32 forms of keys, ids and pointers: npub, nsec, note, nprofile, nevent and naddr."
+    },
+    {
+      "file": "21.md",
+      "d": "nip-21",
+      "title": "NIP-21: `nostr:` URI scheme",
+      "status": "draft",
+      "summary": "The nostr: URI scheme, which turns a NIP-19 entity into a link any client can open."
+    },
+    {
+      "file": "22.md",
+      "d": "nip-22",
+      "title": "NIP-22: Comment",
+      "status": "draft",
+      "summary": "Kind 1111, the comment: a reply scoped to a root event or to an external identifier, with uppercase tags for the root and lowercase ones for the parent.",
+      "kinds": [
+        {
+          "kind": 1111,
+          "name": "Comment"
+        }
+      ]
+    },
+    {
+      "file": "23.md",
+      "d": "nip-23",
+      "title": "NIP-23: Long-form Content",
+      "status": "draft",
+      "summary": "Kind 30023, long-form articles written in Markdown, addressable so their author can revise them in place.",
+      "kinds": [
+        {
+          "kind": 30023,
+          "name": "Long-form Content"
+        },
+        {
+          "kind": 30024,
+          "name": "Draft Long-form Content"
+        }
+      ]
+    },
+    {
+      "file": "24.md",
+      "d": "nip-24",
+      "title": "NIP-24: Extra metadata fields and tags",
+      "status": "draft",
+      "summary": "The fields and tags that became conventions without a NIP of their own, from display_name to the alt tag."
+    },
+    {
+      "file": "25.md",
+      "d": "nip-25",
+      "title": "NIP-25: Reactions",
+      "status": "draft",
+      "summary": "Kind 7, the reaction, whose content is a plus, a minus or an emoji, pointing at the event it answers.",
+      "kinds": [
+        {
+          "kind": 7,
+          "name": "Reaction"
+        },
+        {
+          "kind": 17,
+          "name": "Reaction to a website"
+        }
+      ]
+    },
+    {
+      "file": "26.md",
+      "d": "nip-26",
+      "title": "NIP-26: Delegated Event Signing",
+      "status": "unrecommended",
+      "summary": "The delegation tag, which let one key authorise another to sign events on its behalf."
+    },
+    {
+      "file": "27.md",
+      "d": "nip-27",
+      "title": "NIP-27: Text Note References",
+      "status": "draft",
+      "summary": "How to write a mention inside content: a nostr: URI in the text, and nothing else demanded of the reader."
+    },
+    {
+      "file": "28.md",
+      "d": "nip-28",
+      "title": "NIP-28: Public Chat",
+      "status": "unrecommended",
+      "summary": "Kinds 40 to 44, public chat channels with moderation left to the client.",
+      "kinds": [
+        {
+          "kind": 40,
+          "name": "Channel Creation"
+        },
+        {
+          "kind": 41,
+          "name": "Channel Metadata"
+        },
+        {
+          "kind": 42,
+          "name": "Channel Message"
+        },
+        {
+          "kind": 43,
+          "name": "Channel Hide Message"
+        },
+        {
+          "kind": 44,
+          "name": "Channel Mute User"
+        }
+      ]
+    },
+    {
+      "file": "29.md",
+      "d": "nip-29",
+      "title": "NIP-29: Relay-based Groups",
+      "status": "draft",
+      "summary": "Groups whose membership and rules are enforced by the relay hosting them, identified by an id scoped to that relay.",
+      "kinds": [
+        {
+          "kind": 10009,
+          "name": "User groups"
+        }
+      ]
+    },
+    {
+      "file": "30.md",
+      "d": "nip-30",
+      "title": "NIP-30: Custom Emoji",
+      "status": "draft",
+      "summary": "The emoji tag, which maps a shortcode written in the content to an image URL."
+    },
+    {
+      "file": "31.md",
+      "d": "nip-31",
+      "title": "NIP-31: Dealing with Unknown Events",
+      "status": "unrecommended",
+      "summary": "The alt tag, a plain text summary so a client that does not know a kind can still show something for it."
+    },
+    {
+      "file": "32.md",
+      "d": "nip-32",
+      "title": "NIP-32: Labeling",
+      "status": "draft",
+      "summary": "Kind 1985 and the L and l tags, which attach a namespaced label to an event, a key, or an external identifier.",
+      "kinds": [
+        {
+          "kind": 1985,
+          "name": "Label"
+        }
+      ]
+    },
+    {
+      "file": "34.md",
+      "d": "nip-34",
+      "title": "NIP-34: `git` stuff",
+      "status": "draft",
+      "summary": "Code collaboration on Nostr: repository announcements, repository state, patches, and issues.",
+      "kinds": [
+        {
+          "kind": 1617,
+          "name": "Patches"
+        },
+        {
+          "kind": 1618,
+          "name": "Pull Requests"
+        },
+        {
+          "kind": 1619,
+          "name": "Pull Request Updates"
+        },
+        {
+          "kind": 1621,
+          "name": "Issues"
+        },
+        {
+          "kind": 1622,
+          "name": "Git Replies (deprecated)"
+        },
+        {
+          "kind": 30617,
+          "name": "Repository announcements"
+        },
+        {
+          "kind": 30618,
+          "name": "Repository state announcements"
+        }
+      ]
+    },
+    {
+      "file": "35.md",
+      "d": "nip-35",
+      "title": "NIP-35: Torrents",
+      "status": "draft",
+      "summary": "Kind 2003, a torrent index carrying the info hash, the file list and the trackers needed to rebuild a magnet link.",
+      "kinds": [
+        {
+          "kind": 2003,
+          "name": "Torrent"
+        },
+        {
+          "kind": 2004,
+          "name": "Torrent Comment"
+        }
+      ]
+    },
+    {
+      "file": "36.md",
+      "d": "nip-36",
+      "title": "NIP-36: Sensitive Content",
+      "status": "draft",
+      "summary": "The content-warning tag, which asks a client to hide an event until the reader chooses to see it."
+    },
+    {
+      "file": "37.md",
+      "d": "nip-37",
+      "title": "NIP-37: Draft Events",
+      "status": "draft",
+      "summary": "Kind 31234, an encrypted draft of an unsigned event of any kind, stored on relays for its author alone.",
+      "kinds": [
+        {
+          "kind": 1234,
+          "name": "Draft Checkpoint"
+        },
+        {
+          "kind": 10013,
+          "name": "Private event relay list"
+        },
+        {
+          "kind": 31234,
+          "name": "Draft Event"
+        }
+      ]
+    },
+    {
+      "file": "38.md",
+      "d": "nip-38",
+      "title": "NIP-38: User Statuses",
+      "status": "draft",
+      "summary": "Kind 30315, a short-lived status: what someone is doing, or what they are listening to.",
+      "kinds": [
+        {
+          "kind": 30315,
+          "name": "User Statuses"
+        }
+      ]
+    },
+    {
+      "file": "39.md",
+      "d": "nip-39",
+      "title": "NIP-39: Linking Profiles to Other Platforms",
+      "status": "draft",
+      "summary": "The i tags that claim an identity on another platform, each pointing at a proof anyone can check.",
+      "kinds": [
+        {
+          "kind": 10011,
+          "name": "External Identities"
+        }
+      ]
+    },
+    {
+      "file": "40.md",
+      "d": "nip-40",
+      "title": "NIP-40: Expiration Timestamp",
+      "status": "draft",
+      "summary": "The expiration tag, a timestamp after which relays and clients should treat an event as gone."
+    },
+    {
+      "file": "42.md",
+      "d": "nip-42",
+      "title": "NIP-42: Authentication of clients to relays",
+      "status": "draft",
+      "summary": "The AUTH flow, where a relay challenges a client to sign an ephemeral event before granting it access.",
+      "kinds": [
+        {
+          "kind": 22242,
+          "name": "Client Authentication"
+        }
+      ]
+    },
+    {
+      "file": "43.md",
+      "d": "nip-43",
+      "title": "NIP-43: Relay Access Metadata and Requests",
+      "status": "draft",
+      "summary": "How a relay advertises the roles it grants and the membership it enforces, and how a client asks to be admitted.",
+      "kinds": [
+        {
+          "kind": 8000,
+          "name": "Add User"
+        },
+        {
+          "kind": 8001,
+          "name": "Remove User"
+        },
+        {
+          "kind": 13534,
+          "name": "Membership Lists"
+        },
+        {
+          "kind": 28934,
+          "name": "Join Request"
+        },
+        {
+          "kind": 28935,
+          "name": "Invite Request"
+        },
+        {
+          "kind": 28936,
+          "name": "Leave Request"
+        }
+      ]
+    },
+    {
+      "file": "44.md",
+      "d": "nip-44",
+      "title": "NIP-44: Encrypted Payloads (Versioned)",
+      "status": null,
+      "summary": "The versioned encryption format the rest of Nostr builds on: secp256k1 ECDH, HKDF, padding, ChaCha20 and HMAC-SHA256."
+    },
+    {
+      "file": "45.md",
+      "d": "nip-45",
+      "title": "NIP-45: Counting results",
+      "status": "draft",
+      "summary": "The COUNT verb, which asks a relay how many events match a filter instead of asking for the events themselves."
+    },
+    {
+      "file": "46.md",
+      "d": "nip-46",
+      "title": "NIP-46: Nostr Remote Signing",
+      "status": null,
+      "summary": "Remote signing: a client sends signing requests over an encrypted channel to a signer that holds the key and never surrenders it.",
+      "kinds": [
+        {
+          "kind": 24133,
+          "name": "Nostr Connect"
+        }
+      ]
+    },
+    {
+      "file": "47.md",
+      "d": "nip-47",
+      "title": "NIP-47: Nostr Wallet Connect",
+      "status": "draft",
+      "summary": "Nostr Wallet Connect, where a client drives a remote Lightning wallet through encrypted events.",
+      "kinds": [
+        {
+          "kind": 13194,
+          "name": "Wallet Info"
+        },
+        {
+          "kind": 23194,
+          "name": "Wallet Request"
+        },
+        {
+          "kind": 23195,
+          "name": "Wallet Response"
+        }
+      ]
+    },
+    {
+      "file": "48.md",
+      "d": "nip-48",
+      "title": "NIP-48: Bridged Events",
+      "status": "draft",
+      "summary": "The proxy tag, which links an event bridged from another protocol back to the object it came from."
+    },
+    {
+      "file": "49.md",
+      "d": "nip-49",
+      "title": "NIP-49: Private Key Encryption (`ncryptsec`)",
+      "status": "draft",
+      "summary": "ncryptsec, a private key encrypted under a password, with scrypt deciding how expensive guessing it is."
+    },
+    {
+      "file": "50.md",
+      "d": "nip-50",
+      "title": "NIP-50: Search Capability",
+      "status": "draft",
+      "summary": "The search field on a filter, and what a relay is expected to make of it."
+    },
+    {
+      "file": "51.md",
+      "d": "nip-51",
+      "title": "NIP-51: Lists",
+      "status": "draft",
+      "summary": "The list kinds, with public entries in the tags and private ones encrypted in the content: mutes, bookmarks, relay sets, follow sets and the rest.",
+      "kinds": [
+        {
+          "kind": 10000,
+          "name": "Mute list"
+        },
+        {
+          "kind": 10001,
+          "name": "Pin list"
+        },
+        {
+          "kind": 10002,
+          "name": "Relay List Metadata"
+        },
+        {
+          "kind": 10003,
+          "name": "Bookmark list"
+        },
+        {
+          "kind": 10004,
+          "name": "Communities list"
+        },
+        {
+          "kind": 10005,
+          "name": "Public chats list"
+        },
+        {
+          "kind": 10006,
+          "name": "Blocked relays list"
+        },
+        {
+          "kind": 10007,
+          "name": "Search relays list"
+        },
+        {
+          "kind": 10008,
+          "name": "Profile Badges"
+        },
+        {
+          "kind": 10009,
+          "name": "User groups"
+        },
+        {
+          "kind": 10012,
+          "name": "Favorite relays list"
+        },
+        {
+          "kind": 10015,
+          "name": "Interests list"
+        },
+        {
+          "kind": 10020,
+          "name": "Media follows"
+        },
+        {
+          "kind": 10030,
+          "name": "User emoji list"
+        },
+        {
+          "kind": 10050,
+          "name": "Relay list to receive DMs"
+        },
+        {
+          "kind": 10054,
+          "name": "Favorite podcasts list"
+        },
+        {
+          "kind": 10064,
+          "name": "Authored podcasts list"
+        },
+        {
+          "kind": 30000,
+          "name": "Follow sets"
+        },
+        {
+          "kind": 30002,
+          "name": "Relay sets"
+        },
+        {
+          "kind": 30003,
+          "name": "Bookmark sets"
+        },
+        {
+          "kind": 30004,
+          "name": "Curation sets"
+        },
+        {
+          "kind": 30005,
+          "name": "Video sets"
+        },
+        {
+          "kind": 30006,
+          "name": "Picture sets"
+        },
+        {
+          "kind": 30007,
+          "name": "Kind mute sets"
+        },
+        {
+          "kind": 30008,
+          "name": "Badge sets"
+        },
+        {
+          "kind": 30015,
+          "name": "Interest sets"
+        },
+        {
+          "kind": 30030,
+          "name": "Emoji sets"
+        },
+        {
+          "kind": 30063,
+          "name": "Release artifact sets"
+        },
+        {
+          "kind": 30267,
+          "name": "App curation sets"
+        },
+        {
+          "kind": 39089,
+          "name": "Starter packs"
+        },
+        {
+          "kind": 39092,
+          "name": "Media starter packs"
+        }
+      ]
+    },
+    {
+      "file": "52.md",
+      "d": "nip-52",
+      "title": "NIP-52: Calendar Events",
+      "status": "draft",
+      "summary": "Calendar events, date-based and time-based, and the RSVPs that answer them.",
+      "kinds": [
+        {
+          "kind": 31922,
+          "name": "Date-Based Calendar Event"
+        },
+        {
+          "kind": 31923,
+          "name": "Time-Based Calendar Event"
+        },
+        {
+          "kind": 31924,
+          "name": "Calendar"
+        },
+        {
+          "kind": 31925,
+          "name": "Calendar Event RSVP"
+        }
+      ]
+    },
+    {
+      "file": "53.md",
+      "d": "nip-53",
+      "title": "NIP-53: Live Streaming and Spaces",
+      "status": "draft",
+      "summary": "Kind 30311, a live stream or audio space, rewritten as participants join and leave it.",
+      "kinds": [
+        {
+          "kind": 1311,
+          "name": "Live Chat Message"
+        },
+        {
+          "kind": 10312,
+          "name": "Room Presence"
+        },
+        {
+          "kind": 30311,
+          "name": "Live Event"
+        },
+        {
+          "kind": 30312,
+          "name": "Interactive Room"
+        },
+        {
+          "kind": 30313,
+          "name": "Conference Event"
+        }
+      ]
+    },
+    {
+      "file": "54.md",
+      "d": "nip-54",
+      "title": "NIP-54: Wiki",
+      "status": "draft",
+      "summary": "Kind 30818, wiki articles addressed by a normalised subject, where several people are expected to write about the same one.",
+      "kinds": [
+        {
+          "kind": 818,
+          "name": "Merge Requests"
+        },
+        {
+          "kind": 30818,
+          "name": "Wiki article"
+        },
+        {
+          "kind": 30819,
+          "name": "Redirects"
+        }
+      ]
+    },
+    {
+      "file": "55.md",
+      "d": "nip-55",
+      "title": "NIP-55: Android Signer Application",
+      "status": "draft",
+      "summary": "How a client on Android asks a signer application on the same device to sign, so it never handles the private key."
+    },
+    {
+      "file": "56.md",
+      "d": "nip-56",
+      "title": "NIP-56: Reporting",
+      "status": null,
+      "summary": "Kind 1984, a report naming content or a key as objectionable, with a type such as nudity, malware or impersonation.",
+      "kinds": [
+        {
+          "kind": 1984,
+          "name": "Reporting"
+        }
+      ]
+    },
+    {
+      "file": "57.md",
+      "d": "nip-57",
+      "title": "NIP-57: Lightning Zaps",
+      "status": "draft",
+      "summary": "Zaps: the kind 9734 request a payer signs, and the kind 9735 receipt the recipient's wallet publishes once the invoice is paid.",
+      "kinds": [
+        {
+          "kind": 9734,
+          "name": "Zap Request"
+        },
+        {
+          "kind": 9735,
+          "name": "Zap"
+        }
+      ]
+    },
+    {
+      "file": "58.md",
+      "d": "nip-58",
+      "title": "NIP-58: Badges",
+      "status": "draft",
+      "summary": "Badges: the definition an issuer publishes, the award it grants to a key, and the list a user chooses to show on their profile.",
+      "kinds": [
+        {
+          "kind": 8,
+          "name": "Badge Award"
+        },
+        {
+          "kind": 10008,
+          "name": "Profile Badges"
+        },
+        {
+          "kind": 30008,
+          "name": "Badge sets"
+        },
+        {
+          "kind": 30009,
+          "name": "Badge Definition"
+        }
+      ]
+    },
+    {
+      "file": "59.md",
+      "d": "nip-59",
+      "title": "NIP-59: Gift Wrap",
+      "status": null,
+      "summary": "Gift wraps: a rumor sealed to its recipient, then wrapped again under a throwaway key, so relays see only the wrapper.",
+      "kinds": [
+        {
+          "kind": 13,
+          "name": "Seal"
+        },
+        {
+          "kind": 1059,
+          "name": "Gift Wrap"
+        }
+      ]
+    },
+    {
+      "file": "5A.md",
+      "d": "nip-5a",
+      "title": "NIP-5A: Static Websites (nsites)",
+      "status": "draft",
+      "summary": "Static websites whose files are Blossom blobs, listed by a manifest event: one root site per key, and named sites beside it.",
+      "kinds": [
+        {
+          "kind": 5128,
+          "name": "nsite manifest snapshot"
+        },
+        {
+          "kind": 15128,
+          "name": "Root nsite manifest"
+        },
+        {
+          "kind": 34128,
+          "name": "Legacy nsite manifest"
+        },
+        {
+          "kind": 35128,
+          "name": "Named nsite manifest"
+        }
+      ]
+    },
+    {
+      "file": "60.md",
+      "d": "nip-60",
+      "title": "NIP-60: Cashu Wallet",
+      "status": "draft",
+      "summary": "A Cashu wallet whose proofs and spending history live encrypted on relays, so it follows its owner between clients.",
+      "kinds": [
+        {
+          "kind": 7374,
+          "name": "Reserved Cashu Wallet Tokens"
+        },
+        {
+          "kind": 7375,
+          "name": "Cashu Wallet Tokens"
+        },
+        {
+          "kind": 7376,
+          "name": "Cashu Wallet History"
+        },
+        {
+          "kind": 17375,
+          "name": "Cashu Wallet Event"
+        }
+      ]
+    },
+    {
+      "file": "61.md",
+      "d": "nip-61",
+      "title": "NIP-61: Nutzaps",
+      "status": "draft",
+      "summary": "Nutzaps, where the payment is a Cashu token locked to the recipient's key and published to their relays, so the token itself is the receipt.",
+      "kinds": [
+        {
+          "kind": 9321,
+          "name": "Nutzap"
+        },
+        {
+          "kind": 10019,
+          "name": "Nutzap Mint Recommendation"
+        }
+      ]
+    },
+    {
+      "file": "62.md",
+      "d": "nip-62",
+      "title": "NIP-62: Request to Vanish",
+      "status": "draft",
+      "summary": "Kind 62, a request that a relay delete everything a key ever published there.",
+      "kinds": [
+        {
+          "kind": 62,
+          "name": "Request to Vanish"
+        }
+      ]
+    },
+    {
+      "file": "64.md",
+      "d": "nip-64",
+      "title": "NIP-64: Chess (PGN)",
+      "status": "draft",
+      "summary": "Kind 64, a chess game written in PGN.",
+      "kinds": [
+        {
+          "kind": 64,
+          "name": "Chess (PGN)"
+        }
+      ]
+    },
+    {
+      "file": "65.md",
+      "d": "nip-65",
+      "title": "NIP-65: Relay List Metadata",
+      "status": "draft",
+      "summary": "Kind 10002, the list saying where a key writes and where it reads mentions, which is what the outbox model is built on.",
+      "kinds": [
+        {
+          "kind": 10002,
+          "name": "Relay List Metadata"
+        }
+      ]
+    },
+    {
+      "file": "66.md",
+      "d": "nip-66",
+      "title": "NIP-66: Relay Discovery and Liveness Monitoring",
+      "status": "draft",
+      "summary": "Kind 30166, relay discovery events published by monitors, describing what a relay claims to be and whether it answers.",
+      "kinds": [
+        {
+          "kind": 10166,
+          "name": "Relay Monitor Announcement"
+        },
+        {
+          "kind": 30166,
+          "name": "Relay Discovery"
+        }
+      ]
+    },
+    {
+      "file": "67.md",
+      "d": "nip-67",
+      "title": "NIP-67: EOSE Completeness Hint",
+      "status": "draft",
+      "summary": "A third element on EOSE, telling a client whether the relay really sent every stored event matching the filter."
+    },
+    {
+      "file": "68.md",
+      "d": "nip-68",
+      "title": "NIP-68: Picture-first feeds",
+      "status": "draft",
+      "summary": "Kind 20, picture-first posts where the images carry the event rather than illustrate it.",
+      "kinds": [
+        {
+          "kind": 20,
+          "name": "Picture"
+        }
+      ]
+    },
+    {
+      "file": "69.md",
+      "d": "nip-69",
+      "title": "NIP-69: Peer-to-peer Order events",
+      "status": "draft",
+      "summary": "Kind 38383, peer-to-peer trade orders shared across platforms so that their separate liquidity pools into one.",
+      "kinds": [
+        {
+          "kind": 38383,
+          "name": "Peer-to-peer Order events"
+        }
+      ]
+    },
+    {
+      "file": "70.md",
+      "d": "nip-70",
+      "title": "NIP-70: Protected Events",
+      "status": "draft",
+      "summary": "The dash tag, marking an event that only its author may publish, which relays enforce through NIP-42."
+    },
+    {
+      "file": "71.md",
+      "d": "nip-71",
+      "title": "NIP-71: Video Events",
+      "status": "draft",
+      "summary": "Video events, long and short, carrying the metadata a video client needs around media hosted elsewhere.",
+      "kinds": [
+        {
+          "kind": 21,
+          "name": "Video Event"
+        },
+        {
+          "kind": 22,
+          "name": "Short-form Portrait Video Event"
+        },
+        {
+          "kind": 34235,
+          "name": "Addressable Video Event"
+        },
+        {
+          "kind": 34236,
+          "name": "Addressable Short Video Event"
+        }
+      ]
+    },
+    {
+      "file": "72.md",
+      "d": "nip-72",
+      "title": "NIP-72: Moderated Communities",
+      "status": "unrecommended",
+      "summary": "Kind 34550, Reddit-style communities where moderators approve the posts addressed to them.",
+      "kinds": [
+        {
+          "kind": 4550,
+          "name": "Community Post Approval"
+        },
+        {
+          "kind": 34550,
+          "name": "Community Definition"
+        }
+      ]
+    },
+    {
+      "file": "73.md",
+      "d": "nip-73",
+      "title": "NIP-73: External Content IDs",
+      "status": "draft",
+      "summary": "The i tags for identifiers that exist outside Nostr: URLs, ISBNs, podcast GUIDs, DOIs, hashtags and blockchain transactions."
+    },
+    {
+      "file": "75.md",
+      "d": "nip-75",
+      "title": "NIP-75: Zap Goals",
+      "status": "draft",
+      "summary": "Kind 9041, a fundraising goal that zaps are tallied against.",
+      "kinds": [
+        {
+          "kind": 9041,
+          "name": "Zap Goal"
+        }
+      ]
+    },
+    {
+      "file": "77.md",
+      "d": "nip-77",
+      "title": "NIP-77: Negentropy Syncing",
+      "status": "draft",
+      "summary": "Negentropy over Nostr: range-based set reconciliation, so two sides transfer only the events one of them lacks."
+    },
+    {
+      "file": "78.md",
+      "d": "nip-78",
+      "title": "NIP-78: Application-specific data",
+      "status": "draft",
+      "summary": "Kind 30078, where an application stores data it has no intention of sharing with any other.",
+      "kinds": [
+        {
+          "kind": 78,
+          "name": "Application-specific Data"
+        },
+        {
+          "kind": 30078,
+          "name": "Application-specific Data"
+        }
+      ]
+    },
+    {
+      "file": "7D.md",
+      "d": "nip-7d",
+      "title": "NIP-7D: Forum Threads",
+      "status": "draft",
+      "summary": "Kind 11, a forum thread with a title, whose replies are NIP-22 comments rather than nested notes.",
+      "kinds": [
+        {
+          "kind": 11,
+          "name": "Thread"
+        }
+      ]
+    },
+    {
+      "file": "84.md",
+      "d": "nip-84",
+      "title": "NIP-84: Highlights",
+      "status": "draft",
+      "summary": "Kind 9802, a highlight: the passage someone found worth keeping, pointing back at the event or the URL it was taken from.",
+      "kinds": [
+        {
+          "kind": 9802,
+          "name": "Highlights"
+        }
+      ]
+    },
+    {
+      "file": "85.md",
+      "d": "nip-85",
+      "title": "NIP-85: Trusted Assertions",
+      "status": "draft",
+      "summary": "Assertions a trusted provider publishes about a key, an event or an external identifier, so a client does not have to compute a web of trust itself.",
+      "kinds": [
+        {
+          "kind": 30382,
+          "name": "User Trusted Assertion"
+        },
+        {
+          "kind": 30383,
+          "name": "Event Trusted Assertion"
+        },
+        {
+          "kind": 30384,
+          "name": "Addressable Trusted Assertion"
+        }
+      ]
+    },
+    {
+      "file": "86.md",
+      "d": "nip-86",
+      "title": "NIP-86: Relay Management API",
+      "status": "draft",
+      "summary": "A JSON-RPC API over HTTP for administering a relay: banning keys, allowing kinds, listing what it refuses."
+    },
+    {
+      "file": "87.md",
+      "d": "nip-87",
+      "title": "NIP-87: Cashu and Fedimint Discoverability",
+      "status": "draft",
+      "summary": "How an ecash mint announces itself and its capabilities, and how users recommend the mints they trust.",
+      "kinds": [
+        {
+          "kind": 38172,
+          "name": "Cashu Mint Announcement"
+        },
+        {
+          "kind": 38173,
+          "name": "Fedimint Announcement"
+        }
+      ]
+    },
+    {
+      "file": "88.md",
+      "d": "nip-88",
+      "title": "NIP-88: Polls",
+      "status": "draft",
+      "summary": "Kind 1068, a poll with its options, its type and its deadline, answered on the relays it names.",
+      "kinds": [
+        {
+          "kind": 1018,
+          "name": "Poll Response"
+        },
+        {
+          "kind": 1068,
+          "name": "Poll"
+        }
+      ]
+    },
+    {
+      "file": "89.md",
+      "d": "nip-89",
+      "title": "NIP-89: Recommended Application Handlers",
+      "status": "draft",
+      "summary": "How an application declares the event kinds it can handle, and how users recommend one for a kind their client cannot open.",
+      "kinds": [
+        {
+          "kind": 31989,
+          "name": "Handler recommendation"
+        },
+        {
+          "kind": 31990,
+          "name": "Handler information"
+        }
+      ]
+    },
+    {
+      "file": "90.md",
+      "d": "nip-90",
+      "title": "NIP-90: Data Vending Machines",
+      "status": "unrecommended",
+      "summary": "Data vending machines: paid jobs requested and delivered as events, reserving the kind range 5000 to 7000."
+    },
+    {
+      "file": "92.md",
+      "d": "nip-92",
+      "title": "NIP-92: Media Attachments Metadata (`imeta`)",
+      "status": null,
+      "summary": "The imeta tag, which describes a media URL found in the content: its dimensions, its mime type, its hash and its fallbacks."
+    },
+    {
+      "file": "94.md",
+      "d": "nip-94",
+      "title": "NIP-94: File Metadata",
+      "status": "draft",
+      "summary": "Kind 1063, file metadata: the url, the hash, the mime type and the size of a shared file.",
+      "kinds": [
+        {
+          "kind": 1063,
+          "name": "File Metadata"
+        }
+      ]
+    },
+    {
+      "file": "96.md",
+      "d": "nip-96",
+      "title": "NIP-96: HTTP File Storage Integration",
+      "status": "unrecommended",
+      "summary": "An HTTP file storage API discovered through a well-known document, replaced by Blossom.",
+      "kinds": [
+        {
+          "kind": 10096,
+          "name": "File storage server list"
+        }
+      ]
+    },
+    {
+      "file": "98.md",
+      "d": "nip-98",
+      "title": "NIP-98: HTTP Auth",
+      "status": "draft",
+      "summary": "Kind 27235, an ephemeral event signed to authorise a single HTTP request.",
+      "kinds": [
+        {
+          "kind": 27235,
+          "name": "HTTP Auth"
+        }
+      ]
+    },
+    {
+      "file": "99.md",
+      "d": "nip-99",
+      "title": "NIP-99: Classified Listings",
+      "status": "draft",
+      "summary": "Kind 30402, a classified listing: something for sale or on offer, with enough structure to be worth querying.",
+      "kinds": [
+        {
+          "kind": 30402,
+          "name": "Classified Listing"
+        },
+        {
+          "kind": 30403,
+          "name": "Draft Classified Listing"
+        }
+      ]
+    },
+    {
+      "file": "A0.md",
+      "d": "nip-a0",
+      "title": "NIP-A0: Voice Messages",
+      "status": "draft",
+      "summary": "Kinds 1222 and 1244, short voice messages whose content is the URL of an audio file.",
+      "kinds": [
+        {
+          "kind": 1222,
+          "name": "Voice Message"
+        },
+        {
+          "kind": 1244,
+          "name": "Voice Message Comment"
+        }
+      ]
+    },
+    {
+      "file": "A4.md",
+      "d": "nip-a4",
+      "title": "NIP-A4: Public Messages",
+      "status": "draft",
+      "summary": "Kind 24, a plain text message addressed to one or more keys, meant for a notification screen rather than a thread.",
+      "kinds": [
+        {
+          "kind": 24,
+          "name": "Public Message"
+        }
+      ]
+    },
+    {
+      "file": "B0.md",
+      "d": "nip-b0",
+      "title": "NIP-B0: Web Bookmarks",
+      "status": "draft",
+      "summary": "Kind 39701, a web bookmark addressed by its own URI, editable by whoever saved it.",
+      "kinds": [
+        {
+          "kind": 39701,
+          "name": "Web bookmarks"
+        }
+      ]
+    },
+    {
+      "file": "B7.md",
+      "d": "nip-b7",
+      "title": "NIP-B7: Blossom",
+      "status": "draft",
+      "summary": "How a Nostr client uses Blossom for media: reading a user's server list, and uploading to the servers it names.",
+      "kinds": [
+        {
+          "kind": 10063,
+          "name": "User server list"
+        },
+        {
+          "kind": 24242,
+          "name": "Blobs stored on mediaservers"
+        }
+      ]
+    },
+    {
+      "file": "BE.md",
+      "d": "nip-be",
+      "title": "NIP-BE: Nostr BLE Communications Protocol",
+      "status": "unrecommended",
+      "summary": "How two devices speak Nostr over Bluetooth Low Energy, emulating the websocket protocol within its limits."
+    },
+    {
+      "file": "C0.md",
+      "d": "nip-c0",
+      "title": "NIP-C0: Code Snippets",
+      "status": "draft",
+      "summary": "Kind 1337, a code snippet carrying its language, its filename, its extension and its runtime.",
+      "kinds": [
+        {
+          "kind": 1337,
+          "name": "Code Snippet"
+        }
+      ]
+    },
+    {
+      "file": "C7.md",
+      "d": "nip-c7",
+      "title": "NIP-C7: Chats",
+      "status": "draft",
+      "summary": "Kind 9, a chat message, whose replies are further kind 9 events quoting their parent.",
+      "kinds": [
+        {
+          "kind": 9,
+          "name": "Chat Message"
+        }
+      ]
+    },
+    {
+      "file": "CC.md",
+      "d": "nip-cc",
+      "title": "NIP-CC: Geocaching",
+      "status": "draft",
+      "summary": "Kind 37516 and its companions, geocache listings and the logs of the people who found them.",
+      "kinds": [
+        {
+          "kind": 7516,
+          "name": "Geocache log"
+        },
+        {
+          "kind": 7517,
+          "name": "Geocache proof of find"
+        },
+        {
+          "kind": 37516,
+          "name": "Geocache Listing"
+        },
+        {
+          "kind": 37517,
+          "name": "Geocache Curation List"
+        }
+      ]
+    },
+    {
+      "file": "EE.md",
+      "d": "nip-ee",
+      "title": "NIP-EE: E2EE Messaging using MLS Protocol",
+      "status": "unrecommended",
+      "summary": "End-to-end encrypted group messaging built on the MLS protocol, superseded by Marmot."
+    },
+    {
+      "file": "F4.md",
+      "d": "nip-f4",
+      "title": "NIP-F4: Podcasts",
+      "status": "draft",
+      "summary": "Podcast episodes published as events, so a feed stops depending on one URL staying alive.",
+      "kinds": [
+        {
+          "kind": 54,
+          "name": "Podcast Episode"
+        },
+        {
+          "kind": 10154,
+          "name": "Podcast Metadata"
+        }
+      ]
+    }
+  ]
+}
