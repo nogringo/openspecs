@@ -1,13 +1,11 @@
 {
   "name": "nips",
   "title": "Nostr Implementation Possibilities",
+  "npub": "npub19vumfllx9yeal9cwrymxcgkpuzf0j5lc8l876a2wpuzdtga5t8usdm3xgr",
   "repo": "https://github.com/nostr-protocol/nips",
   "branch": "master",
   "license": "public domain",
-  "topics": [
-    "nostr",
-    "nip"
-  ],
+  "topics": ["nostr", "nip"],
   "specs": [
     {
       "file": "01.md",

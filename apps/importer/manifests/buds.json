@@ -1,13 +1,11 @@
 {
   "name": "buds",
   "title": "Blossom Upgrade Documents",
+  "npub": "npub1zvm2zlskr58g4u4k3m54454y087r30hedgtavyn75q4yp55dm9lqz4932r",
   "repo": "https://github.com/hzrd149/blossom",
   "branch": "master",
   "license": "Unlicense",
-  "topics": [
-    "blossom",
-    "bud"
-  ],
+  "topics": ["blossom", "bud"],
   "specs": [
     {
       "file": "buds/00.md",

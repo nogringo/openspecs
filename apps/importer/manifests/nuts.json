@@ -1,14 +1,11 @@
 {
   "name": "nuts",
   "title": "Cashu NUTs",
+  "npub": "npub169nculhev5m5h04rpzsjz4sf57phdhq4sfm604jhdq8e6hhatsuq0xuard",
   "repo": "https://github.com/cashubtc/nuts",
   "branch": "main",
   "license": "MIT",
-  "topics": [
-    "cashu",
-    "ecash",
-    "nut"
-  ],
+  "topics": ["cashu", "ecash", "nut"],
   "specs": [
     {
       "file": "00.md",

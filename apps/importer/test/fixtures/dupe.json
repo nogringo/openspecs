@@ -1,0 +1,13 @@
+{
+  "name": "dupe",
+  "title": "Two documents, one identifier",
+  "npub": "npub1zvm2zlskr58g4u4k3m54454y087r30hedgtavyn75q4yp55dm9lqz4932r",
+  "repo": "https://github.com/example/dupe",
+  "branch": "main",
+  "license": "public domain",
+  "topics": ["example"],
+  "specs": [
+    { "file": "01.md", "d": "x-01", "title": "One", "status": null, "summary": "First." },
+    { "file": "02.md", "d": "x-01", "title": "Two", "status": null, "summary": "Second." }
+  ]
+}
