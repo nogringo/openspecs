@@ -28,25 +28,40 @@ const PAIRING_CAP = 400;
 
 const parser = unified().use(remarkParse).use(remarkGfm);
 
-type Blocks = { blocks: string[]; hasTitle: boolean };
+type ParsedBlock = { type: string; depth: number; source: string };
 
 /**
  * The document cut where its author cut it: one source block per top level
- * node, so a fenced code block or a table moves through the diff whole.
+ * node, so a fenced code block or a table moves through the diff whole. Every
+ * consumer of block indices goes through this one cut, or their indices would
+ * name different blocks.
  */
-const blocksOf = (content: string): Blocks => {
+const parsedBlocks = (content: string): ParsedBlock[] => {
   const tree = parser.parse(content);
-  const blocks: string[] = [];
-  let hasTitle = false;
+  const blocks: ParsedBlock[] = [];
   for (const node of tree.children) {
-    if (node.type === "heading" && node.depth === 1) hasTitle = true;
     const start = node.position?.start.offset;
     const end = node.position?.end.offset;
     if (start === undefined || end === undefined) continue;
-    const block = content.slice(start, end);
-    if (block.trim() !== "") blocks.push(block);
+    const source = content.slice(start, end);
+    if (source.trim() === "") continue;
+    blocks.push({
+      type: node.type,
+      depth: node.type === "heading" ? node.depth : 0,
+      source,
+    });
   }
-  return { blocks, hasTitle };
+  return blocks;
+};
+
+type Blocks = { blocks: string[]; hasTitle: boolean };
+
+const blocksOf = (content: string): Blocks => {
+  const parsed = parsedBlocks(content);
+  return {
+    blocks: parsed.map((block) => block.source),
+    hasTitle: parsed.some((block) => block.type === "heading" && block.depth === 1),
+  };
 };
 
 const normalize = (block: string): string => block.replace(/\s+/g, " ").trim();
@@ -133,11 +148,12 @@ const mergeFragments = (base: string, other: string): string => {
   return out;
 };
 
+/** `at` is the base document's block index, which insertions do not have. */
 type Op =
-  | { type: "same"; block: string }
-  | { type: "del"; block: string }
+  | { type: "same"; block: string; at: number }
+  | { type: "del"; block: string; at: number }
   | { type: "ins"; block: string }
-  | { type: "replace"; base: string; other: string };
+  | { type: "replace"; base: string; other: string; at: number };
 
 /**
  * A replaced run holds the base's blocks and the other's, and nothing says the
@@ -145,15 +161,17 @@ type Op =
  * merge is merged; what pairs with nothing is shown whole. Greedy on the best
  * scores, which is as much cleverness as a run of a few blocks can repay.
  */
-const pairReplaced = (removed: string[], added: string[]): Op[] => {
+const pairReplaced = (removed: string[], added: string[], baseStart: number): Op[] => {
   if (removed.length * added.length > PAIRING_CAP) {
     const paired = Math.min(removed.length, added.length);
     return [
       ...removed.slice(0, paired).map((block, i): Op => {
         const other = added[i] as string;
-        return { type: "replace", base: block, other };
+        return { type: "replace", base: block, other, at: baseStart + i };
       }),
-      ...removed.slice(paired).map((block): Op => ({ type: "del", block })),
+      ...removed
+        .slice(paired)
+        .map((block, i): Op => ({ type: "del", block, at: baseStart + paired + i })),
       ...added.slice(paired).map((block): Op => ({ type: "ins", block })),
     ];
   }
@@ -177,15 +195,16 @@ const pairReplaced = (removed: string[], added: string[]): Op[] => {
 
   // The other document's order carries the run, its unmatched partner leads it:
   // what only the base held reads first as struck, then the run as it now stands.
-  const ops: Op[] = removed
-    .filter((_, i) => !taken.has(i))
-    .map((block): Op => ({ type: "del", block }));
+  const ops: Op[] = [];
+  removed.forEach((block, i) => {
+    if (!taken.has(i)) ops.push({ type: "del", block, at: baseStart + i });
+  });
   added.forEach((block, j) => {
     const i = baseOf.get(j);
     ops.push(
       i === undefined
         ? { type: "ins", block }
-        : { type: "replace", base: removed[i] as string, other: block },
+        : { type: "replace", base: removed[i] as string, other: block, at: baseStart + i },
     );
   });
   return ops;
@@ -203,20 +222,25 @@ const planOps = (baseBlocks: string[], otherBlocks: string[]): Op[] => {
     if (part.removed) {
       const next = parts[at + 1];
       const removed = baseBlocks.slice(ia, ia + count);
+      const baseStart = ia;
       ia += count;
       if (next?.added) {
         const added = otherBlocks.slice(ib, ib + next.value.length);
         ib += next.value.length;
         at++;
-        ops.push(...pairReplaced(removed, added));
+        ops.push(...pairReplaced(removed, added, baseStart));
       } else {
-        ops.push(...removed.map((block): Op => ({ type: "del", block })));
+        ops.push(...removed.map((block, i): Op => ({ type: "del", block, at: baseStart + i })));
       }
     } else if (part.added) {
       ops.push(...otherBlocks.slice(ib, ib + count).map((block): Op => ({ type: "ins", block })));
       ib += count;
     } else {
-      ops.push(...baseBlocks.slice(ia, ia + count).map((block): Op => ({ type: "same", block })));
+      ops.push(
+        ...baseBlocks
+          .slice(ia, ia + count)
+          .map((block, i): Op => ({ type: "same", block, at: ia + i })),
+      );
       ia += count;
       ib += count;
     }
@@ -224,18 +248,7 @@ const planOps = (baseBlocks: string[], otherBlocks: string[]): Op[] => {
   return ops;
 };
 
-/**
- * The base document whole, with what the other one changes marked in place:
- * `ins` and `del` through a reworked passage, and a whole block the other adds
- * or lacks wrapped in `diff-ins` or `diff-del`. The merge happens on rendered
- * fragments rather than on the sources, so a mark can never break the syntax
- * it sits in, and everything shown passed through the same sanitizer as a page.
- */
-export const diffMarkdown = (
-  base: string,
-  other: string,
-  options: MarkdownDiffOptions = {},
-): MarkdownDiff => {
+const prepare = (base: string, other: string, options: MarkdownDiffOptions) => {
   const from = blocksOf(base);
   const to = blocksOf(other);
   // The same offset for both sides, or two copies of one heading would render
@@ -250,12 +263,137 @@ export const diffMarkdown = (
     return `<div class="diff-${op.type}">${render(op.block)}</div>`;
   };
 
-  const ops = planOps(from.blocks, to.blocks);
-  const html = ops.map(renderOp).join("\n");
+  return { ops: planOps(from.blocks, to.blocks), renderOp };
+};
 
+/**
+ * The base document whole, with what the other one changes marked in place:
+ * `ins` and `del` through a reworked passage, and a whole block the other adds
+ * or lacks wrapped in `diff-ins` or `diff-del`. The merge happens on rendered
+ * fragments rather than on the sources, so a mark can never break the syntax
+ * it sits in, and everything shown passed through the same sanitizer as a page.
+ */
+export const diffMarkdown = (
+  base: string,
+  other: string,
+  options: MarkdownDiffOptions = {},
+): MarkdownDiff => {
+  const { ops, renderOp } = prepare(base, other, options);
   return {
-    html,
+    html: ops.map(renderOp).join("\n"),
     similarity: textSimilarity(base, other),
     changed: ops.some((op) => op.type !== "same"),
   };
+};
+
+export type MarkdownChange = {
+  /**
+   * The base document's block the change sits at, counted over the blocks the
+   * source cuts into. `-1` with `placement: "after"` is before everything.
+   */
+  anchor: number;
+  /** `at`: this block reads differently or is absent. `after`: blocks added past it. */
+  placement: "at" | "after";
+  /** The change rendered the way `diffMarkdown` renders it, and nothing around it. */
+  html: string;
+};
+
+export type MarkdownComparison = {
+  similarity: number;
+  changed: boolean;
+  changes: MarkdownChange[];
+};
+
+/**
+ * The same reading as `diffMarkdown`, kept apart from the document instead of
+ * merged into it: one entry per run of contiguous difference, anchored to the
+ * base block it concerns, so a page showing the base document can mark the
+ * places another version touches and unfold each one where it stands.
+ */
+export const compareMarkdown = (
+  base: string,
+  other: string,
+  options: MarkdownDiffOptions = {},
+): MarkdownComparison => {
+  const { ops, renderOp } = prepare(base, other, options);
+
+  const changes: MarkdownChange[] = [];
+  let run: Op[] = [];
+  let lastBase = -1;
+
+  const flush = () => {
+    if (run.length === 0) return;
+    const anchored: number[] = [];
+    for (const op of run) if (op.type !== "ins") anchored.push(op.at);
+    changes.push({
+      anchor: anchored.length > 0 ? Math.min(...anchored) : lastBase,
+      placement: anchored.length > 0 ? "at" : "after",
+      html: run.map(renderOp).join("\n"),
+    });
+    run = [];
+  };
+
+  for (const op of ops) {
+    if (op.type === "same") {
+      flush();
+      lastBase = op.at;
+    } else {
+      run.push(op);
+    }
+  }
+  flush();
+
+  return {
+    similarity: textSimilarity(base, other),
+    changed: changes.length > 0,
+    changes,
+  };
+};
+
+export type BlockAnchor = {
+  /** The block's source, whitespace collapsed: a last resort for finding it by content. */
+  text: string;
+  /** Whether the document pipeline draws this block as a top level element of the page. */
+  rendered: boolean;
+};
+
+const normalizeTitle = (text: string): string => text.replace(/\s+/g, " ").trim().toLowerCase();
+
+const headingText = (source: string): string =>
+  source
+    .replace(/^#{1,6}[ \t]*/, "")
+    .replace(/[ \t]*#*[ \t]*$/, "")
+    .replace(/\n[=-]+[ \t]*$/, "");
+
+/** The kinds of block a page renders nothing for, in place: they resolve elsewhere. */
+const INVISIBLE = new Set(["definition", "footnoteDefinition", "html"]);
+
+/**
+ * One entry per base block, aligned with `compareMarkdown`'s anchors, saying
+ * whether the rendered page holds an element for it. The page drops a leading
+ * heading that repeats the given title, renders link and footnote definitions
+ * into other places, and strips raw HTML, so counting rendered blocks up to an
+ * anchor is what turns a block index into a position among the page's elements.
+ */
+export const blockAnchors = (content: string, title?: string): BlockAnchor[] => {
+  const blocks = parsedBlocks(content);
+  const anchors = blocks.map((block) => ({
+    text: normalize(block.source),
+    rendered: !INVISIBLE.has(block.type),
+  }));
+
+  if (title !== undefined) {
+    const first = blocks.findIndex((block) => !INVISIBLE.has(block.type));
+    const opening = blocks[first];
+    if (
+      opening !== undefined &&
+      opening.type === "heading" &&
+      opening.depth === 1 &&
+      normalizeTitle(headingText(opening.source)) === normalizeTitle(title)
+    ) {
+      const anchor = anchors[first];
+      if (anchor !== undefined) anchor.rendered = false;
+    }
+  }
+  return anchors;
 };

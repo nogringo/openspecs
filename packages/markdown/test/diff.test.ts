@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffMarkdown, textSimilarity } from "../src/index";
+import { blockAnchors, compareMarkdown, diffMarkdown, textSimilarity } from "../src/index";
 
 describe("textSimilarity", () => {
   it("gives identical texts one", () => {
@@ -114,5 +114,85 @@ describe("diffMarkdown", () => {
     expect(html.match(/<h3 id="section"/g)).toHaveLength(1);
     expect(html).toContain('<div class="diff-del"><h2 id="doc"');
     expect(html).not.toContain("<ins>");
+  });
+});
+
+describe("compareMarkdown", () => {
+  const BASE = "# Doc\n\nOne.\n\nTwo.\n\nThree.";
+
+  it("finds nothing between identical documents", () => {
+    const { changed, changes } = compareMarkdown(BASE, BASE);
+    expect(changed).toBe(false);
+    expect(changes).toEqual([]);
+  });
+
+  it("anchors a reworked block at its base index", () => {
+    const reworked = BASE.replace("Two.", "Two holds a sentence.");
+    const { changes } = compareMarkdown(
+      reworked,
+      reworked.replace("a sentence", "a reworked sentence"),
+    );
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ anchor: 2, placement: "at" });
+    expect(changes[0]?.html).toContain("<ins>");
+  });
+
+  it("anchors added blocks after the one they follow", () => {
+    const { changes } = compareMarkdown(BASE, "# Doc\n\nOne.\n\nBetween.\n\nTwo.\n\nThree.");
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ anchor: 1, placement: "after" });
+    expect(changes[0]?.html).toContain('class="diff-ins"');
+  });
+
+  it("anchors blocks added before everything at minus one", () => {
+    const { changes } = compareMarkdown("One.", "Zero.\n\nOne.");
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ anchor: -1, placement: "after" });
+  });
+
+  it("groups a run of contiguous additions into one change", () => {
+    // The NIP-09 case: a whole section is one spot in the margin, not five.
+    const { changes } = compareMarkdown(BASE, `${BASE}\n\n## Extra\n\nMore.\n\nStill more.`);
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ anchor: 3, placement: "after" });
+    expect(changes[0]?.html.match(/diff-ins/g)).toHaveLength(3);
+  });
+
+  it("keeps two separated changes as two, each at its own anchor", () => {
+    const { changes } = compareMarkdown(BASE, "# Doc\n\nOne, changed.\n\nTwo.\n\nThree, changed.");
+    expect(changes).toHaveLength(2);
+    expect(changes[0]).toMatchObject({ anchor: 1, placement: "at" });
+    expect(changes[1]).toMatchObject({ anchor: 3, placement: "at" });
+  });
+
+  it("marks a block the other side lacks at the block itself", () => {
+    const { changes } = compareMarkdown(BASE, "# Doc\n\nOne.\n\nThree.");
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ anchor: 2, placement: "at" });
+    expect(changes[0]?.html).toContain('class="diff-del"');
+  });
+});
+
+describe("blockAnchors", () => {
+  it("aligns with the diff's block indices and carries the text", () => {
+    const anchors = blockAnchors("One.\n\nTwo.");
+    expect(anchors).toHaveLength(2);
+    expect(anchors[0]).toEqual({ text: "One.", rendered: true });
+  });
+
+  it("marks a leading heading repeating the title as not rendered", () => {
+    const anchors = blockAnchors("# NIP-07\n\nText.", "nip-07");
+    expect(anchors[0]?.rendered).toBe(false);
+    expect(anchors[1]?.rendered).toBe(true);
+  });
+
+  it("keeps a leading heading that says something else", () => {
+    const anchors = blockAnchors("# Another Name\n\nText.", "NIP-07");
+    expect(anchors[0]?.rendered).toBe(true);
+  });
+
+  it("marks definitions and raw html as not rendered", () => {
+    const anchors = blockAnchors("[ref]: https://example.com\n\n<div>x</div>\n\nText [ref].");
+    expect(anchors.map((anchor) => anchor.rendered)).toEqual([false, false, true]);
   });
 });

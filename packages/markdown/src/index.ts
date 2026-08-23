@@ -1,5 +1,10 @@
 export {
+  type BlockAnchor,
+  blockAnchors,
+  compareMarkdown,
   diffMarkdown,
+  type MarkdownChange,
+  type MarkdownComparison,
   type MarkdownDiff,
   type MarkdownDiffOptions,
   textSimilarity,
