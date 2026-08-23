@@ -13,6 +13,7 @@ import {
   toNpub,
 } from "@openspecs/nostr";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { ClientTag } from "~/components/settings/client-tag";
 import { ProfileForm } from "~/components/settings/profile-form";
 import { RelayList } from "~/components/settings/relay-list";
 import { ServerList } from "~/components/settings/server-list";
@@ -195,6 +196,12 @@ export default function SettingsRoute() {
             </section>
           </div>
         )}
+
+        {/* Outside every branch above: this one is a setting of this browser, and
+            a key that could not be read is no reason to hide it. */}
+        <div className="mt-12 border-t border-rule pt-6">
+          <ClientTag />
+        </div>
       </main>
     </Shell>
   );

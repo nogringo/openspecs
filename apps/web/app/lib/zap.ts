@@ -1,5 +1,6 @@
 import type { PayEndpoint, ZapTarget } from "@openspecs/nostr";
 import { buildZapRequest, fetchInvoice, fetchPayEndpoint, payInvoice } from "@openspecs/nostr";
+import { withClientTag } from "./client-tag";
 import type { Author } from "./profile";
 import { zapReceiptRelays } from "./relays";
 import { signer } from "./session";
@@ -61,7 +62,13 @@ export const quoteZap = async (
   });
 
   const ready = await signer();
-  const request = await ready.signEvent({ ...draft, created_at: Math.floor(Date.now() / 1000) });
+  // This one goes nowhere near a relay, but the recipient's server copies it into
+  // the receipt it signs, and that receipt is as public as anything else.
+  const request = await ready.signEvent({
+    ...draft,
+    tags: withClientTag(draft.tags),
+    created_at: Math.floor(Date.now() / 1000),
+  });
 
   const invoice = await fetchInvoice({ endpoint, amountMsats, zapRequest: request });
   if ("error" in invoice) throw new Error(invoice.error);

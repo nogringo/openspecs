@@ -12,6 +12,7 @@ vi.mock("nostr-tools/pool", () => ({
 const session = vi.hoisted(() => ({ signer: vi.fn(), sessionState: vi.fn() }));
 vi.mock("./session", () => session);
 
+import { setNamesClient } from "./client-tag";
 import { publishTo, signAndPublish, toResult } from "./publish";
 import { SessionMismatch, SessionMissing } from "./signer";
 import { keySigner } from "./signer-key";
@@ -32,6 +33,8 @@ beforeEach(() => {
   session.sessionState.mockReset();
   session.signer.mockResolvedValue(keySigner(secret));
   session.sessionState.mockReturnValue({ pubkey });
+
+  setNamesClient(false);
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -150,6 +153,26 @@ describe("signAndPublish", () => {
     expect(
       (await signAndPublish({ ...DRAFT, created_at: 1_700_000_000 }, RELAYS)).event.created_at,
     ).toBe(1_700_000_000);
+  });
+
+  /**
+   * The builders name the app on everything, because the importer rewrites that
+   * tag into its own name and has to find it. Whether it reaches a relay is
+   * settled here instead, and the signature has to be taken over what is left.
+   */
+  it("signs away the app's name when nobody asked for it", async () => {
+    const named = { ...DRAFT, tags: [...DRAFT.tags, ["client", "openspecs"]] };
+    const report = await signAndPublish(named, RELAYS);
+
+    expect(report.event.tags).toEqual([["A", "30817:x:y"]]);
+  });
+
+  it("keeps the app's name, in its place, when the reader asked for it", async () => {
+    setNamesClient(true);
+    const tags = [...DRAFT.tags, ["client", "openspecs"]];
+    const report = await signAndPublish({ ...DRAFT, tags }, RELAYS);
+
+    expect(report.event.tags).toEqual(tags);
   });
 
   /** The lookup runs while its author is looking at their signer's prompt. */

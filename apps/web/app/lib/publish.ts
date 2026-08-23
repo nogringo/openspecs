@@ -1,4 +1,5 @@
 import type { NostrEvent } from "@openspecs/nostr";
+import { withClientTag } from "./client-tag";
 import { sessionState, signer } from "./session";
 import { SessionMismatch } from "./signer";
 
@@ -112,6 +113,11 @@ export type PublishReport = {
  * A signature coming back under another key means the signer is signed in as
  * somebody else now. That is not something to publish and quietly attribute: it
  * throws, and the session is what has to be put right.
+ *
+ * This is also where the app stops naming itself, when the reader has not asked
+ * it to. Every draft that reaches a relay is signed here, and a tag has to go
+ * before the signature covers it. `publishTo` is left alone on purpose: what it
+ * is handed elsewhere is already signed.
  */
 export const signAndPublish = async (
   draft: Draft,
@@ -122,7 +128,7 @@ export const signAndPublish = async (
     ready.signEvent({
       kind: draft.kind,
       content: draft.content,
-      tags: draft.tags,
+      tags: withClientTag(draft.tags),
       created_at: draft.created_at ?? Math.floor(Date.now() / 1000),
     }),
   );
