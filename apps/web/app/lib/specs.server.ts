@@ -108,7 +108,7 @@ export const loadSpecs = (filter: SpecFilter = {}, limit = 30): Promise<SpecCard
  * and a corpus mirrored from git carries whole commits' worth of documents on the
  * same second, which no cursor can step past.
  */
-export const LISTING_WINDOW = 240;
+export const LISTING_WINDOW = 500;
 
 /**
  * The whole shelf, unpaged: the page, its card and its feeds ask for the same

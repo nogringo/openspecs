@@ -21,7 +21,7 @@ import { pageOf } from "~/lib/pagination";
 import { authorAtomPath, authorOgImagePath, authorPagePath, authorRssPath } from "~/lib/paths";
 import { type Author, authorDescription, authorName } from "~/lib/profile";
 import { loadAuthor } from "~/lib/profile.server";
-import { loadAuthorSpecs } from "~/lib/specs.server";
+import { LISTING_WINDOW, loadAuthorSpecs } from "~/lib/specs.server";
 import type { Route } from "./+types/author";
 
 /** Short enough that the whole page is one glance down the shelf. */
@@ -163,8 +163,10 @@ export function meta({ loaderData }: Route.MetaArgs) {
   ];
 }
 
-const shelf = (count: number): string => {
+/** A shelf that fills the window may be hiding more, so it is described rather than counted. */
+const shelf = (count: number, capped: boolean): string => {
   if (count === 0) return "No specification";
+  if (capped) return `The newest ${count} specifications`;
   return count === 1 ? "One specification" : `${count} specifications`;
 };
 
@@ -243,7 +245,7 @@ export default function AuthorRoute({ loaderData }: Route.ComponentProps) {
 
         <section className="mt-14">
           <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">
-            {shelf(total)}
+            {shelf(total, total >= LISTING_WINDOW)}
             {pages > 1 && <span className="text-rule">{` / page ${page} of ${pages}`}</span>}
           </h2>
           {total === 0 ? (
