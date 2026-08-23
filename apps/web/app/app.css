@@ -268,4 +268,47 @@ html {
     font-size: 0.9375rem;
     color: var(--color-muted);
   }
+
+  /*
+   * A compared reading. Inline marks carry the words one copy has and the other
+   * lacks; a whole block only one copy holds is edged rather than filled, since
+   * a struck-through section is unreadable and the point is to read it.
+   */
+  .doc ins,
+  .diff-key-ins {
+    text-decoration: none;
+    background: color-mix(in srgb, var(--color-signal-settled) 16%, transparent);
+    border-radius: 3px;
+    padding: 0.05em 0.15em;
+  }
+
+  .doc del,
+  .diff-key-del {
+    background: color-mix(in srgb, var(--color-signal-closed) 13%, transparent);
+    border-radius: 3px;
+    padding: 0.05em 0.15em;
+    text-decoration-thickness: 1px;
+  }
+
+  .diff-key-del {
+    text-decoration: line-through;
+  }
+
+  .doc .diff-ins {
+    border-left: 2px solid var(--color-signal-settled);
+    padding-left: 1.1rem;
+  }
+
+  .doc .diff-del {
+    border-left: 2px solid var(--color-signal-closed);
+    padding-left: 1.1rem;
+  }
+
+  /* One edge for a run of blocks: the h2 rule inside would draw a second line. */
+  .doc .diff-ins h2,
+  .doc .diff-del h2 {
+    border-top: 0;
+    padding-top: 0;
+    margin-top: 0;
+  }
 }

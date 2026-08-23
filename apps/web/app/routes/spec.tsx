@@ -419,7 +419,7 @@ const Article = ({
             />
           )}
           {cited.length > 0 && <CitedLinks previews={cited} />}
-          <Variants variants={variants} />
+          <Variants variants={variants} from={{ npub: shown.npub, identifier: shown.identifier }} />
           <Discussion
             coordinate={toCoordinate(shown)}
             specEventId={shown.eventId}

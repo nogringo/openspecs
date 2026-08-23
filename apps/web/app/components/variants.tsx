@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { keyTextColor } from "~/lib/color";
+import { diffPath } from "~/lib/paths";
 import { authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import type { Variant } from "~/lib/variants";
@@ -15,7 +16,14 @@ const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString
  * everything on this site that is available rather than settled: nobody vouches
  * for these, they exist, and existing is the whole point.
  */
-export const Variants = ({ variants }: { variants: Variant[] }) => {
+export const Variants = ({
+  variants,
+  from,
+}: {
+  variants: Variant[];
+  /** The document whose page this section sits on, and a comparison's base side. */
+  from: { npub: string; identifier: string };
+}) => {
   const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
 
   useEffect(() => {
@@ -36,43 +44,49 @@ export const Variants = ({ variants }: { variants: Variant[] }) => {
         {variants.map((variant) => {
           const author = authors[variant.pubkey] ?? null;
           return (
-            <li key={variant.pubkey}>
-              <Link
-                to={variant.path}
-                className="group flex gap-4 rounded-sm border border-dashed border-rule p-4 hover:border-muted"
-              >
-                <span className="mt-0.5 shrink-0">
-                  <AuthorAvatar
-                    pubkey={variant.pubkey}
-                    picture={author?.picture ?? null}
-                    size={28}
-                  />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline justify-between gap-4">
-                    <span
-                      className="truncate font-mono text-sm font-medium"
-                      style={{ color: keyTextColor(variant.pubkey) }}
-                    >
-                      {authorName(author, variant.npub)}
-                    </span>
-                    <time
-                      dateTime={new Date(variant.revisedAt * 1000).toISOString()}
-                      className="shrink-0 font-mono text-xs text-muted"
-                    >
-                      {asDate(variant.revisedAt)}
-                    </time>
+            <li
+              key={variant.pubkey}
+              className="flex gap-4 rounded-sm border border-dashed border-rule p-4 hover:border-muted"
+            >
+              <span className="mt-0.5 shrink-0">
+                <AuthorAvatar pubkey={variant.pubkey} picture={author?.picture ?? null} size={28} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-4">
+                  <span
+                    className="truncate font-mono text-sm font-medium"
+                    style={{ color: keyTextColor(variant.pubkey) }}
+                  >
+                    {authorName(author, variant.npub)}
                   </span>
-                  <span className="mt-1.5 block font-mono text-base font-medium group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">
-                    {variant.title}
-                  </span>
-                  {variant.summary !== "" && (
-                    <span className="mt-1.5 line-clamp-2 block max-w-[38rem] font-serif text-sm leading-snug text-muted">
-                      {variant.summary}
-                    </span>
-                  )}
-                </span>
-              </Link>
+                  <time
+                    dateTime={new Date(variant.revisedAt * 1000).toISOString()}
+                    className="shrink-0 font-mono text-xs text-muted"
+                  >
+                    {asDate(variant.revisedAt)}
+                  </time>
+                </div>
+                <Link
+                  to={variant.path}
+                  className="mt-1.5 block font-mono text-base font-medium hover:underline hover:decoration-1 hover:underline-offset-4"
+                >
+                  {variant.title}
+                </Link>
+                {variant.summary !== "" && (
+                  <p className="mt-1.5 line-clamp-2 max-w-[38rem] font-serif text-sm leading-snug text-muted">
+                    {variant.summary}
+                  </p>
+                )}
+                <div className="mt-3">
+                  <Link
+                    to={diffPath(from.npub, from.identifier, variant.npub)}
+                    title="This document, marked with what their copy changes"
+                    className="inline-block rounded-sm border border-rule px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink"
+                  >
+                    Compare
+                  </Link>
+                </div>
+              </div>
             </li>
           );
         })}
