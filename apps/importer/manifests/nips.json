@@ -2,6 +2,16 @@
   "name": "nips",
   "title": "Nostr Implementation Possibilities",
   "npub": "npub19vumfllx9yeal9cwrymxcgkpuzf0j5lc8l876a2wpuzdtga5t8usdm3xgr",
+  "blossom": {
+    "servers": [
+      "https://blossom.nmail.li",
+      "https://blossom.yakihonne.com",
+      "https://blossom.ditto.pub",
+      "https://blossom.primal.net"
+    ],
+    "picture": "07f2409b04b4c6cfaafc8f21f54dd49583886d3d6fb5fce423fbb540f62e8c51",
+    "banner": "329de0619454afa790285bf427544f04cc995ea4d147677fda605ae9f436dec5"
+  },
   "repo": "https://github.com/nostr-protocol/nips",
   "branch": "master",
   "license": "public domain",

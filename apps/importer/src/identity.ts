@@ -1,10 +1,28 @@
 import type { EventDraft, NostrEvent } from "@openspecs/nostr";
-import { buildProfile, buildRelayList, PROFILE_KIND, RELAY_LIST_KIND } from "@openspecs/nostr";
+import {
+  authorPath,
+  BLOSSOM_SERVER_KIND,
+  buildProfile,
+  buildRelayList,
+  buildServerList,
+  PROFILE_KIND,
+  RELAY_LIST_KIND,
+} from "@openspecs/nostr";
 import type { SimplePool } from "nostr-tools/pool";
 import { finalizeEvent } from "nostr-tools/pure";
 import { secretFor } from "./keys.ts";
-import type { Corpus } from "./manifest.ts";
+import { type Corpus, pictureUrl } from "./manifest.ts";
 import { liveReplaceable, publishEvent } from "./relays.ts";
+
+/**
+ * Where a reader sees what one of these keys published, written out like the
+ * relay in `IMPORT_RELAYS`: nothing in a repository names the address this
+ * project is deployed under, and a profile is no place to start configuring it.
+ */
+const SITE = "https://openspecs.uid.ovh";
+
+/** Where a reader can thank whoever keeps these copies running. */
+const LIGHTNING = "mongoose75@coinos.io";
 
 /**
  * What a corpus says about itself, so that a reader landing on one of its
@@ -14,9 +32,11 @@ import { liveReplaceable, publishEvent } from "./relays.ts";
  * puts beside a document, and one reading `Nostr Implementation Possibilities`
  * with nothing else would pass for the authors themselves.
  */
-export const profileOf = (corpus: Corpus): EventDraft =>
-  buildProfile({
+export const profileOf = (corpus: Corpus): EventDraft => {
+  const profile = buildProfile({
     name: `${corpus.title} (mirror)`,
+    picture: pictureUrl(corpus.blossom, "picture") ?? undefined,
+    lud16: LIGHTNING,
     about: [
       `An unofficial mirror of ${corpus.repo}.`,
       "",
@@ -26,6 +46,27 @@ export const profileOf = (corpus: Corpus): EventDraft =>
     ].join("\n"),
   });
 
+  /**
+   * The fields NIP-24 names that `ProfileDraft` deliberately has no opinion
+   * about, added here rather than there: the site's own profile form draws
+   * neither a banner nor a website and relies on `editProfile` handing back the
+   * ones it did not write, so a package that owned them would clear them on
+   * every save. These keys are the only thing in the project with an opinion.
+   *
+   * A banner nobody uploaded is left undefined, which is a key `JSON.stringify`
+   * drops rather than writes empty.
+   */
+  return {
+    ...profile,
+    content: JSON.stringify({
+      ...JSON.parse(profile.content),
+      banner: pictureUrl(corpus.blossom, "banner") ?? undefined,
+      website: `${SITE}${authorPath(corpus.pubkey)}`,
+      bot: true,
+    }),
+  };
+};
+
 /**
  * Where this corpus is published, in the form every client already resolves.
  * This is what lets a document be found from its address alone: the site reads
@@ -34,12 +75,24 @@ export const profileOf = (corpus: Corpus): EventDraft =>
  */
 export const relayListOf = (relays: string[]): EventDraft => buildRelayList(relays);
 
-export const identityOf = (corpus: Corpus, relays: string[]): EventDraft[] => [
-  profileOf(corpus),
-  relayListOf(relays),
-];
+/**
+ * BUD-03: where this key's picture is kept. A profile carries one address for
+ * it, so a reader whose server has gone has a broken image and no way to know a
+ * copy exists. This is what lets them take the hash out of the dead URL and
+ * find one, which is what makes the copies worth making.
+ */
+export const serverListOf = (servers: string[]): EventDraft => buildServerList(servers);
 
-export const IDENTITY_KINDS = [PROFILE_KIND, RELAY_LIST_KIND];
+export const identityOf = (corpus: Corpus, relays: string[]): EventDraft[] => {
+  const servers = corpus.blossom?.servers ?? [];
+  return [
+    profileOf(corpus),
+    relayListOf(relays),
+    ...(servers.length === 0 ? [] : [serverListOf(servers)]),
+  ];
+};
+
+export const IDENTITY_KINDS = [PROFILE_KIND, RELAY_LIST_KIND, BLOSSOM_SERVER_KIND];
 
 export type IdentityOptions = {
   corpora: Corpus[];

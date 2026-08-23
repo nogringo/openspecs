@@ -8,6 +8,7 @@
     "test": "vitest run",
     "build:events": "vite-node src/cli.ts build",
     "publish:events": "vite-node src/cli.ts publish",
+    "upload:avatars": "vite-node src/cli.ts avatars",
     "publish:identity": "vite-node src/cli.ts identity"
   },
   "dependencies": {

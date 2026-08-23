@@ -2,6 +2,16 @@
   "name": "buds",
   "title": "Blossom Upgrade Documents",
   "npub": "npub1zvm2zlskr58g4u4k3m54454y087r30hedgtavyn75q4yp55dm9lqz4932r",
+  "blossom": {
+    "servers": [
+      "https://blossom.nmail.li",
+      "https://blossom.yakihonne.com",
+      "https://blossom.ditto.pub",
+      "https://blossom.primal.net"
+    ],
+    "picture": "1709503bd5b13ca73127f3dd32a97110b4a80ddc7c9a6c69e67f895f937b3e46",
+    "banner": "81190189ac5ae3ccfd1e16c73a15a892961cc731282c0deeafb585150a5f4449"
+  },
   "repo": "https://github.com/hzrd149/blossom",
   "branch": "master",
   "license": "Unlicense",

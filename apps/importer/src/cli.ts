@@ -1,6 +1,13 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { closeRelayPool, INDEXER_RELAYS, relaySet, relayUrl } from "@openspecs/nostr";
+import {
+  closeRelayPool,
+  DEFAULT_BLOSSOM_SERVERS,
+  INDEXER_RELAYS,
+  relaySet,
+  relayUrl,
+} from "@openspecs/nostr";
+import { uploadAvatars } from "./avatars.ts";
 import { buildEvents } from "./build.ts";
 import { publishIdentity } from "./identity.ts";
 import { loadManifests, MANIFEST_DIR } from "./manifest.ts";
@@ -73,6 +80,20 @@ const main = async (): Promise<void> => {
     return;
   }
 
+  if (command === "avatars") {
+    await uploadAvatars({
+      corpora,
+      dir: pathToFileURL(`${flag("avatars", here("../../web/public/avatars"))}/`),
+      // The list the site already offers its own readers, and no way to say
+      // otherwise: where a picture is kept is not a decision this needs taken
+      // twice, and one list is one place to change it.
+      servers: DEFAULT_BLOSSOM_SERVERS,
+      confirmed: args.includes("--yes"),
+      manifests: manifests === "" ? undefined : pathToFileURL(`${manifests}/`),
+    });
+    return;
+  }
+
   if (command === "identity") {
     try {
       const relays = relaysFrom();
@@ -90,7 +111,7 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  throw new Error("usage: build | publish | identity");
+  throw new Error("usage: build | publish | avatars | identity");
 };
 
 await main();

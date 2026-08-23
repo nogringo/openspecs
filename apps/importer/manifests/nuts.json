@@ -2,6 +2,16 @@
   "name": "nuts",
   "title": "Cashu NUTs",
   "npub": "npub169nculhev5m5h04rpzsjz4sf57phdhq4sfm604jhdq8e6hhatsuq0xuard",
+  "blossom": {
+    "servers": [
+      "https://blossom.nmail.li",
+      "https://blossom.yakihonne.com",
+      "https://blossom.ditto.pub",
+      "https://blossom.primal.net"
+    ],
+    "picture": "3122484eecff2c0063c63c0a903518902a587f8e732fec23a0c2a166d20babb8",
+    "banner": "b8034f7dc395eab5e064e3bea990303f8fad532161660f4c1b6c427452e00dd6"
+  },
   "repo": "https://github.com/cashubtc/nuts",
   "branch": "main",
   "license": "MIT",
