@@ -17,6 +17,7 @@ import { ErrorPage } from "~/components/error-page";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
+import { VARIANTS_ID, Variants } from "~/components/variants";
 import { keyTextColor } from "~/lib/color";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { useLiveRevision } from "~/lib/live-revision";
@@ -29,6 +30,7 @@ import { loadAuthor } from "~/lib/profile.server";
 import { discussionRelays, rebroadcastRelays } from "~/lib/relays.server";
 import type { SpecPage } from "~/lib/spec-page";
 import { loadSpec } from "~/lib/specs.server";
+import { useVariants } from "~/lib/variants";
 import type { Route } from "./+types/spec";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -159,7 +161,13 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 );
 
-const Contents = ({ headings }: { headings: MarkdownHeading[] }) => (
+const Contents = ({
+  headings,
+  variantCount,
+}: {
+  headings: MarkdownHeading[];
+  variantCount: number;
+}) => (
   <nav
     aria-label="Contents"
     /* The negative margin and the padding are one pair: scrolling this rail
@@ -187,6 +195,11 @@ const Contents = ({ headings }: { headings: MarkdownHeading[] }) => (
       {/* Part of the page rather than an appendix to it: what was said about a
           specification is one of the things a reader comes here to find. */}
       <li className="mt-4 border-t border-rule pt-3">
+        {variantCount > 0 && (
+          <a href={`#${VARIANTS_ID}`} className="mb-2 block text-muted hover:text-ink">
+            Under this name
+          </a>
+        )}
         <a href={`#${DISCUSSION_ID}`} className="text-muted hover:text-ink">
           Discussion
         </a>
@@ -200,15 +213,28 @@ const Masthead = ({
   author,
   canonical,
   relays,
+  variantCount,
 }: {
   spec: SpecPage;
   author: Author | null;
   canonical: string;
   relays: string[];
+  variantCount: number;
 }) => (
   <header>
     <p className="font-mono text-xs tracking-wide text-muted">
       {spec.kind}:{spec.identifier}
+      {/* Growing sideways rather than down: this arrives after the page is on
+          screen, and text under the reader's eye must not move for it. */}
+      {variantCount > 0 && (
+        <a
+          href={`#${VARIANTS_ID}`}
+          title={`Other documents published as ${spec.identifier}`}
+          className="ml-3 underline decoration-rule underline-offset-2 hover:text-ink hover:decoration-current"
+        >
+          also under {variantCount} other {variantCount === 1 ? "key" : "keys"}
+        </a>
+      )}
     </p>
     <h1 className="mt-4 font-mono text-3xl font-medium leading-tight tracking-tight sm:text-4xl">
       {spec.title}
@@ -358,6 +384,7 @@ const Article = ({
   discussion: string[];
 }) => {
   const { shown, fresher, show } = useLiveRevision(served);
+  const variants = useVariants(served);
 
   // A preview was fetched for the links the served revision cited. One that no
   // longer appears in the document has no business under it.
@@ -367,10 +394,16 @@ const Article = ({
     <article className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
       {fresher !== null && <Fresher fresher={fresher} onShow={show} />}
 
-      <Masthead spec={shown} author={author} canonical={canonical} relays={relays} />
+      <Masthead
+        spec={shown}
+        author={author}
+        canonical={canonical}
+        relays={relays}
+        variantCount={variants.length}
+      />
 
       <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
-        <Contents headings={shown.headings} />
+        <Contents headings={shown.headings} variantCount={variants.length} />
         <div className="max-w-[40rem]">
           {shown.isEmpty ? (
             <p className="font-serif text-lg text-muted">
@@ -386,6 +419,7 @@ const Article = ({
             />
           )}
           {cited.length > 0 && <CitedLinks previews={cited} />}
+          <Variants variants={variants} />
           <Discussion
             coordinate={toCoordinate(shown)}
             specEventId={shown.eventId}
