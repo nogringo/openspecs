@@ -2,21 +2,22 @@ import { authorPath } from "@openspecs/nostr";
 import { publicOrigin } from "~/lib/origin.server";
 import { specsPath } from "~/lib/paths";
 import { newestByAuthor, type SitemapEntry, sitemapXml } from "~/lib/sitemap";
-import { loadSpecs } from "~/lib/specs.server";
+import { LISTING_WINDOW, loadSpecs } from "~/lib/specs.server";
 import { topicsByFrequency } from "~/lib/topics";
 import type { Route } from "./+types/sitemap";
 
-/**
- * What one relay query can honestly report. Relays keep no index this server can
- * page through, so the sitemap covers the recent window, and the whole corpus
- * only becomes listable once the indexer of lot 6 exists.
- */
-const DOCUMENTS = 200;
 const TOPICS = 30;
 
+/**
+ * The same window the listing pages, so this reports exactly what a crawler can
+ * reach and the two never disagree. Relays keep no index to page through, so the
+ * window is still the ceiling: the whole corpus only becomes listable once the
+ * indexer of lot 6 exists. Every document is named here in its own right, so the
+ * numbered listing pages are left out rather than repeated as a second way in.
+ */
 export async function loader({ request }: Route.LoaderArgs) {
   const origin = publicOrigin(request);
-  const specs = await loadSpecs({}, DOCUMENTS).catch(() => []);
+  const specs = await loadSpecs({}, LISTING_WINDOW).catch(() => []);
   const newest = specs.reduce((latest, spec) => Math.max(latest, spec.revisedAt), 0);
 
   const entries: SitemapEntry[] = [
