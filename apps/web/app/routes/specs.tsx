@@ -72,8 +72,9 @@ export function headers(_: Route.HeadersArgs) {
 
 /**
  * A search is answered in the browser, so the loader owes it nothing: asking the
- * server again on every keystroke would fetch the listing it already has. The
- * page is on the other side of that line, since the server is what cuts one.
+ * server again on every keystroke would fetch the listing it already has. Its
+ * pages are answered there too, out of results already in hand, so only a page
+ * of the server's own listing is worth another round trip.
  */
 export function shouldRevalidate({
   currentUrl,
@@ -81,8 +82,11 @@ export function shouldRevalidate({
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
   if (currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate;
-  const listing = (url: URL) =>
-    ["topic", "kind", "page"].map((name) => url.searchParams.get(name)).join(":");
+  const listing = (url: URL) => {
+    const params = url.searchParams;
+    const page = parseSearchQuery(params) === undefined ? params.get("page") : null;
+    return `${params.get("topic")}:${params.get("kind")}:${page}`;
+  };
   return listing(currentUrl) === listing(nextUrl) ? false : defaultShouldRevalidate;
 }
 
