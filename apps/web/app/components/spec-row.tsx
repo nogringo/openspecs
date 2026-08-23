@@ -43,10 +43,10 @@ export const SpecRow = ({
                 <Highlight text={spec.title} terms={terms} />
               </h3>
               <time
-                dateTime={new Date(spec.publishedAt * 1000).toISOString()}
+                dateTime={new Date(spec.revisedAt * 1000).toISOString()}
                 className="shrink-0 font-mono text-xs text-muted"
               >
-                {asDate(spec.publishedAt)}
+                {asDate(spec.revisedAt)}
               </time>
             </div>
             {line !== "" && (

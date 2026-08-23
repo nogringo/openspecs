@@ -139,8 +139,12 @@ export const fetchSpecs = async (
   if (specQuery.until !== undefined) filter.until = specQuery.until;
   if (specQuery.limit !== undefined) filter.limit = specQuery.limit;
 
+  // On the revision rather than on the first publication, which is what a relay
+  // answering a `limit` selected: it returns its newest by `created_at`, so
+  // ordering the window on anything else would show a list neither the query nor
+  // the sort ever asked for.
   const specs = (await querySpecs(filter, specQuery.authors ?? [], options)).sort(
-    (a, b) => b.publishedAt - a.publishedAt,
+    (a, b) => b.createdAt - a.createdAt,
   );
   // The filter limit is per relay, so it only caps what comes in. The caller asked
   // for a number of documents, not a number of documents per operator.

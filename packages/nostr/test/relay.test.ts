@@ -205,3 +205,44 @@ describe("READ_RELAYS", () => {
     for (const relay of IMPORT_RELAYS) expect(DEFAULT_RELAYS).not.toContain(relay);
   });
 });
+
+describe("fetchSpecs", () => {
+  const dated = (id: string, createdAt: number, publishedAt: number) =>
+    finalizeEvent(
+      {
+        kind: SPEC_KIND,
+        created_at: createdAt,
+        tags: [
+          ["d", id],
+          ["title", id],
+          ["published_at", String(publishedAt)],
+        ],
+        content: `# ${id}\n\nA specification, in one paragraph.`,
+      },
+      secretKey,
+    );
+
+  /**
+   * A relay answering a `limit` hands back its newest by `created_at`, so a
+   * listing ordered on anything else shows a window chosen one way and sorted
+   * another. This is what keeps the two in step.
+   */
+  it("puts the newest revision first, whatever it says about its first publication", async () => {
+    const relay = await startRelay();
+    relay.seed([
+      dated("published-long-ago-revised-yesterday", 1_800_000_200, 1_500_000_000),
+      dated("published-recently-untouched-since", 1_800_000_100, 1_700_000_000),
+    ]);
+
+    const specs = await fetchSpecs(
+      {},
+      { relays: [relay.url ?? ""], outbox: false, timeoutMs: 2000 },
+    );
+
+    expect(specs.map((spec) => spec.identifier)).toEqual([
+      "published-long-ago-revised-yesterday",
+      "published-recently-untouched-since",
+    ]);
+    await relay.stop();
+  });
+});
