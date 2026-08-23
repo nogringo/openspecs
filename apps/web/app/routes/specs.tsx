@@ -1,11 +1,13 @@
 import { Link, type ShouldRevalidateFunctionArgs } from "react-router";
 import { ErrorPage } from "~/components/error-page";
+import { Pagination } from "~/components/pagination";
 import { SearchResults } from "~/components/search-results";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
-import { parseSearchQuery, parseSpecFilter } from "~/lib/filter";
+import { parsePage, parseSearchQuery, parseSpecFilter } from "~/lib/filter";
 import { PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
+import { pageOf } from "~/lib/pagination";
 import {
   atomPath,
   feedTitle,
@@ -15,11 +17,12 @@ import {
   specsPath,
 } from "~/lib/paths";
 import { loadAuthors } from "~/lib/profile.server";
-import { loadSpecs } from "~/lib/specs.server";
+import { LISTING_WINDOW, loadSpecs } from "~/lib/specs.server";
 import { topicsByFrequency } from "~/lib/topics";
 import type { Route } from "./+types/specs";
 
-const LIMIT = 60;
+/** Short enough that a page is one glance down the listing. */
+const PAGE_SIZE = 20;
 /** Enough to browse by, few enough to read at a glance. */
 const TOPICS_SHOWN = 14;
 
@@ -31,14 +34,21 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const origin = publicOrigin(request);
   // The unfiltered listing is the home page's, already loaded and cached.
-  const [specs, all] = await Promise.all([
-    loadSpecs({ topic, kind }, LIMIT).catch(() => []),
+  const [listing, all] = await Promise.all([
+    loadSpecs({ topic, kind }, LISTING_WINDOW).catch(() => []),
     loadSpecs({}, 30).catch(() => []),
   ]);
 
+  const { items, page, pages } = pageOf(listing, parsePage(params), PAGE_SIZE);
+  const pageUrl = (n: number) => `${origin}${specsPath({ topic, kind, page: n })}`;
+
   return {
-    specs,
-    authors: await loadAuthors(specs.map((spec) => spec.pubkey)),
+    specs: items,
+    page,
+    pages,
+    // Only the page being shown: a profile lookup for every document in the
+    // window would be what this listing actually costs.
+    authors: await loadAuthors(items.map((spec) => spec.pubkey)),
     // Counted over the unfiltered listing: under a filter it would only ever
     // offer the filter already applied.
     topics: topicsByFrequency(all, TOPICS_SHOWN),
@@ -46,9 +56,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     kind: kind ?? null,
     query: query ?? null,
     // Canonical drops anything the filter did not recognise, so one listing is
-    // never indexed under a dozen spellings of the same query.
+    // never indexed under a dozen spellings of the same query. The page is the
+    // clamped one, so a number past the end still points at a page there is.
     origin,
-    canonical: `${origin}${specsPath({ topic, kind })}`,
+    canonical: pageUrl(page),
+    previous: page > 1 ? pageUrl(page - 1) : null,
+    next: page < pages ? pageUrl(page + 1) : null,
     filtered,
   };
 }
@@ -59,7 +72,9 @@ export function headers(_: Route.HeadersArgs) {
 
 /**
  * A search is answered in the browser, so the loader owes it nothing: asking the
- * server again on every keystroke would fetch the listing it already has.
+ * server again on every keystroke would fetch the listing it already has. Its
+ * pages are answered there too, out of results already in hand, so only a page
+ * of the server's own listing is worth another round trip.
  */
 export function shouldRevalidate({
   currentUrl,
@@ -67,7 +82,11 @@ export function shouldRevalidate({
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
   if (currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate;
-  const listing = (url: URL) => `${url.searchParams.get("topic")}:${url.searchParams.get("kind")}`;
+  const listing = (url: URL) => {
+    const params = url.searchParams;
+    const page = parseSearchQuery(params) === undefined ? params.get("page") : null;
+    return `${params.get("topic")}:${params.get("kind")}:${page}`;
+  };
   return listing(currentUrl) === listing(nextUrl) ? false : defaultShouldRevalidate;
 }
 
@@ -75,19 +94,27 @@ export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Specifications | Open Specs" }];
 
   const query = { topic: loaderData.topic ?? undefined, kind: loaderData.kind ?? undefined };
-  const title = listingTitle({ ...query, q: loaderData.query ?? undefined });
+  const listing = listingTitle({ ...query, q: loaderData.query ?? undefined });
   const description = listingDescription(query);
 
   // Results are read out of the visitor's browser, so there is no page here to
   // index and no canonical to point a crawler at.
   if (loaderData.query !== null) {
-    return [{ title: `${title} | Open Specs` }, { name: "robots", content: "noindex, follow" }];
+    return [{ title: `${listing} | Open Specs` }, { name: "robots", content: "noindex, follow" }];
   }
+
+  // Every page holds different documents, so each one says which it is rather
+  // than sitting in a result list under the same title as the others.
+  const { page, previous, next } = loaderData;
+  const title = page === 1 ? listing : `${listing}, page ${page}`;
 
   return [
     { title: `${title} | Open Specs` },
     { name: "description", content: description },
     { tagName: "link", rel: "canonical", href: loaderData.canonical },
+    // Kept so a crawler walks the whole listing rather than the first page of it.
+    ...(previous === null ? [] : [{ tagName: "link", rel: "prev", href: previous }]),
+    ...(next === null ? [] : [{ tagName: "link", rel: "next", href: next }]),
     { property: "og:type", content: "website" },
     { property: "og:site_name", content: "Open Specs" },
     { property: "og:title", content: title },
@@ -127,7 +154,7 @@ const Chip = ({ to, active, children }: { to: string; active: boolean; children:
 );
 
 export default function Specs({ loaderData }: Route.ComponentProps) {
-  const { specs, authors, topics, topic, kind, query, filtered } = loaderData;
+  const { specs, authors, topics, topic, kind, query, filtered, page, pages } = loaderData;
 
   return (
     <Shell query={query ?? undefined}>
@@ -181,11 +208,26 @@ export default function Specs({ loaderData }: Route.ComponentProps) {
               : "No documents came back from the relays. They may be unreachable from this server right now."}
           </p>
         ) : (
-          <ul className="mt-10">
-            {specs.map((spec) => (
-              <SpecRow key={spec.path} spec={spec} author={authors[spec.pubkey] ?? null} />
-            ))}
-          </ul>
+          <>
+            {pages > 1 && (
+              <p className="mt-10 font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">
+                {`Page ${page} of ${pages}`}
+              </p>
+            )}
+            <ul className={pages > 1 ? "mt-6" : "mt-10"}>
+              {specs.map((spec) => (
+                <SpecRow key={spec.path} spec={spec} author={authors[spec.pubkey] ?? null} />
+              ))}
+            </ul>
+            <Pagination
+              page={page}
+              pages={pages}
+              href={(n) =>
+                specsPath({ topic: topic ?? undefined, kind: kind ?? undefined, page: n })
+              }
+              label="Specifications"
+            />
+          </>
         )}
       </main>
     </Shell>

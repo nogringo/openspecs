@@ -10,16 +10,22 @@ import { data, redirect } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
 import { ErrorPage } from "~/components/error-page";
+import { Pagination } from "~/components/pagination";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
 import { keyTextColor } from "~/lib/color";
+import { parsePage } from "~/lib/filter";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
-import { authorAtomPath, authorOgImagePath, authorRssPath } from "~/lib/paths";
+import { pageOf } from "~/lib/pagination";
+import { authorAtomPath, authorOgImagePath, authorPagePath, authorRssPath } from "~/lib/paths";
 import { type Author, authorDescription, authorName } from "~/lib/profile";
 import { loadAuthor } from "~/lib/profile.server";
-import { loadAuthorSpecs, type SpecCard } from "~/lib/specs.server";
+import { LISTING_WINDOW, loadAuthorSpecs } from "~/lib/specs.server";
 import type { Route } from "./+types/author";
+
+/** Short enough that the whole page is one glance down the shelf. */
+const PAGE_SIZE = 20;
 
 /**
  * Only the `name@domain` form is resolved here. A bare domain is a NIP-05
@@ -40,27 +46,45 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data({ missing: "address" }, { status: 404, headers: NOT_FOUND_HEADERS });
   }
 
+  const url = new URL(request.url);
   // One author, one URL: a hex key, an nprofile and a NIP-05 address all name
   // the same person, and only the npub is the name that cannot be taken away.
+  // The search rides along, so a link deep into the shelf lands where it aimed.
   const npub = toNpub(pubkey);
-  const path = authorPath(pubkey);
-  if (params.author !== npub) throw redirect(path, 301);
+  if (params.author !== npub) throw redirect(`${authorPath(pubkey)}${url.search}`, 301);
 
-  const [author, specs] = await Promise.all([loadAuthor(pubkey), loadAuthorSpecs(pubkey)]);
+  const [author, shelf] = await Promise.all([loadAuthor(pubkey), loadAuthorSpecs(pubkey)]);
   // A key with neither a document nor a profile is not a page. Relays hold
-  // millions of them, and every one would be an empty page to be crawled.
-  if (author === null && specs.length === 0) {
+  // millions of them, and every one would be an empty page to be crawled. The
+  // whole shelf is what decides it, never the page of it being read.
+  if (author === null && shelf.length === 0) {
     throw data({ missing: "author" }, { status: 404, headers: NOT_FOUND_HEADERS });
   }
 
+  const { items, page, pages, total } = pageOf(shelf, parsePage(url.searchParams), PAGE_SIZE);
+  // Read off the whole shelf: a page of it says when this author last wrote,
+  // not when they started.
+  const oldest = shelf.reduce(
+    (first, spec) => Math.min(first, spec.publishedAt),
+    Number.POSITIVE_INFINITY,
+  );
+
   const origin = publicOrigin(request);
+  const pageUrl = (n: number) => `${origin}${authorPagePath(npub, n)}`;
   return {
     pubkey,
     npub,
     author,
-    specs,
+    specs: items,
+    page,
+    pages,
+    total,
+    oldest,
     origin,
-    canonical: `${origin}${path}`,
+    // The clamped page, so a number past the end still points at a page there is.
+    canonical: pageUrl(page),
+    previous: page > 1 ? pageUrl(page - 1) : null,
+    next: page < pages ? pageUrl(page + 1) : null,
     ogImage: `${origin}${authorOgImagePath(npub)}`,
   };
 }
@@ -72,21 +96,27 @@ export function headers({ errorHeaders }: Route.HeadersArgs) {
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Author | Open Specs" }];
 
-  const { author, npub, specs, canonical, origin, ogImage } = loaderData;
+  const { author, npub, total, page, canonical, previous, next, origin, ogImage } = loaderData;
   const name = authorName(author, npub);
-  const description = authorDescription(author, npub, specs.length);
+  const description = authorDescription(author, npub, total);
+  // Every page of a shelf is a different set of documents, so each one says
+  // which it is rather than sitting in a result list under the same title.
+  const title = page === 1 ? name : `${name}, page ${page}`;
 
   return [
-    { title: `${name} | Open Specs` },
+    { title: `${title} | Open Specs` },
     { name: "description", content: description },
     { tagName: "link", rel: "canonical", href: canonical },
+    // Kept so a crawler walks the whole shelf rather than the first page of it.
+    ...(previous === null ? [] : [{ tagName: "link", rel: "prev", href: previous }]),
+    ...(next === null ? [] : [{ tagName: "link", rel: "next", href: next }]),
     // An author with nothing published is a page for whoever typed the key, not
     // one for an index: there is nothing on it to find.
-    ...(specs.length === 0 ? [{ name: "robots", content: "noindex, follow" }] : []),
+    ...(total === 0 ? [{ name: "robots", content: "noindex, follow" }] : []),
 
     { property: "og:type", content: "profile" },
     { property: "og:site_name", content: "Open Specs" },
-    { property: "og:title", content: name },
+    { property: "og:title", content: title },
     { property: "og:description", content: description },
     { property: "og:url", content: canonical },
     { property: "og:image", content: ogImage },
@@ -94,7 +124,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
     { property: "og:image:height", content: "630" },
 
     { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: name },
+    { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
     { name: "twitter:image", content: ogImage },
 
@@ -133,8 +163,10 @@ export function meta({ loaderData }: Route.MetaArgs) {
   ];
 }
 
-const shelf = (count: number): string => {
+/** A shelf that fills the window may be hiding more, so it is described rather than counted. */
+const shelf = (count: number, capped: boolean): string => {
   if (count === 0) return "No specification";
+  if (capped) return `The newest ${count} specifications`;
   return count === 1 ? "One specification" : `${count} specifications`;
 };
 
@@ -158,83 +190,85 @@ const Masthead = ({
   pubkey,
   npub,
   author,
-  specs,
+  total,
+  oldest,
 }: {
   pubkey: string;
   npub: string;
   author: Author | null;
-  specs: SpecCard[];
-}) => {
-  const oldest = specs.reduce(
-    (first, spec) => Math.min(first, spec.publishedAt),
-    Number.POSITIVE_INFINITY,
-  );
-
-  return (
-    <header>
-      <div className="flex items-start gap-5">
-        <AuthorAvatar pubkey={pubkey} picture={author?.picture ?? null} size={72} />
-        <div className="min-w-0">
-          <h1
-            style={{ color: keyTextColor(pubkey) }}
-            className="break-all font-mono text-2xl font-medium tracking-tight sm:text-3xl"
-          >
-            {authorName(author, npub)}
-          </h1>
-          {/* A claim the author makes about themselves, which nothing here resolves. */}
-          {author?.nip05 && (
-            <p className="mt-2 break-all font-mono text-xs text-muted">{author.nip05}</p>
-          )}
-        </div>
-      </div>
-
-      {author?.about && (
-        <p className="mt-6 max-w-2xl font-serif text-lg leading-relaxed text-muted">
-          {author.about}
-        </p>
-      )}
-
-      <dl className="mt-8 min-w-0 space-y-1 font-mono text-xs">
-        <Field label="key">{npub}</Field>
-        {specs.length > 0 && (
-          <Field label="publishing">{`since ${new Date(oldest * 1000).toISOString().slice(0, 10)}`}</Field>
+  total: number;
+  oldest: number;
+}) => (
+  <header>
+    <div className="flex items-start gap-5">
+      <AuthorAvatar pubkey={pubkey} picture={author?.picture ?? null} size={72} />
+      <div className="min-w-0">
+        <h1
+          style={{ color: keyTextColor(pubkey) }}
+          className="break-all font-mono text-2xl font-medium tracking-tight sm:text-3xl"
+        >
+          {authorName(author, npub)}
+        </h1>
+        {/* A claim the author makes about themselves, which nothing here resolves. */}
+        {author?.nip05 && (
+          <p className="mt-2 break-all font-mono text-xs text-muted">{author.nip05}</p>
         )}
-      </dl>
-
-      <div className="mt-5 flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
-        <CopyButton value={npub} label="Copy npub" title={npub} />
-        <FeedLink to={authorRssPath(npub)}>RSS</FeedLink>
-        <FeedLink to={authorAtomPath(npub)}>Atom</FeedLink>
       </div>
-    </header>
-  );
-};
+    </div>
+
+    {author?.about && (
+      <p className="mt-6 max-w-2xl font-serif text-lg leading-relaxed text-muted">{author.about}</p>
+    )}
+
+    <dl className="mt-8 min-w-0 space-y-1 font-mono text-xs">
+      <Field label="key">{npub}</Field>
+      {total > 0 && (
+        <Field label="publishing">{`since ${new Date(oldest * 1000).toISOString().slice(0, 10)}`}</Field>
+      )}
+    </dl>
+
+    <div className="mt-5 flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
+      <CopyButton value={npub} label="Copy npub" title={npub} />
+      <FeedLink to={authorRssPath(npub)}>RSS</FeedLink>
+      <FeedLink to={authorAtomPath(npub)}>Atom</FeedLink>
+    </div>
+  </header>
+);
 
 export default function AuthorRoute({ loaderData }: Route.ComponentProps) {
-  const { pubkey, npub, author, specs } = loaderData;
+  const { pubkey, npub, author, specs, page, pages, total, oldest } = loaderData;
 
   return (
     <Shell>
       <main className="mx-auto max-w-5xl px-6 py-16">
-        <Masthead pubkey={pubkey} npub={npub} author={author} specs={specs} />
+        <Masthead pubkey={pubkey} npub={npub} author={author} total={total} oldest={oldest} />
 
         <section className="mt-14">
           <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">
-            {shelf(specs.length)}
+            {shelf(total, total >= LISTING_WINDOW)}
+            {pages > 1 && <span className="text-rule">{` / page ${page} of ${pages}`}</span>}
           </h2>
-          {specs.length === 0 ? (
+          {total === 0 ? (
             <p className="mt-6 border-t border-rule pt-6 font-serif text-muted">
               Nothing signed by this key has reached the relays this server reads. A document
               published elsewhere appears here as soon as one of them holds it.
             </p>
           ) : (
-            <ul className="mt-6">
-              {specs.map((spec) => (
-                // Every row here is signed by the same key, so the mark beside each
-                // one would say what the page already says at the top.
-                <SpecRow key={spec.path} spec={spec} avatar={false} />
-              ))}
-            </ul>
+            <>
+              <ul className="mt-6">
+                {specs.map((spec) => (
+                  // Every row here is signed by the same key, so the mark beside each
+                  // one would say what the page already says at the top.
+                  <SpecRow key={spec.path} spec={spec} avatar={false} />
+                ))}
+              </ul>
+              <Pagination
+                page={page}
+                pages={pages}
+                href={(n) => authorPagePath(npub, n)}
+                label="Specifications by this key"
+              />
+            </>
           )}
         </section>
       </main>

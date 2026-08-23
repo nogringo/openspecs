@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useSearchParams } from "react-router";
 import { corpusState, serverCorpusState, startCorpus, subscribeCorpus } from "~/lib/corpus";
+import { parsePage } from "~/lib/filter";
+import { pageOf } from "~/lib/pagination";
+import { specsPath } from "~/lib/paths";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import { searchDocs, searchTerms } from "~/lib/search";
+import { Pagination } from "./pagination";
 import { SpecRow } from "./spec-row";
 
-const LIMIT = 60;
+const PAGE_SIZE = 20;
 
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
 
@@ -29,6 +34,10 @@ export const SearchResults = ({
     serverCorpusState,
   );
 
+  // Read off the URL rather than the loader: the server is not asked again when
+  // only the page changed, so its idea of which page this is would be stale.
+  const [params] = useSearchParams();
+
   const scoped = useMemo(
     () =>
       docs.filter(
@@ -38,14 +47,21 @@ export const SearchResults = ({
       ),
     [docs, topic, kind],
   );
-  const hits = useMemo(() => searchDocs(scoped, query, LIMIT), [scoped, query]);
+  const hits = useMemo(() => searchDocs(scoped, query), [scoped, query]);
   const terms = useMemo(() => searchTerms(query), [query]);
+  // The corpus arrives in pages of its own, so the last page grows under the
+  // reader while the relays are still being read. Clamping is what absorbs it.
+  const requested = parsePage(params);
+  const { items, page, pages } = useMemo(
+    () => pageOf(hits, requested, PAGE_SIZE),
+    [hits, requested],
+  );
 
   // Only the authors a reader ended up in front of: the corpus holds far more.
   const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
   useEffect(() => {
-    wantAuthors(hits.map((hit) => hit.doc.pubkey));
-  }, [hits]);
+    wantAuthors(items.map((hit) => hit.doc.pubkey));
+  }, [items]);
 
   const walking = status === "idle" || status === "loading" || status === "syncing";
   const count = walking
@@ -68,6 +84,7 @@ export const SearchResults = ({
         className="mt-10 border-t border-rule pt-6 font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted"
       >
         {count}
+        {pages > 1 && `, page ${page} of ${pages}`}
         {status === "failed" && ", some relays did not answer"}
       </p>
 
@@ -78,17 +95,27 @@ export const SearchResults = ({
             : "No document carries these words. Try fewer of them."}
         </p>
       ) : (
-        <ul className="mt-6">
-          {hits.map((hit) => (
-            <SpecRow
-              key={hit.doc.path}
-              spec={hit.doc}
-              author={authors[hit.doc.pubkey] ?? null}
-              excerpt={hit.excerpt}
-              terms={terms}
-            />
-          ))}
-        </ul>
+        <>
+          <ul className="mt-6">
+            {items.map((hit) => (
+              <SpecRow
+                key={hit.doc.path}
+                spec={hit.doc}
+                author={authors[hit.doc.pubkey] ?? null}
+                excerpt={hit.excerpt}
+                terms={terms}
+              />
+            ))}
+          </ul>
+          <Pagination
+            page={page}
+            pages={pages}
+            href={(n) =>
+              specsPath({ q: query, topic: topic ?? undefined, kind: kind ?? undefined, page: n })
+            }
+            label="Search results"
+          />
+        </>
       )}
     </>
   );
