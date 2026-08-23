@@ -54,9 +54,11 @@ export const SpecRow = ({
                 <Highlight text={line} terms={terms} />
               </p>
             )}
-            <div className="mt-3">
-              {/* Plain text, not links: a row is already one link, and nesting a second is invalid. */}
-              <SpecTags status={spec.status} kinds={spec.kinds} topics={spec.topics} />
+            <div className="mt-3 max-w-[44rem]">
+              {/* Plain text, not links: a row is already one link, and nesting a second is invalid.
+                  Capped like the summary above it: a row is read to decide whether to open the
+                  document, and no seventh kind ever changes that decision. */}
+              <SpecTags status={spec.status} kinds={spec.kinds} topics={spec.topics} max={6} />
             </div>
           </div>
         </div>

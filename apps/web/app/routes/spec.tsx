@@ -218,7 +218,7 @@ const Masthead = ({
       <p className="mt-4 max-w-2xl font-serif text-lg leading-relaxed text-muted">{spec.summary}</p>
     )}
 
-    <div className="mt-6">
+    <div className="mt-6 max-w-2xl">
       <SpecTags status={spec.status} kinds={spec.kinds} topics={spec.topics} linked />
     </div>
 
