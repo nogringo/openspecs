@@ -5,5 +5,6 @@ export default defineConfig({
     name: "importer",
     environment: "node",
     include: ["test/**/*.test.ts"],
+    setupFiles: ["./test/no-network.ts"],
   },
 });

@@ -1,75 +1,78 @@
-import { createHash } from "node:crypto";
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { buildImport } from "./document.ts";
-import { ensureRepo, fileAt, fileHistory, headCommit } from "./git.ts";
-import { rewriteLinks, specIndex } from "./links.ts";
-import { loadManifests } from "./manifest.ts";
+import { existsSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { closeRelayPool, relaySet, relayUrl } from "@openspecs/nostr";
+import { buildEvents } from "./build.ts";
+import { loadManifests, MANIFEST_DIR } from "./manifest.ts";
+import { publishEvents } from "./publish.ts";
+
+const args = process.argv.slice(2);
 
 const flag = (name: string, fallback: string): string => {
-  const at = process.argv.indexOf(`--${name}`);
-  return at === -1 ? fallback : (process.argv[at + 1] ?? fallback);
+  const at = args.indexOf(`--${name}`);
+  return at === -1 ? fallback : (args[at + 1] ?? fallback);
 };
+
+const flags = (name: string): string[] =>
+  args.flatMap((value, at) => (value === `--${name}` ? [args[at + 1] ?? ""] : []));
 
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
+/**
+ * The keys, if this operator keeps them in a file rather than typing them. A
+ * variable already set wins over the file, so one run can be pointed somewhere
+ * else without editing anything, and a key never has to be typed at a prompt
+ * that writes it to a history file.
+ */
+const loadEnv = (): void => {
+  const path = here("../.env");
+  if (existsSync(path)) process.loadEnvFile(path);
+};
+
+/**
+ * No default: a relay to publish to is a decision, and one taken by leaving a
+ * flag out is not one. Nothing here knows where the corpus belongs.
+ */
+const relaysFrom = (): string[] => {
+  const named = [...flags("relay"), ...(process.env.OPENSPECS_IMPORT_RELAYS ?? "").split(",")];
+  const relays = relaySet(named.map((url) => relayUrl(url) ?? "").filter((url) => url !== ""));
+  if (relays.length === 0) {
+    throw new Error("name a relay with --relay, or set OPENSPECS_IMPORT_RELAYS");
+  }
+  return relays;
+};
+
 const main = async (): Promise<void> => {
-  const cache = flag("cache", here("../.cache"));
-  const out = flag("out", here("../events"));
+  loadEnv();
+  const command = args[0];
+  const manifests = flag("manifests", "");
+  const corpora = await loadManifests(
+    manifests === "" ? MANIFEST_DIR : pathToFileURL(`${manifests}/`),
+  );
 
-  const corpora = await loadManifests();
-  const index = specIndex(corpora);
-  await rm(out, { recursive: true, force: true });
-
-  for (const corpus of corpora) {
-    const dir = `${cache}/${corpus.name}`;
-    await ensureRepo(dir, corpus.repo, corpus.branch);
-    const commit = await headCommit(dir, corpus.branch);
-    await mkdir(`${out}/${corpus.name}`, { recursive: true });
-
-    let internal = 0;
-    let external = 0;
-    let anchors = 0;
-    const absolutized: { target: string; url: string }[] = [];
-
-    for (const entry of corpus.specs) {
-      const bytes = await fileAt(dir, commit, entry.file);
-      const { publishedAt, createdAt } = await fileHistory(dir, commit, entry.file);
-      const { content, report } = rewriteLinks(bytes.toString("utf8"), {
-        corpus,
-        file: entry.file,
-        commit,
-        index,
-      });
-
-      const event = buildImport(corpus, entry, content, {
-        commit,
-        publishedAt,
-        createdAt,
-        sha256: createHash("sha256").update(bytes).digest("hex"),
-      });
-
-      await writeFile(
-        `${out}/${corpus.name}/${entry.d}.json`,
-        `${JSON.stringify(event, null, 2)}\n`,
-      );
-
-      internal += report.internal;
-      external += report.external;
-      anchors += report.anchors;
-      absolutized.push(...report.absolutized);
-    }
-
-    console.log(
-      `${corpus.name}\t${corpus.specs.length} documents at ${commit.slice(0, 7)}\t` +
-        `${internal} internal, ${absolutized.length} pinned, ${external} external, ${anchors} anchors`,
-    );
-    for (const link of [...new Set(absolutized.map((link) => link.target))].sort()) {
-      console.log(`\tpinned  ${link}`);
-    }
+  if (command === "build") {
+    await buildEvents({
+      corpora,
+      cache: flag("cache", here("../.cache")),
+      out: flag("out", here("../events")),
+    });
+    return;
   }
 
-  console.log(`\nwritten to ${out}`);
+  if (command === "publish") {
+    try {
+      await publishEvents({
+        corpora,
+        events: flag("events", here("../events")),
+        relays: relaysFrom(),
+        confirmed: args.includes("--yes"),
+      });
+    } finally {
+      closeRelayPool();
+    }
+    return;
+  }
+
+  throw new Error("usage: build | publish");
 };
 
 await main();

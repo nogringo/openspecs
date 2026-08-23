@@ -16,8 +16,9 @@ is where the judgement went.
 ## Commands
 
 ```sh
-pnpm --filter @openspecs/importer build:events   # write the events, sign nothing
-pnpm --filter @openspecs/importer test
+pnpm --filter @openspecs/importer build:events     # write the events, sign nothing
+pnpm --filter @openspecs/importer publish:events   # show what would be sent
+pnpm --filter @openspecs/importer publish:events --yes
 ```
 
 `build:events` clones each repository into `.cache`, reads every file the manifest lists
@@ -41,9 +42,40 @@ so cross references are rewritten:
 
 Fenced code is never touched: a link inside an example is part of the example.
 
-A `nostr:` reference in the target of a link renders as a dead link until
-`packages/markdown` learns to resolve one, which is the next thing to build.
+## Publishing
+
+`publish:events` reads what `build:events` wrote, signs it, and sends what the relays
+do not already hold. It prints its plan and stops; `--yes` is what sends.
+
+A run that changes nothing sends nothing. Every document is compared against the
+revision the relays serve, and only what differs is signed, which is what makes running
+it again safe and what running it again is for. A document that changed in its manifest
+rather than in git is stamped one second past the revision it replaces, since a relay
+keeps the older of two events sharing a timestamp.
+
+Keys come from the environment, one per corpus, `OPENSPECS_IMPORT_KEY_<CORPUS>`, an nsec
+or the same key in hex. Every key is resolved before the first event is sent, and a key
+that is not the one its manifest names is refused: a corpus published under the wrong key
+cannot be taken back.
+
+Relays come from `--relay`, repeatable, or `OPENSPECS_IMPORT_RELAYS`. There is no default
+and there will not be one. `infra/docker-compose.relay.yml` runs the relay this was
+written for.
+
+Both are read from `.env` beside this file, which is ignored, and anything already set in
+the shell wins over it:
+
+```sh
+cp .env.example .env && chmod 600 .env
+```
+
+A file rather than a variable typed in front of the command, because a command is written
+to a shell history and a key does not belong there. And a file of its own rather than
+`infra/.env`, because that one is read by Docker Compose, and nothing here is a service:
+publishing is a command somebody runs on purpose.
 
 ## What it does not do yet
 
-Sign, publish, and walk history. Everything here stops at an unsigned event on disk.
+Walk history. Every revision a document had before this import is still only in git, and
+until it is written as kind 1349 snapshots, publishing a new revision replaces the last
+one on the relays and nothing keeps what it said.
