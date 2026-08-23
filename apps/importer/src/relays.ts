@@ -89,3 +89,30 @@ export const liveEvents = async (
 
   return live;
 };
+
+/**
+ * The replaceable events a set of keys hold now, keyed by `pubkey:kind`. Same
+ * reason as above: what is already published is what a run does not repeat.
+ */
+export const liveReplaceable = async (
+  authors: string[],
+  kinds: number[],
+  relays: string[],
+  pool?: SimplePool,
+): Promise<Map<string, NostrEvent>> => {
+  const live = new Map<string, NostrEvent>();
+  if (relays.length === 0 || authors.length === 0) return live;
+
+  const events = await queryRelays(relays, { kinds, authors }, { pool, timeoutMs: TIMEOUT_MS });
+  for (const event of events) {
+    const key = `${event.pubkey}:${event.kind}`;
+    const held = live.get(key);
+    const newer =
+      held === undefined ||
+      event.created_at > held.created_at ||
+      (event.created_at === held.created_at && event.id < held.id);
+    if (newer) live.set(key, event);
+  }
+
+  return live;
+};

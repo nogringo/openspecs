@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { closeRelayPool, relaySet, relayUrl } from "@openspecs/nostr";
+import { closeRelayPool, INDEXER_RELAYS, relaySet, relayUrl } from "@openspecs/nostr";
 import { buildEvents } from "./build.ts";
+import { publishIdentity } from "./identity.ts";
 import { loadManifests, MANIFEST_DIR } from "./manifest.ts";
 import { publishEvents } from "./publish.ts";
 
@@ -72,7 +73,24 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  throw new Error("usage: build | publish");
+  if (command === "identity") {
+    try {
+      const relays = relaysFrom();
+      await publishIdentity({
+        corpora,
+        relays,
+        // The indexers as well: a relay list nobody can find resolves nothing,
+        // and finding one is what every outbox lookup starts with.
+        targets: relaySet(relays, INDEXER_RELAYS),
+        confirmed: args.includes("--yes"),
+      });
+    } finally {
+      closeRelayPool();
+    }
+    return;
+  }
+
+  throw new Error("usage: build | publish | identity");
 };
 
 await main();
