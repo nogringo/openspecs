@@ -57,6 +57,7 @@ Shippable here: read only, no accounts, no database, but properly indexed.
 - [x] NIP-22 comments and replies, NIP-25 reactions with NIP-09 retraction
 - [x] NIP-57 zaps, over WebLN, NIP-47 or an invoice the reader carries
 - [x] Editor, publishing kind 30817
+- [x] Notifications, read off the relays by the browser holding the key
 - [ ] NIP-37 encrypted drafts
 - [ ] Forks, NIP-32 approvals, NIP-84 highlights
 
@@ -67,4 +68,5 @@ Shippable here: read only, no accounts, no database, but properly indexed.
 - [ ] Full revision history, read from the kind 1349 snapshots the crawler
       archives, so it is a projection of events rather than server only state
 - [ ] Meilisearch
-- [ ] Web Push
+- [ ] Web Push, which reaches a reader whose tab is closed. The list itself is
+      already in Lot 4: what a server adds is the knock on the door, not the news.

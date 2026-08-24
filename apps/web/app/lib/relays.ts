@@ -98,6 +98,29 @@ export const inboxRelays = async (pubkeys: string[]): Promise<string[]> => {
   return relaySet([...lists.values()].flatMap((list) => list.read));
 };
 
+/**
+ * A backstop like `MAX_WRITE_RELAYS`, and lower for the same reason it exists at
+ * all: the four sets below add up to about a dozen, and nothing that truncates
+ * an honest case belongs here.
+ */
+export const MAX_NOTICE_RELAYS = 16;
+
+/**
+ * Where to read what is addressed to me, which is the mirror of `writeRelays`
+ * below and is in that order for the same reasons, read backwards:
+ *
+ * 1. my inbox, since that is where step 2 there aims and where the outbox model
+ *    tells everybody else to reach me;
+ * 2. my own write relays, because what answers me usually lands on the writer's
+ *    own relays too, and theirs overlap with mine more often than not;
+ * 3. the relays this kind of client reads and writes, step 4 there;
+ * 4. the relays this site reads, step 5.
+ */
+export const noticeRelays = async (me: string): Promise<string[]> => {
+  const [inbox, mine] = await Promise.all([inboxRelays([me]), outboxRelays(me)]);
+  return relaySet(inbox, mine, DISCUSSION_RELAYS, DEFAULT_RELAYS).slice(0, MAX_NOTICE_RELAYS);
+};
+
 export type WriteTarget = {
   /**
    * Everyone this event is addressed to: the document's author always, and the

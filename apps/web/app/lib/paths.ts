@@ -80,6 +80,9 @@ export const diffPath = (npub: string, identifier: string, otherNpub: string): s
 /** A document nobody has written yet, which belongs to whichever key is connected. */
 export const newSpecPath = (): string => "/new";
 
+/** What was addressed to whichever key is connected. Nobody else has this page. */
+export const notificationsPath = (): string => "/notifications";
+
 /**
  * Writing a document again, under the address it already has. `specPath` is
  * canonical and lives with the schema; this URL is this site's own, like the
