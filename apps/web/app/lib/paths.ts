@@ -73,6 +73,10 @@ export const oembedPath = (canonical: string): string =>
 export const eventPath = (npub: string, identifier: string): string =>
   `/spec/${npub}/${encodeURIComponent(identifier)}/event.json`;
 
+/** What another key's document under the same name changes against this one. */
+export const diffPath = (npub: string, identifier: string, otherNpub: string): string =>
+  `/spec/${npub}/${encodeURIComponent(identifier)}/diff/${otherNpub}`;
+
 /** A document nobody has written yet, which belongs to whichever key is connected. */
 export const newSpecPath = (): string => "/new";
 
