@@ -3,6 +3,7 @@ export {
   blockAnchors,
   compareMarkdown,
   diffMarkdown,
+  KINSHIP_FLOOR,
   type MarkdownChange,
   type MarkdownComparison,
   type MarkdownDiff,

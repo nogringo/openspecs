@@ -311,4 +311,16 @@ html {
     padding-top: 0;
     margin-top: 0;
   }
+
+  /*
+   * An unfolded margin mark: another key's change, shown below the passage it
+   * concerns. The first heading inside starts a quotation, not a section, so
+   * it drops the section rule.
+   */
+  .doc .diff-spot h2:first-child,
+  .doc .diff-spot :first-child > h2:first-child {
+    border-top: 0;
+    padding-top: 0;
+    margin-top: 0;
+  }
 }

@@ -196,3 +196,24 @@ describe("blockAnchors", () => {
     expect(anchors.map((anchor) => anchor.rendered)).toEqual([false, false, true]);
   });
 });
+
+describe("compareMarkdown, invisible changes", () => {
+  it("marks nothing when only a link target changed", () => {
+    // The mirror rewrites links to nostr addresses; a fork keeps the .md ones.
+    const { changes, changed } = compareMarkdown(
+      "This NIP relies on [NIP-44](nostr:naddr1qvzqqqr)'s encryption.",
+      "This NIP relies on [NIP-44](./44.md)'s encryption.",
+    );
+    expect(changes).toEqual([]);
+    expect(changed).toBe(false);
+  });
+
+  it("still marks a change to the link's own text", () => {
+    const { changes } = compareMarkdown(
+      "This NIP relies on [NIP-44](./44.md) but its text says so.",
+      "This NIP relies on [NIP-44 encryption](./44.md) but its text says so.",
+    );
+    expect(changes).toHaveLength(1);
+    expect(changes[0]?.html).toContain("<ins>");
+  });
+});

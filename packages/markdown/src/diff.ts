@@ -17,6 +17,14 @@ export type MarkdownDiffOptions = {
 };
 
 /**
+ * Below this, two documents share a name but not a text, and marking their
+ * differences would mark nearly everything. Callers use it to decide whether a
+ * comparison is worth showing at all. The NIP forks in the wild sit near 0.9,
+ * an honest rewrite near 0.2.
+ */
+export const KINSHIP_FLOOR = 0.35;
+
+/**
  * Below this, two blocks paired by position are not two drafts of one passage
  * but two passages, and marking every word of both says less than showing them
  * whole, one struck and one added.
@@ -323,13 +331,22 @@ export const compareMarkdown = (
 
   const flush = () => {
     if (run.length === 0) return;
-    const anchored: number[] = [];
-    for (const op of run) if (op.type !== "ins") anchored.push(op.at);
-    changes.push({
-      anchor: anchored.length > 0 ? Math.min(...anchored) : lastBase,
-      placement: anchored.length > 0 ? "at" : "after",
-      html: run.map(renderOp).join("\n"),
-    });
+    const pieces = run.map(renderOp);
+    // A run whose merged rendering carries no mark reads identically: the
+    // sources differ in something a reader cannot see, a link target most
+    // often, and a mark that unfolds into nothing teaches only distrust.
+    const visible = run.some(
+      (op, at) => op.type !== "replace" || /<(?:ins|del)>/.test(pieces[at] ?? ""),
+    );
+    if (visible) {
+      const anchored: number[] = [];
+      for (const op of run) if (op.type !== "ins") anchored.push(op.at);
+      changes.push({
+        anchor: anchored.length > 0 ? Math.min(...anchored) : lastBase,
+        placement: anchored.length > 0 ? "at" : "after",
+        html: pieces.join("\n"),
+      });
+    }
     run = [];
   };
 

@@ -8,6 +8,7 @@ import {
   toNpub,
 } from "@openspecs/nostr";
 import { data, Link, redirect } from "react-router";
+import { AnnotatedDoc } from "~/components/annotated-doc";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
 import { DISCUSSION_ID, Discussion } from "~/components/discussion/discussion";
@@ -214,12 +215,14 @@ const Masthead = ({
   canonical,
   relays,
   variantCount,
+  spotCount,
 }: {
   spec: SpecPage;
   author: Author | null;
   canonical: string;
   relays: string[];
   variantCount: number;
+  spotCount: number;
 }) => (
   <header>
     <p className="font-mono text-xs tracking-wide text-muted">
@@ -233,6 +236,8 @@ const Masthead = ({
           className="ml-3 underline decoration-rule underline-offset-2 hover:text-ink hover:decoration-current"
         >
           also under {variantCount} other {variantCount === 1 ? "key" : "keys"}
+          {spotCount > 0 &&
+            `, differing in ${spotCount} ${spotCount === 1 ? "place" : "places"} below`}
         </a>
       )}
     </p>
@@ -384,7 +389,8 @@ const Article = ({
   discussion: string[];
 }) => {
   const { shown, fresher, show } = useLiveRevision(served);
-  const variants = useVariants(served);
+  // On the shown revision, not the served one: the marks sit on the text on screen.
+  const { variants, spots } = useVariants(shown);
 
   // A preview was fetched for the links the served revision cited. One that no
   // longer appears in the document has no business under it.
@@ -400,6 +406,7 @@ const Article = ({
         canonical={canonical}
         relays={relays}
         variantCount={variants.length}
+        spotCount={spots.length}
       />
 
       <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
@@ -412,11 +419,9 @@ const Article = ({
           ) : (
             // Sanitized by the pipeline that produced it, whether that ran on
             // this server or in this browser: both call `renderMarkdown`.
-            <div
-              className="doc"
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: rendered Markdown
-              dangerouslySetInnerHTML={{ __html: shown.html }}
-            />
+            // Keyed on the revision: the marks and panels are measured against
+            // this exact markup and must not outlive it.
+            <AnnotatedDoc key={shown.eventId} html={shown.html} spots={spots} />
           )}
           {cited.length > 0 && <CitedLinks previews={cited} />}
           <Variants variants={variants} from={{ npub: shown.npub, identifier: shown.identifier }} />
