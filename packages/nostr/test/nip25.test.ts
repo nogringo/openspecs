@@ -41,7 +41,7 @@ describe("buildReaction", () => {
       ["a", COORDINATE],
       ["p", SPEC.pubkey],
       ["k", "30817"],
-      ["client", "openspecs"],
+      ["client", "Open Specs"],
     ]);
   });
 
@@ -50,7 +50,7 @@ describe("buildReaction", () => {
       ["e", COMMENT.id],
       ["p", COMMENT.pubkey],
       ["k", "1111"],
-      ["client", "openspecs"],
+      ["client", "Open Specs"],
     ]);
   });
 
@@ -68,7 +68,7 @@ describe("buildRetraction", () => {
       tags: [
         ["e", "a".repeat(64)],
         ["k", "7"],
-        ["client", "openspecs"],
+        ["client", "Open Specs"],
       ],
     });
   });

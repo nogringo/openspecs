@@ -251,7 +251,7 @@ describe("buildProfile", () => {
   });
 
   it("names the client, like every other event this package builds", () => {
-    expect(buildProfile({ name: "Ada" }).tags).toEqual([["client", "openspecs"]]);
+    expect(buildProfile({ name: "Ada" }).tags).toEqual([["client", "Open Specs"]]);
   });
 });
 
@@ -379,7 +379,7 @@ describe("editProfile", () => {
 
     expect(editProfile(tagged, { name: "Ada" }).tags).toEqual([
       ["alt", "a profile"],
-      ["client", "openspecs"],
+      ["client", "Open Specs"],
     ]);
   });
 

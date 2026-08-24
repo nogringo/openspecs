@@ -161,7 +161,7 @@ describe("signAndPublish", () => {
    * settled here instead, and the signature has to be taken over what is left.
    */
   it("signs away the app's name when nobody asked for it", async () => {
-    const named = { ...DRAFT, tags: [...DRAFT.tags, ["client", "openspecs"]] };
+    const named = { ...DRAFT, tags: [...DRAFT.tags, ["client", "Open Specs"]] };
     const report = await signAndPublish(named, RELAYS);
 
     expect(report.event.tags).toEqual([["A", "30817:x:y"]]);
@@ -169,10 +169,11 @@ describe("signAndPublish", () => {
 
   it("keeps the app's name, in its place, when the reader asked for it", async () => {
     setNamesClient(true);
-    const tags = [...DRAFT.tags, ["client", "openspecs"]];
+    const tags = [...DRAFT.tags, ["client", "Open Specs"]];
     const report = await signAndPublish({ ...DRAFT, tags }, RELAYS);
 
-    expect(report.event.tags).toEqual(tags);
+    expect(report.event.tags[0]).toEqual(["A", "30817:x:y"]);
+    expect(report.event.tags[1]?.slice(0, 2)).toEqual(["client", "Open Specs"]);
   });
 
   /** The lookup runs while its author is looking at their signer's prompt. */

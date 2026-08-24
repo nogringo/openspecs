@@ -188,7 +188,7 @@ describe("buildServerList", () => {
   });
 
   it("names the client, like every other event this package builds", () => {
-    expect(buildServerList(SERVERS).tags.at(-1)).toEqual(["client", "openspecs"]);
+    expect(buildServerList(SERVERS).tags.at(-1)).toEqual(["client", "Open Specs"]);
   });
 });
 
@@ -203,7 +203,7 @@ describe("parseServerList", () => {
 
   it("ignores tags that are not servers, and servers that are not usable", () => {
     const list = serverListEvent([
-      ["client", "openspecs"],
+      ["client", "Open Specs"],
       ["server", "http://insecure.example"],
       ["server"],
       ["server", "https://good.example"],

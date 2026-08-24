@@ -61,7 +61,7 @@ describe("buildZapRequest", () => {
       ["e", "d".repeat(64)],
       ["a", COORDINATE],
       ["k", "30817"],
-      ["client", "openspecs"],
+      ["client", "Open Specs"],
     ]);
   });
 

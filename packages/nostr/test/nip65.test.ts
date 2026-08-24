@@ -187,7 +187,7 @@ describe("buildRelayList", () => {
   });
 
   it("names the client, like every other event this package builds", () => {
-    expect(buildRelayList(FOUR).tags.at(-1)).toEqual(["client", "openspecs"]);
+    expect(buildRelayList(FOUR).tags.at(-1)).toEqual(["client", "Open Specs"]);
   });
 
   it("gives back a list edited elsewhere with the markers it arrived with", () => {

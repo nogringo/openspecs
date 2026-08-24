@@ -1,3 +1,5 @@
+import { CLIENT_NAME } from "@openspecs/nostr";
+
 const CLIENT_TAG_KEY = "openspecs:client-tag";
 
 /** The one value that means yes. Anything else, absence included, means no. */
@@ -6,7 +8,7 @@ const ON = "on";
 /**
  * Whether the events this browser signs say which app signed them.
  *
- * `["client", "openspecs"]` is a courtesy to the people who build clients and a
+ * `["client", "Open Specs"]` is a courtesy to the people who build clients and a
  * disclosure by whoever publishes: it stays on the relays for good, it says what
  * software a key runs, and it is one more thing that tells two keys apart or
  * groups them together. Nobody agreed to that by writing a comment, and it
@@ -60,10 +62,22 @@ export const setNamesClient = (on: boolean): void => {
   notify();
 };
 
+/** This app's kind:31990, and a relay that holds it. NIP-89 names both after the name. */
+const HANDLER = "31990:b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2:bkdmj9q6";
+const HANDLER_RELAY = "wss://relay.nmail.li";
+
 /**
  * Applied where a draft is signed rather than where it is built: the builders in
  * `@openspecs/nostr` are shared with the importer, which rewrites this tag into
  * its own name and needs to keep finding it.
+ *
+ * A draft that carries no `client` tag is left without one. Nothing is named
+ * that the builder did not offer to name: the Blossom token a server reads and
+ * the wallet request a wallet decrypts are unsigned by any app on purpose.
  */
 export const withClientTag = (tags: string[][]): string[][] =>
-  namesClient() ? tags : tags.filter((tag) => tag[0] !== "client");
+  namesClient()
+    ? tags.map((tag) =>
+        tag[0] === "client" ? ["client", CLIENT_NAME, HANDLER, HANDLER_RELAY] : tag,
+      )
+    : tags.filter((tag) => tag[0] !== "client");

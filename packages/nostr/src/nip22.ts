@@ -2,8 +2,11 @@ import { type EventDraft, type NostrEvent, nostrEventSchema, SPEC_KIND, tagValue
 
 export const COMMENT_KIND = 1111;
 
-/** Named on every event this app publishes, the way the other two clients do. */
-export const CLIENT_NAME = "openspecs";
+/**
+ * Named on every event this app publishes, the way the other two clients do,
+ * and spelled the way the site and the kind:31990 spell it.
+ */
+export const CLIENT_NAME = "Open Specs";
 
 /** The document a thread hangs from, which stays the root at every depth. */
 export type CommentRoot = { coordinate: string; pubkey: string };

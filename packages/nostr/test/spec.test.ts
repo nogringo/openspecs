@@ -339,7 +339,9 @@ describe("editSpec", () => {
 
   it("names this client and only this client", () => {
     for (const live of specs) {
-      expect(named(editSpec(live, specDraftOf(live)), "client")).toEqual([["client", "openspecs"]]);
+      expect(named(editSpec(live, specDraftOf(live)), "client")).toEqual([
+        ["client", "Open Specs"],
+      ]);
     }
   });
 
@@ -415,7 +417,7 @@ describe("buildSpec", () => {
       ["d", "x"],
       ["title", "X"],
       ["alt", "A specification: X"],
-      ["client", "openspecs"],
+      ["client", "Open Specs"],
     ]);
   });
 
@@ -477,7 +479,7 @@ describe("withdrawSpec", () => {
       content: "",
       tags: [
         ["d", "x"],
-        ["client", "openspecs"],
+        ["client", "Open Specs"],
       ],
     });
   });
@@ -519,7 +521,7 @@ describe("buildSpecDeletion", () => {
       tags: [
         ["a", "30817:abc:x"],
         ["k", "30817"],
-        ["client", "openspecs"],
+        ["client", "Open Specs"],
       ],
     });
   });

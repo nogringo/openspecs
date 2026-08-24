@@ -93,7 +93,7 @@ describe("namesClient", () => {
 describe("withClientTag", () => {
   const TAGS = [
     ["A", "30817:x:y"],
-    ["client", "openspecs"],
+    ["client", "Open Specs"],
   ];
 
   it("takes the name off when it was never asked for", async () => {
@@ -101,9 +101,31 @@ describe("withClientTag", () => {
     expect(withClientTag(TAGS)).toEqual([["A", "30817:x:y"]]);
   });
 
-  it("leaves every tag where it was when it was", async () => {
+  /** NIP-89: the name, then the handler event, then somewhere to find it. */
+  it("names the handler event beside the name when it was", async () => {
     const { setNamesClient, withClientTag } = await load();
     setNamesClient(true);
-    expect(withClientTag(TAGS)).toEqual(TAGS);
+
+    expect(withClientTag(TAGS)).toEqual([
+      ["A", "30817:x:y"],
+      [
+        "client",
+        "Open Specs",
+        "31990:b22b06b051fd5232966a9344a634d956c3dc33a7f5ecdcad9ed11ddc4120a7f2:bkdmj9q6",
+        "wss://relay.nmail.li",
+      ],
+    ]);
+  });
+
+  /** A token a server reads, not an event a relay keeps: the builder named nobody. */
+  it("names nothing on a draft that offered no client tag", async () => {
+    const { setNamesClient, withClientTag } = await load();
+    setNamesClient(true);
+
+    const auth = [
+      ["t", "upload"],
+      ["x", "abc"],
+    ];
+    expect(withClientTag(auth)).toEqual(auth);
   });
 });

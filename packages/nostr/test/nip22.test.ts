@@ -57,7 +57,7 @@ describe("buildComment", () => {
       ["a", ROOT.coordinate],
       ["k", "30817"],
       ["p", ROOT.pubkey],
-      ["client", "openspecs"],
+      ["client", "Open Specs"],
     ]);
   });
 
@@ -76,7 +76,7 @@ describe("buildComment", () => {
       ["e", PARENT.id],
       ["k", "1111"],
       ["p", PARENT.pubkey],
-      ["client", "openspecs"],
+      ["client", "Open Specs"],
     ]);
   });
 
