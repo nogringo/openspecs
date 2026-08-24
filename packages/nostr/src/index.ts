@@ -77,11 +77,14 @@ export {
 } from "./lnurl";
 export { deriveSummary, firstHeading, stripInlineMarkdown } from "./markdown";
 export {
+  checkNip05,
   clearNip05Cache,
   NIP05_TIMEOUT_MS,
   type Nip05Address,
+  type Nip05Check,
   type Nip05Options,
   type Nip05Result,
+  nip05Label,
   parseNip05Address,
   resolveNip05,
 } from "./nip05";

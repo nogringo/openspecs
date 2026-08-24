@@ -1,5 +1,8 @@
 import {
   authorPath,
+  checkNip05,
+  nip05Label,
+  parseNip05Address,
   parsePubkey,
   parseSpecAddress,
   resolveNip05,
@@ -13,6 +16,7 @@ import { ErrorPage } from "~/components/error-page";
 import { Pagination } from "~/components/pagination";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
+import { withDeadline } from "~/lib/cache.server";
 import { keyTextColor } from "~/lib/color";
 import { parsePage } from "~/lib/filter";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
@@ -26,6 +30,11 @@ import type { Route } from "./+types/author";
 
 /** Short enough that the whole page is one glance down the shelf. */
 const PAGE_SIZE = 20;
+
+/** Shorter than the profile's own: a name is the page, an address is a word on it. */
+const NIP05_DEADLINE_MS = 600;
+
+const NO = Promise.resolve(false);
 
 /**
  * Only the `name@domain` form is resolved here. A bare domain is a NIP-05
@@ -61,6 +70,16 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data({ missing: "author" }, { status: 404, headers: NOT_FOUND_HEADERS });
   }
 
+  // Asked here rather than in the browser: the answer is the same for every
+  // reader, and a domain that serves this without the CORS header NIP-05 asks
+  // for would be unaskable from a page. Short, since it decides one word, and
+  // the request that outran it still fills the cache the next reader reads.
+  const confirmed = await withDeadline(
+    author?.nip05 ? checkNip05(pubkey, author.nip05).then((check) => check === "confirmed") : NO,
+    false,
+    NIP05_DEADLINE_MS,
+  );
+
   const { items, page, pages, total } = pageOf(shelf, parsePage(url.searchParams), PAGE_SIZE);
   // Read off the whole shelf: a page of it says when this author last wrote,
   // not when they started.
@@ -75,6 +94,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     pubkey,
     npub,
     author,
+    confirmed,
     specs: items,
     page,
     pages,
@@ -196,12 +216,15 @@ const Masthead = ({
   pubkey,
   npub,
   author,
+  confirmed,
   total,
   oldest,
 }: {
   pubkey: string;
   npub: string;
   author: Author | null;
+  /** The domain in the address answers with this key. */
+  confirmed: boolean;
   total: number;
   oldest: number;
 }) => (
@@ -215,9 +238,22 @@ const Masthead = ({
         >
           {authorName(author, npub)}
         </h1>
-        {/* A claim the author makes about themselves, which nothing here resolves. */}
+        {/* A claim the author makes, and beside it whether the domain it names
+            backs it. NIP-05 is careful that this identifies rather than
+            vouches: a domain saying yes says the two are the same account
+            somewhere, and nothing about who that is. */}
         {author?.nip05 && (
-          <p className="mt-2 break-all font-mono text-xs text-muted">{author.nip05}</p>
+          <p className="mt-2 break-all font-mono text-xs text-muted">
+            {nip05Label(author.nip05)}
+            {confirmed && (
+              <span
+                title={`${parseNip05Address(author.nip05)?.domain ?? "The domain"} answers with this key, so the address and the key are one account there.`}
+                className="ml-2 whitespace-nowrap text-[0.6875rem] uppercase tracking-[0.14em] text-signal-settled"
+              >
+                confirmed
+              </span>
+            )}
+          </p>
         )}
       </div>
     </div>
@@ -255,12 +291,19 @@ const Masthead = ({
 );
 
 export default function AuthorRoute({ loaderData }: Route.ComponentProps) {
-  const { pubkey, npub, author, specs, page, pages, total, capped, oldest } = loaderData;
+  const { pubkey, npub, author, confirmed, specs, page, pages, total, capped, oldest } = loaderData;
 
   return (
     <Shell>
       <main className="mx-auto max-w-5xl px-6 py-16">
-        <Masthead pubkey={pubkey} npub={npub} author={author} total={total} oldest={oldest} />
+        <Masthead
+          pubkey={pubkey}
+          npub={npub}
+          author={author}
+          confirmed={confirmed}
+          total={total}
+          oldest={oldest}
+        />
 
         <section className="mt-14">
           <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">

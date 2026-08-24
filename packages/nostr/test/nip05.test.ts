@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clearNip05Cache, parseNip05Address, resolveNip05 } from "../src/nip05";
+import {
+  checkNip05,
+  clearNip05Cache,
+  nip05Label,
+  parseNip05Address,
+  resolveNip05,
+} from "../src/nip05";
 
 const PUBKEY = "0461fcbecc4c3374439932d6b8f11269ccdb7cc973ad7a50ae362db135a474dd";
 
@@ -114,5 +120,65 @@ describe("resolveNip05", () => {
     await resolveNip05("alice@example.com");
     await resolveNip05("ALICE@example.com");
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("checkNip05", () => {
+  const OTHER = "1".repeat(64);
+
+  it("confirms an address the domain answers with that key", async () => {
+    vi.stubGlobal("fetch", serving({ names: { alice: PUBKEY } }));
+    expect(await checkNip05(PUBKEY, "alice@example.com")).toBe("confirmed");
+  });
+
+  it("contradicts an address the domain gives to somebody else", async () => {
+    vi.stubGlobal("fetch", serving({ names: { alice: OTHER } }));
+    expect(await checkNip05(PUBKEY, "alice@example.com")).toBe("contradicted");
+  });
+
+  /** NIP-05: a browser refused by CORS sees what it sees for a name nobody published. */
+  it("cannot tell a silent domain from a name it does not carry", async () => {
+    vi.stubGlobal("fetch", serving({ names: { bob: PUBKEY } }));
+    expect(await checkNip05(PUBKEY, "alice@example.com")).toBe("unreachable");
+
+    clearNip05Cache();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("refused");
+      }),
+    );
+    expect(await checkNip05(PUBKEY, "alice@example.com")).toBe("unreachable");
+  });
+
+  it("does not ask about an address no domain could answer for", async () => {
+    const fetcher = serving({ names: { alice: PUBKEY } });
+    vi.stubGlobal("fetch", fetcher);
+
+    // The local part NIP-05 allows is `a-z0-9-_.` and nothing else.
+    expect(await checkNip05(PUBKEY, "alice smith@example.com")).toBe("malformed");
+    expect(await checkNip05(PUBKEY, "not an address")).toBe("malformed");
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("reads the key it is given however it is cased", async () => {
+    vi.stubGlobal("fetch", serving({ names: { alice: PUBKEY } }));
+    expect(await checkNip05(PUBKEY.toUpperCase(), "alice@example.com")).toBe("confirmed");
+  });
+});
+
+describe("nip05Label", () => {
+  /** NIP-05 asks that `_@domain` be shown and treated as the bare domain. */
+  it("writes the root name out as the domain alone", () => {
+    expect(nip05Label("_@example.com")).toBe("example.com");
+    expect(nip05Label("example.com")).toBe("example.com");
+  });
+
+  it("leaves an ordinary address as it is, lowercased", () => {
+    expect(nip05Label("Alice@Example.com")).toBe("alice@example.com");
+  });
+
+  it("hands back what it cannot read rather than dropping it", () => {
+    expect(nip05Label("  not an address  ")).toBe("not an address");
   });
 });

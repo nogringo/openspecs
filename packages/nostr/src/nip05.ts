@@ -73,6 +73,43 @@ const query = async (address: Nip05Address, options: Nip05Options): Promise<Nip0
   }
 };
 
+/**
+ * What a domain says about a key that claims one of its addresses.
+ *
+ * `unreachable` is one answer rather than two on purpose: NIP-05 points out that
+ * a browser refused by CORS sees exactly what it sees for a name nobody
+ * published, so a caller that told them apart would be guessing.
+ */
+export type Nip05Check = "confirmed" | "contradicted" | "unreachable" | "malformed";
+
+/**
+ * The question NIP-05 is for: not who owns this address, but whether the domain
+ * in it names this key. A `contradicted` address belonged to somebody else, or
+ * still does, and the NIP is explicit that a client stops showing it as this
+ * key's own.
+ */
+export const checkNip05 = async (
+  pubkey: string,
+  input: string,
+  options: Nip05Options = {},
+): Promise<Nip05Check> => {
+  if (parseNip05Address(input) === null) return "malformed";
+  const result = await resolveNip05(input, options);
+  if (result === null) return "unreachable";
+  return result.pubkey === pubkey.trim().toLowerCase() ? "confirmed" : "contradicted";
+};
+
+/**
+ * How an address is written out. NIP-05 lets a domain's own key use the name
+ * `_`, and asks that it be shown as the bare domain: `_@example.com` is a
+ * spelling of `example.com`, and nobody types the first one.
+ */
+export const nip05Label = (input: string): string => {
+  const address = parseNip05Address(input);
+  if (address === null) return input.trim();
+  return address.name === "_" ? address.domain : `${address.name}@${address.domain}`;
+};
+
 export const resolveNip05 = (
   input: string,
   options: Nip05Options = {},

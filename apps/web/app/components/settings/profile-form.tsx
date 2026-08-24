@@ -13,6 +13,7 @@ import { keyTextColor } from "~/lib/color";
 import { shortNpub } from "~/lib/profile";
 import { type RelayResult, signAndPublish } from "~/lib/publish";
 import { identityRelays } from "~/lib/relays";
+import { AddressCheck } from "./nip05-check";
 import { PictureField } from "./picture-field";
 
 type State = "editing" | "sending" | "sent" | "failed";
@@ -221,10 +222,7 @@ export const ProfileForm = ({
           </p>
         )}
 
-        <Row
-          label="Nostr address"
-          note="A name at a domain that vouches for this key. Nothing here checks it."
-        >
+        <Row label="Nostr address" note="A name at a domain that vouches for this key.">
           {(id) => (
             <input
               id={id}
@@ -236,6 +234,8 @@ export const ProfileForm = ({
             />
           )}
         </Row>
+
+        <AddressCheck me={me} address={draft.nip05 ?? ""} />
 
         <Row label="Website" note="Somewhere else of yours, shown on your page here.">
           {(id) => (
