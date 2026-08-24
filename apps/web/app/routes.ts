@@ -3,7 +3,11 @@ import { index, type RouteConfig, route } from "@react-router/dev/routes";
 export default [
   index("routes/home.tsx"),
   route("specs", "routes/specs.tsx"),
-  route("settings", "routes/settings.tsx"),
+  route("settings", "routes/settings.tsx", [
+    index("routes/settings/profile.tsx"),
+    route("relays", "routes/settings/relays.tsx"),
+    route("browser", "routes/settings/browser.tsx"),
+  ]),
   route("notifications", "routes/notifications.tsx"),
   route("new", "routes/new.tsx"),
   route("sitemap.xml", "routes/sitemap.ts"),

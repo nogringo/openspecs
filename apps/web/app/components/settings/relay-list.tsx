@@ -29,9 +29,10 @@ const SUGGESTION =
 const hostOf = (relay: string): string => relay.replace(/^wss?:\/\//, "").replace(/\/$/, "");
 
 /**
- * Behind a disclosure, closed, and last on the page. Somebody who came to fix
- * their name should not have to walk past a list of servers to reach it, and
- * this is already set up and working for everybody who never opens it.
+ * On a page of its own rather than folded away under the profile, since a list
+ * nobody can find is a list nobody can fix. Open on arrival: the tab is the
+ * disclosure now, and a second one behind it is what hid this in the first
+ * place.
  *
  * The markers NIP-65 allows are never drawn. Most lists carry none, the two of
  * them are a distinction almost nobody wants to make, and a relay that arrived
@@ -126,13 +127,13 @@ export const RelayList = ({
   };
 
   return (
-    <details className="group">
-      <summary className="cursor-pointer font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:text-ink">
+    <section>
+      <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">
         Your relays
         <span className="ml-3 normal-case tracking-normal">
           {entries.length === 1 ? "1 relay" : `${entries.length} relays`}
         </span>
-      </summary>
+      </h2>
 
       <div className="mt-5 space-y-5">
         <p className={NOTE}>
@@ -237,6 +238,6 @@ export const RelayList = ({
 
         {error !== null && <p className={WRONG}>{error}</p>}
       </div>
-    </details>
+    </section>
   );
 };

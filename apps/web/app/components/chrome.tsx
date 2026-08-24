@@ -7,6 +7,15 @@ export const CHROME =
   "rounded-sm border border-rule px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink";
 
 /**
+ * One of a row of choices, of which one is taken. Filled for the one you are on,
+ * because a pill that only changes colour is a pill you have to compare against
+ * its neighbours to read.
+ */
+const TAB = "rounded-sm px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em]";
+export const TAB_ON = `${TAB} bg-ink text-paper`;
+export const TAB_OFF = `${TAB} text-muted hover:text-ink`;
+
+/**
  * The header is set in wide-tracked capitals, and everything inside it inherits
  * that. A panel is not chrome, it is a place to read a sentence and a key, so it
  * puts the type back to normal and lets what wants the chrome ask for it.

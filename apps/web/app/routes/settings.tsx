@@ -1,208 +1,67 @@
-import {
-  clearProfileCache,
-  clearRelayListCache,
-  clearServerListCache,
-  fetchProfileEvent,
-  fetchRelayListEvent,
-  fetchServerListEvent,
-  type NostrEvent,
-  parseProfile,
-  parseRelayEntries,
-  parseServerList,
-  type RelayEntry,
-  toNpub,
-} from "@openspecs/nostr";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { Alerts } from "~/components/settings/alerts";
-import { ClientTag } from "~/components/settings/client-tag";
-import { ProfileForm } from "~/components/settings/profile-form";
-import { RelayList } from "~/components/settings/relay-list";
-import { ServerList } from "~/components/settings/server-list";
+import { toNpub } from "@openspecs/nostr";
+import { useEffect, useSyncExternalStore } from "react";
+import { NavLink, Outlet } from "react-router";
+import { TAB_OFF, TAB_ON } from "~/components/chrome";
 import { Shell } from "~/components/shell";
-import { Unlock } from "~/components/unlock";
-import { PAGE_HEADERS } from "~/lib/http";
-import { namedAuthor, toAuthor } from "~/lib/profile";
-import { rememberAuthor } from "~/lib/profiles";
-import { identityRelays } from "~/lib/relays";
+import { browserSettingsPath, relaySettingsPath, settingsPath } from "~/lib/paths";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
-import type { Route } from "./+types/settings";
 
-type Reading = "reading" | "read" | "failed";
+/** Whose settings these are, read once here and handed to whichever tab is open. */
+export type Own = {
+  me: string | null;
+  npub: string | null;
+  /** A key on this device, and shut. There is nothing to read until it opens. */
+  locked: boolean;
+};
 
-const NOTE = "font-serif text-[0.9375rem] leading-relaxed text-muted";
-
-const ACTION =
-  "rounded-sm border border-rule px-3 py-1.5 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink";
-
-export function meta(_: Route.MetaArgs) {
-  return [
-    { title: "Your profile | Open Specs" },
-    // The server knows nobody, so there is no page here for a crawler to read:
-    // what it would index is the sentence asking it to connect a key.
-    { name: "robots", content: "noindex, nofollow" },
-  ];
-}
-
-export function headers(_: Route.HeadersArgs) {
-  return PAGE_HEADERS;
-}
+const Tab = ({ to, end, children }: { to: string; end?: boolean; children: string }) => (
+  <NavLink to={to} end={end} className={({ isActive }) => (isActive ? TAB_ON : TAB_OFF)}>
+    {children}
+  </NavLink>
+);
 
 /**
- * What a key says about itself: the profile every page draws it by, and the
- * relay list that decides where its documents are looked for.
+ * Three unrelated things used to sit on this page one under the other, under a
+ * heading that named only the first of them. So the page is named for what it is
+ * and says on its face what it holds: what a key publishes about itself, where
+ * it keeps things, and what this browser does on its own.
  *
- * Both are read back whole before anything is offered, and for the same reason.
- * Each is a single replaceable event, so a save replaces the lot, and a form
- * that started empty would publish an empty profile over a full one. That read
- * is also why this page has no loader: it is asked for with the reader's key, in
- * the reader's browser, and the server has neither.
+ * Each has an address, because the way here used to be a single word in a menu
+ * and nobody could be sent to anything but the top of it.
  */
 export default function SettingsRoute() {
   const session = useSyncExternalStore(subscribeSession, sessionState, serverSessionState);
   useEffect(restoreSession, []);
 
   const me = session.pubkey;
-  const npub = me === null ? null : toNpub(me);
-  const locked = session.status === "locked" && session.method === "key";
-
-  const [reading, setReading] = useState<Reading>("reading");
-  const [profile, setProfile] = useState<NostrEvent | null>(null);
-  const [entries, setEntries] = useState<RelayEntry[]>([]);
-  const [servers, setServers] = useState<string[]>([]);
-  const [found, setFound] = useState({ profile: false, relays: false, servers: false });
-
-  // The effect itself, so that trying again is running it again rather than
-  // nudging a counter it happens to depend on.
-  const read = useCallback(() => {
-    if (me === null || locked) return;
-
-    let live = true;
-    setReading("reading");
-
-    (async () => {
-      try {
-        const relays = await identityRelays(me);
-        const [kind0, kind10002, kind10063] = await Promise.all([
-          fetchProfileEvent(me, { indexers: relays }),
-          fetchRelayListEvent(me, { indexers: relays }),
-          fetchServerListEvent(me, { indexers: relays }),
-        ]);
-        if (!live) return;
-
-        setProfile(kind0);
-        setEntries((kind10002 === null ? null : parseRelayEntries(kind10002)) ?? []);
-        setServers((kind10063 === null ? null : parseServerList(kind10063)) ?? []);
-        setFound({
-          profile: kind0 !== null,
-          relays: kind10002 !== null,
-          servers: kind10063 !== null,
-        });
-        setReading("read");
-      } catch {
-        if (live) setReading("failed");
-      }
-    })();
-
-    // A key swapped in the header while this page is open must not have the
-    // previous one's profile arrive on top of it a second later.
-    return () => {
-      live = false;
-    };
-  }, [me, locked]);
-
-  useEffect(read, [read]);
-
-  const onProfileSaved = (event: NostrEvent) => {
-    setProfile(event);
-    setFound((was) => ({ ...was, profile: true }));
-    // The indexers hold what was there for half an hour yet, so the name in the
-    // header comes from here instead. `toAuthor` drops a profile with nothing in
-    // it, which is what a cleared one is: the key stands in for it, as it does
-    // for everybody who published none.
-    clearProfileCache();
-    if (me !== null) rememberAuthor(me, toAuthor(parseProfile(event)) ?? namedAuthor(""));
-  };
-
-  const onRelaysSaved = (saved: RelayEntry[]) => {
-    setEntries(saved);
-    setFound((was) => ({ ...was, relays: true }));
-    // Or every comment written after this one is sent to the relays that were
-    // replaced, which is what the cache still holds.
-    clearRelayListCache();
-  };
-
-  const onServersSaved = (saved: string[]) => {
-    setServers(saved);
-    setFound((was) => ({ ...was, servers: true }));
-    // Or a picture that fails is looked for on the servers that were replaced.
-    clearServerListCache();
+  const own: Own = {
+    me,
+    npub: me === null ? null : toNpub(me),
+    locked: session.status === "locked" && session.method === "key",
   };
 
   return (
     <Shell>
       <main className="mx-auto max-w-3xl px-6 py-16">
         <header>
-          <h1 className="font-mono text-2xl font-medium tracking-tight sm:text-3xl">
-            Your profile
-          </h1>
-          {npub !== null && (
-            <p className="mt-3 break-all font-mono text-[0.6875rem] text-muted">{npub}</p>
+          <h1 className="font-mono text-2xl font-medium tracking-tight sm:text-3xl">Settings</h1>
+          {own.npub !== null && (
+            <p className="mt-3 break-all font-mono text-[0.6875rem] text-muted">{own.npub}</p>
           )}
         </header>
 
-        {me === null || npub === null ? (
-          <p className={`mt-8 ${NOTE}`}>Connect a key to change what it says about you.</p>
-        ) : locked ? (
-          <div className="mt-8 max-w-sm">
-            <Unlock />
-          </div>
-        ) : reading === "reading" ? (
-          <p className={`mt-8 ${NOTE}`}>Reading what this key has published.</p>
-        ) : reading === "failed" ? (
-          <div className="mt-8 space-y-3">
-            {/* No form until the live revision is in hand. Saving a profile this
-                page never managed to read would replace it with these five
-                fields and delete everything else it held. */}
-            <p className="font-serif text-[0.9375rem] leading-relaxed text-signal-closed">
-              Could not read what this key published, so there is nothing safe to edit yet. Saving
-              from here would replace a profile nobody has seen.
-            </p>
-            <button type="button" className={ACTION} onClick={() => read()}>
-              Try again
-            </button>
-          </div>
-        ) : (
-          <div className="mt-10 space-y-12">
-            <ProfileForm
-              me={me}
-              npub={npub}
-              live={profile}
-              missing={!found.profile}
-              onSaved={onProfileSaved}
-            />
+        {/* All three whether or not a key is connected: the last one is this
+            browser's own and has nothing to do with a key. */}
+        <nav aria-label="Settings" className="mt-8 flex flex-wrap items-center gap-1">
+          <Tab to={settingsPath()} end>
+            Profile
+          </Tab>
+          <Tab to={relaySettingsPath()}>Where things go</Tab>
+          <Tab to={browserSettingsPath()}>This browser</Tab>
+        </nav>
 
-            <section className="space-y-6 border-t border-rule pt-6">
-              <RelayList
-                me={me}
-                published={entries}
-                missing={!found.relays}
-                onSaved={onRelaysSaved}
-              />
-              <ServerList
-                me={me}
-                published={servers}
-                missing={!found.servers}
-                onSaved={onServersSaved}
-              />
-            </section>
-          </div>
-        )}
-
-        {/* Outside every branch above: this one is a setting of this browser, and
-            a key that could not be read is no reason to hide it. */}
-        <div className="mt-12 space-y-12 border-t border-rule pt-6">
-          <Alerts />
-          <ClientTag />
+        <div className="mt-10">
+          <Outlet context={own} />
         </div>
       </main>
     </Shell>

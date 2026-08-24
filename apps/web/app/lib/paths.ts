@@ -87,6 +87,15 @@ export const DISCUSSION_ID = "discussion";
 export const notificationsPath = (): string => "/notifications";
 
 /**
+ * What a key says about itself, where its things are kept, and how this browser
+ * behaves. Three separate things, so three addresses: the first is the page
+ * itself, since a profile is what somebody coming here almost always wants.
+ */
+export const settingsPath = (): string => "/settings";
+export const relaySettingsPath = (): string => "/settings/relays";
+export const browserSettingsPath = (): string => "/settings/browser";
+
+/**
  * Writing a document again, under the address it already has. `specPath` is
  * canonical and lives with the schema; this URL is this site's own, like the
  * event above it.

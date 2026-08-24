@@ -33,9 +33,9 @@ const host = (server: string): string => server.replace(/^https:\/\//, "");
 
 /**
  * The servers a picture is copied onto, and the list a client with a dead
- * address walks to find the copies. Folded away beside the relays, and for the
- * same reason: somebody changing their name has no business being shown this,
- * and it is filled in by uploading a picture without anybody opening it.
+ * address walks to find the copies. Beside the relays, and for the same reason:
+ * both answer where this key's things end up, and neither has anything to do
+ * with what it calls itself.
  *
  * The order is meaningful, which is the one thing this says out loud: BUD-03
  * asks for most trusted first, and the first is where an upload lands and where
@@ -135,13 +135,13 @@ export const ServerList = ({
   };
 
   return (
-    <details className="group">
-      <summary className="cursor-pointer font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:text-ink">
+    <section>
+      <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">
         Where your pictures are kept
         <span className="ml-3 normal-case tracking-normal">
           {servers.length === 1 ? "1 server" : `${servers.length} servers`}
         </span>
-      </summary>
+      </h2>
 
       <div className="mt-5 space-y-5">
         <p className={NOTE}>
@@ -284,6 +284,6 @@ export const ServerList = ({
 
         {error !== null && <p className={WRONG}>{error}</p>}
       </div>
-    </details>
+    </section>
   );
 };

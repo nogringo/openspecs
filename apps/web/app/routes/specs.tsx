@@ -1,4 +1,5 @@
 import { Link, type ShouldRevalidateFunctionArgs } from "react-router";
+import { TAB_OFF, TAB_ON } from "~/components/chrome";
 import { ErrorPage } from "~/components/error-page";
 import { Pagination } from "~/components/pagination";
 import { SearchResults } from "~/components/search-results";
@@ -141,14 +142,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 const Chip = ({ to, active, children }: { to: string; active: boolean; children: string }) => (
-  <Link
-    to={to}
-    className={
-      active
-        ? "rounded-sm bg-ink px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-paper"
-        : "rounded-sm px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:text-ink"
-    }
-  >
+  <Link to={to} className={active ? TAB_ON : TAB_OFF}>
     {children}
   </Link>
 );
