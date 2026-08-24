@@ -44,6 +44,7 @@ export {
 } from "./corpus";
 export {
   authorRelays,
+  CONVERSATION_RELAYS,
   DISCUSSION_RELAYS,
   type Discussion,
   type DiscussionOptions,

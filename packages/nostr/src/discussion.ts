@@ -14,6 +14,7 @@ import {
 import { parseZapReceipt, ZAP_RECEIPT_KIND, type ZapReceipt } from "./nip57";
 import { fetchRelayList, type RelayListOptions } from "./nip65";
 import { queryRelays, type RelayOptions, relaySet } from "./pool";
+import { DEFAULT_RELAYS } from "./relay";
 import { inChunks, openWidening, type Subscription, without } from "./subscribe";
 
 /**
@@ -23,6 +24,9 @@ import { inChunks, openWidening, type Subscription, without } from "./subscribe"
  * them means showing half a conversation and calling it the discussion.
  * `relay.nmail.li` is this project's own, first in `DEFAULT_RELAYS` and the one
  * the crawler mirrors to.
+ *
+ * This is where the other clients put a conversation. It is not the whole of
+ * where one is: see `CONVERSATION_RELAYS` below.
  */
 export const DISCUSSION_RELAYS = [
   "wss://relay.ditto.pub",
@@ -164,9 +168,22 @@ export type DiscussionOptions = RelayOptions &
     outbox?: boolean;
   };
 
+/**
+ * Everywhere a conversation about a document is looked for.
+ *
+ * `DEFAULT_RELAYS` belongs here and was missing, which was a hole this site dug
+ * itself: `writeRelays` sends a comment to both lists, and this read only the
+ * first. A comment that landed on a relay in the second and nowhere else, which
+ * is what happens when it was written from another client to a relay this
+ * project reads but nostrhub does not, was addressed to the author, delivered to
+ * the author, counted in the author's notifications, and invisible on the page
+ * it was about.
+ */
+export const CONVERSATION_RELAYS = relaySet(DISCUSSION_RELAYS, DEFAULT_RELAYS);
+
 /** `options.relays` replaces the defaults, the way it does everywhere else here. */
 const relaysFor = (pointer: DiscussionPointer, options: DiscussionOptions): string[] =>
-  relaySet(options.relays ?? DISCUSSION_RELAYS, pointer.relays ?? []);
+  relaySet(options.relays ?? CONVERSATION_RELAYS, pointer.relays ?? []);
 
 /**
  * Both sides of the author's NIP-65 list, because a conversation about their
