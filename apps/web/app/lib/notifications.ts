@@ -1,4 +1,4 @@
-import type { NostrEvent, Notice, Subscription } from "@openspecs/nostr";
+import type { NostrEvent, Notice, Spec, Subscription } from "@openspecs/nostr";
 import { markSeen, noteKey, seenAt, unreadCount } from "./seen";
 
 export type NoticesStatus = "idle" | "loading" | "ready";
@@ -25,11 +25,23 @@ export const NO_NOTICES: NoticesState = Object.freeze({
 /** Often enough to watch news arrive, rarely enough not to re-sort on every event. */
 const NOTIFY_MS = 150;
 
+/**
+ * One filter's worth of names, the wall `copyFilters` chunks at. Somebody who
+ * publishes more documents than this is watched for the first two hundred:
+ * asking every relay about a thousand names to draw a row nobody may ever get
+ * costs more than the row is worth.
+ */
+const MAX_WATCHED_NAMES = 200;
+
 let state = NO_NOTICES;
 let me: string | null = null;
 /** The relays have listed what they hold. Not that events stopped arriving. */
 let listed = false;
 let events = new Map<string, NostrEvent>();
+/** Other keys' documents under one of my names, one live revision per coordinate. */
+let copies = new Map<string, Spec>();
+/** The names I publish under, which is what makes a copy a copy of mine. */
+let names = new Set<string>();
 let subscriptions: Subscription[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -61,7 +73,7 @@ const notify = (): void => {
 const recompute = (): NoticesState => {
   if (me === null || nostr === null) return NO_NOTICES;
   const mark = seenAt(me) ?? 0;
-  const notices = nostr.sortNotices([...events.values()], { me });
+  const notices = nostr.sortNotices([...events.values()], { me, copies: [...copies.values()] });
 
   return {
     me,
@@ -95,6 +107,61 @@ const receive = (event: NostrEvent): void => {
   publishSoon();
 };
 
+/**
+ * A copy is held as a document rather than as an event, keyed by its coordinate.
+ * An addressable event gets a new id every time its author saves it, so the same
+ * copy revised four times is four events and one thing that happened: somebody
+ * else is publishing under your name. This is `latestByCoordinate` applied one
+ * event at a time, tie broken on the lower id as NIP-01 breaks it, and the row
+ * ends up dated by the newest revision, which is when they last touched it.
+ */
+const receiveCopy = (event: NostrEvent): void => {
+  if (nostr === null || me === null) return;
+  const spec = nostr.parseSpec(event);
+  // Relays index tag values, they do not check them, and a withdrawn copy is a
+  // copy taken back. The name is checked again for the first reason.
+  if (spec === null || spec.pubkey === me || spec.isEmpty) return;
+  if (!names.has(spec.identifier)) return;
+
+  const coordinate = nostr.toCoordinate(spec);
+  const current = copies.get(coordinate);
+  if (current !== undefined) {
+    if (spec.createdAt < current.createdAt) return;
+    if (spec.createdAt === current.createdAt && spec.event.id >= current.event.id) return;
+  }
+  copies.set(coordinate, spec);
+  publishSoon();
+};
+
+/**
+ * Which names to watch, which nothing can say until my own documents are known.
+ * A second round trip, and deliberately behind the first: what was addressed to
+ * me is on screen while this is still being asked for.
+ *
+ * A name I published an empty revision over is left out. That is a judgement
+ * call worth naming, since the opposite reading holds too: somebody taking over
+ * a name I withdrew is arguably the thing I most want to hear about. Withdrawing
+ * is how this site says a document is gone, and a document that is gone has no
+ * copies to speak of.
+ */
+const watchCopies = async (
+  pubkey: string,
+  relay: typeof import("@openspecs/nostr"),
+): Promise<void> => {
+  const mine = await relay.fetchSpecs({ authors: [pubkey] });
+  if (me !== pubkey) return;
+
+  names = new Set(
+    [...new Set(mine.filter((spec) => !spec.isEmpty).map((spec) => spec.identifier))].slice(
+      0,
+      MAX_WATCHED_NAMES,
+    ),
+  );
+  if (names.size === 0 || me !== pubkey) return;
+
+  subscriptions.push(relay.subscribeCopies([...names], receiveCopy));
+};
+
 const close = (): void => {
   for (const subscription of subscriptions) subscription.close();
   subscriptions = [];
@@ -119,6 +186,7 @@ const open = async (pubkey: string): Promise<void> => {
     }),
   );
   publish();
+  void watchCopies(pubkey, relay);
 };
 
 /**
@@ -135,6 +203,8 @@ export const startNotices = (pubkey: string): void => {
   close();
   if (me !== pubkey) {
     events = new Map();
+    copies = new Map();
+    names = new Set();
     state = { ...NO_NOTICES, me: pubkey, status: "loading" };
   }
   me = pubkey;
@@ -169,6 +239,8 @@ export const markNoticesSeen = (): void => {
 export const clearNotices = (): void => {
   close();
   events = new Map();
+  copies = new Map();
+  names = new Set();
   me = null;
   listed = false;
   if (timer !== null) clearTimeout(timer);

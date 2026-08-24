@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const nostr = vi.hoisted(() => ({ subscribeNotices: vi.fn() }));
+const nostr = vi.hoisted(() => ({
+  subscribeNotices: vi.fn(),
+  subscribeCopies: vi.fn(),
+  fetchSpecs: vi.fn(),
+}));
 
 vi.mock("@openspecs/nostr", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@openspecs/nostr")>()),
@@ -9,7 +13,7 @@ vi.mock("@openspecs/nostr", async (importOriginal) => ({
 
 vi.mock("./relays", () => ({ noticeRelays: vi.fn(async () => []) }));
 
-import { buildComment, type NostrEvent, SPEC_KIND } from "@openspecs/nostr";
+import { buildComment, type NostrEvent, parseSpec, SPEC_KIND, type Spec } from "@openspecs/nostr";
 import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
 import {
   clearNotices,
@@ -33,6 +37,30 @@ const ROOT = { coordinate: `${SPEC_KIND}:${ME}:a-specification`, pubkey: ME };
 const comment = (content: string, at: number) =>
   finalizeEvent({ ...buildComment({ root: ROOT, content }), created_at: at }, theirKey);
 
+const specEvent = (
+  by: Uint8Array,
+  identifier: string,
+  { at = 100, content = "# A copy" } = {},
+): NostrEvent =>
+  finalizeEvent(
+    {
+      kind: SPEC_KIND,
+      content,
+      created_at: at,
+      tags: [
+        ["d", identifier],
+        ["title", "A copy"],
+      ],
+    },
+    by,
+  ) as NostrEvent;
+
+const asSpec = (event: NostrEvent): Spec => {
+  const spec = parseSpec(event);
+  if (spec === null) throw new Error("fixture is not a specification");
+  return spec;
+};
+
 /** A fake with the one behaviour that matters: it can be written to and read back. */
 const fakeStorage = (): Storage => {
   const held = new Map<string, string>();
@@ -50,6 +78,8 @@ const fakeStorage = (): Storage => {
 type Channel = { send: (event: NostrEvent) => void; eose: () => void };
 
 let channel: Channel;
+/** The copy subscription, opened only once my own documents are known. */
+let copyChannel: Channel | null;
 let closed = 0;
 
 beforeEach(() => {
@@ -59,7 +89,21 @@ beforeEach(() => {
   clearNotices();
   forgetSeen();
   closed = 0;
+  copyChannel = null;
   nostr.subscribeNotices.mockClear();
+  nostr.subscribeCopies.mockClear();
+  nostr.fetchSpecs.mockReset();
+  // Nobody has published anything unless a test says so.
+  nostr.fetchSpecs.mockResolvedValue([]);
+
+  nostr.subscribeCopies.mockImplementation((_names, onEvent, options) => {
+    copyChannel = { send: onEvent, eose: () => options?.onEose?.() };
+    return {
+      close: () => {
+        closed += 1;
+      },
+    };
+  });
 
   nostr.subscribeNotices.mockImplementation((_pubkey, onEvent, options) => {
     channel = { send: onEvent, eose: () => options?.onEose?.() };
@@ -225,5 +269,143 @@ describe("clearNotices", () => {
 
     clearNotices();
     expect(seenAt(ME)).toBe(2_000);
+  });
+});
+
+describe("copies under one of my names", () => {
+  const mineNamed = (identifier: string) => asSpec(specEvent(myKey, identifier));
+
+  /**
+   * Throws rather than shrugging when the copy subscription was never opened: a
+   * test expecting no row must fail when nothing was ever sent to it.
+   */
+  const sendCopy = (event: NostrEvent) => {
+    if (copyChannel === null) throw new Error("the copy subscription was never opened");
+    copyChannel.send(event);
+  };
+
+  it("watches the names I publish under, and nothing else", async () => {
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07"), mineNamed("nip-46")]);
+    startNotices(ME);
+    await settle();
+
+    expect(nostr.subscribeCopies).toHaveBeenCalledTimes(1);
+    const watched = (nostr.subscribeCopies.mock.calls[0]?.[0] ?? []) as string[];
+    expect([...watched].sort()).toEqual(["nip-07", "nip-46"]);
+  });
+
+  it("leaves out a name I withdrew, since a document that is gone has no copies", async () => {
+    const withdrawn = asSpec(specEvent(myKey, "nip-46", { content: "" }));
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07"), withdrawn]);
+    startNotices(ME);
+    await settle();
+
+    expect(nostr.subscribeCopies.mock.calls[0]?.[0]).toEqual(["nip-07"]);
+  });
+
+  it("opens nothing at all for a key that has published nothing", async () => {
+    startNotices(ME);
+    await settle();
+    expect(nostr.subscribeCopies).not.toHaveBeenCalled();
+  });
+
+  it("draws another key publishing under one of my names", async () => {
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07")]);
+    startNotices(ME);
+    await settle();
+
+    sendCopy(specEvent(theirKey, "nip-07", { at: 2_000 }));
+    await settle();
+
+    const [notice] = noticesState().notices;
+    expect(notice?.kind).toBe("copy");
+    expect(notice?.document.identifier).toBe("nip-07");
+    // Their copy, not mine: the row leads to the document it is about.
+    expect(notice?.document.pubkey).not.toBe(ME);
+  });
+
+  it("takes a copy revised twice as one row, dated by the newer revision", async () => {
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07")]);
+    startNotices(ME);
+    await settle();
+
+    sendCopy(specEvent(theirKey, "nip-07", { at: 2_000 }));
+    sendCopy(specEvent(theirKey, "nip-07", { at: 3_000 }));
+    await settle();
+
+    expect(noticesState().notices).toHaveLength(1);
+    expect(noticesState().notices[0]?.createdAt).toBe(3_000);
+  });
+
+  it("keeps the newest when an older revision arrives last, as relays serve them", async () => {
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07")]);
+    startNotices(ME);
+    await settle();
+
+    sendCopy(specEvent(theirKey, "nip-07", { at: 3_000 }));
+    sendCopy(specEvent(theirKey, "nip-07", { at: 2_000 }));
+    await settle();
+
+    expect(noticesState().notices).toHaveLength(1);
+    expect(noticesState().notices[0]?.createdAt).toBe(3_000);
+  });
+
+  it("draws two keys under the same name as two rows", async () => {
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07")]);
+    startNotices(ME);
+    await settle();
+
+    sendCopy(specEvent(theirKey, "nip-07", { at: 2_000 }));
+    sendCopy(specEvent(otherKey, "nip-07", { at: 2_100 }));
+    await settle();
+
+    expect(noticesState().notices).toHaveLength(2);
+  });
+
+  it("says nothing about my own revisions", async () => {
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07")]);
+    startNotices(ME);
+    await settle();
+
+    sendCopy(specEvent(myKey, "nip-07", { at: 2_000 }));
+    await settle();
+
+    expect(noticesState().notices).toEqual([]);
+  });
+
+  it("drops a copy under a name that is not one of mine, whatever the filter matched", async () => {
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07")]);
+    startNotices(ME);
+    await settle();
+
+    sendCopy(specEvent(theirKey, "some-other-name", { at: 2_000 }));
+    await settle();
+
+    expect(noticesState().notices).toEqual([]);
+  });
+
+  it("drops a copy its author withdrew", async () => {
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07")]);
+    startNotices(ME);
+    await settle();
+
+    sendCopy(specEvent(theirKey, "nip-07", { at: 2_000, content: "" }));
+    await settle();
+
+    expect(noticesState().notices).toEqual([]);
+  });
+
+  it("forgets the copies and the names when another key connects", async () => {
+    nostr.fetchSpecs.mockResolvedValue([mineNamed("nip-07")]);
+    startNotices(ME);
+    await settle();
+    sendCopy(specEvent(theirKey, "nip-07", { at: 2_000 }));
+    await settle();
+    expect(noticesState().notices).toHaveLength(1);
+
+    nostr.fetchSpecs.mockResolvedValue([]);
+    startNotices(SOMEBODY_ELSE);
+    await settle();
+    expect(noticesState().notices).toEqual([]);
   });
 });
