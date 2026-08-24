@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { Identity } from "./identity";
+import { Bell } from "./notifications/bell";
 import { SearchBox } from "./search-box";
 
 export const SOURCE_URL = "https://github.com/nogringo/openspecs";
@@ -49,7 +50,13 @@ export const Shell = ({
             <GithubMark />
             <span className="hidden sm:inline">Source</span>
           </a>
-          <Identity />
+          {/* The reader's own two controls, held as one. The width reserved for
+              them is on the pair rather than on either, so the slack a short name
+              leaves falls outside the two and never between them. */}
+          <div className="flex shrink-0 items-center justify-end gap-3 sm:min-w-24 sm:gap-5">
+            <Bell />
+            <Identity />
+          </div>
         </div>
       </div>
     </div>

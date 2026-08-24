@@ -4,6 +4,7 @@ export default [
   index("routes/home.tsx"),
   route("specs", "routes/specs.tsx"),
   route("settings", "routes/settings.tsx"),
+  route("notifications", "routes/notifications.tsx"),
   route("new", "routes/new.tsx"),
   route("sitemap.xml", "routes/sitemap.ts"),
   route("robots.txt", "routes/robots.ts"),

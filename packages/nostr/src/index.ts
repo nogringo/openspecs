@@ -44,6 +44,7 @@ export {
 } from "./corpus";
 export {
   authorRelays,
+  CONVERSATION_RELAYS,
   DISCUSSION_RELAYS,
   type Discussion,
   type DiscussionOptions,
@@ -156,6 +157,23 @@ export {
   writeRelaysOf,
 } from "./nip65";
 export {
+  copyFilters,
+  MAX_NOTICES,
+  type Notice,
+  type NoticeKind,
+  type NoticeOptions,
+  type NoticeScope,
+  namedFilters,
+  notificationFilters,
+  sortNotices,
+  subscribeCopies,
+  subscribeNamed,
+  subscribeNotices,
+  subscribeRetractions,
+  targetFilters,
+  unnamedTargets,
+} from "./notifications";
+export {
   closeRelayPool,
   queryRelays,
   type RelayOptions,
@@ -206,3 +224,11 @@ export {
   toIdentifier,
   withdrawSpec,
 } from "./spec";
+export {
+  inChunks,
+  MAX_IDS_PER_FILTER,
+  openWidening,
+  type Subscription,
+  type WideningSubscription,
+  without,
+} from "./subscribe";

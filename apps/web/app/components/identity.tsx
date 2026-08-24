@@ -14,29 +14,17 @@ import {
   subscribeSession,
 } from "~/lib/session";
 import { AuthorAvatar } from "./author-avatar";
+import { CHROME, Panel } from "./chrome";
 import { CopyButton } from "./copy-button";
 import { MakeKey } from "./make-key";
 import { SignInDialog } from "./sign-in-dialog";
 import { Unlock } from "./unlock";
 
-const CHROME =
-  "rounded-sm border border-rule px-2 py-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink";
-
-/**
- * The header is set in wide-tracked capitals, and everything inside it inherits
- * that. A panel is not chrome, it is a place to read a sentence and a key, so it
- * puts the type back to normal and lets what wants the chrome ask for it.
- */
-const Panel = ({ children }: { children: React.ReactNode }) => (
-  <div className="absolute right-0 top-full z-10 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-sm border border-rule bg-paper p-4 text-sm normal-case tracking-normal shadow-sm">
-    {children}
-  </div>
-);
-
 /**
  * The header's own control. The server renders it signed out, because the server
- * knows nobody, and it changes one tick after the page becomes interactive: the
- * slot it sits in is a fixed width so that nothing beside it moves when it does.
+ * knows nobody, and it changes one tick after the page becomes interactive. The
+ * width that keeps the rest of the line still while it does is reserved around
+ * this and the bell together, in `Shell`, rather than around this alone.
  */
 export const Identity = () => {
   const [open, setOpen] = useState(false);
@@ -63,7 +51,7 @@ export const Identity = () => {
   const nsec = session.pubkey === null ? null : sessionNsec();
 
   return (
-    <div className="relative flex shrink-0 justify-end sm:min-w-24">
+    <div className="relative flex shrink-0">
       {session.pubkey === null || npub === null ? (
         <button type="button" className={CHROME} onClick={() => setOpen(!open)}>
           Connect

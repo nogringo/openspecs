@@ -4,6 +4,7 @@ import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   authorRelays,
+  DISCUSSION_RELAYS,
   discussionFilters,
   fetchDiscussion,
   referenceFilters,
@@ -15,6 +16,7 @@ import { buildComment, COMMENT_KIND, threadComments } from "../src/nip22";
 import { buildReaction, REACTION_KIND } from "../src/nip25";
 import { clearRelayListCache } from "../src/nip65";
 import { relaySet } from "../src/pool";
+import { DEFAULT_RELAYS } from "../src/relay";
 import { discussionCase, discussionEvents } from "./fixtures";
 
 const authorKey = generateSecretKey();
@@ -354,5 +356,46 @@ describe("the fixtures thread as the other clients thread them", () => {
     const roots = threadComments(discussion.comments);
     expect(roots.length).toBeGreaterThan(0);
     expect(roots.length).toBeLessThan(events.length);
+  });
+});
+
+describe("where a conversation is read from", () => {
+  /** Records what it was asked and answers nothing, so only the relay set is under test. */
+  const recordingPool = () => {
+    const asked: string[] = [];
+    return {
+      asked,
+      pool: {
+        querySync: async (relays: string[]) => {
+          asked.push(...relays);
+          return [];
+        },
+      } as unknown as SimplePool,
+    };
+  };
+
+  it("asks every relay this app sends a comment to", async () => {
+    const { asked, pool } = recordingPool();
+    await fetchDiscussion(
+      { coordinate: ROOT.coordinate, specEventId: SPEC_EVENT_ID },
+      { pool, outbox: false },
+    );
+
+    // `writeRelays` sends a comment to both lists. Reading only the first is how
+    // a comment ends up counted in a notification and missing from the page it
+    // is about, which is what this asserts can no longer happen.
+    // Compared through `relaySet`, which is what normalises them on the way out.
+    for (const relay of relaySet(DISCUSSION_RELAYS, DEFAULT_RELAYS)) {
+      expect(asked).toContain(relay);
+    }
+  });
+
+  it("lets a caller name its own relays instead, the way everything else here does", async () => {
+    const { asked, pool } = recordingPool();
+    await fetchDiscussion(
+      { coordinate: ROOT.coordinate, specEventId: SPEC_EVENT_ID },
+      { pool, outbox: false, relays: ["wss://only.example"] },
+    );
+    expect([...new Set(asked)]).toEqual(relaySet(["wss://only.example"]));
   });
 });
