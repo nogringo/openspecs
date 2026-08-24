@@ -156,6 +156,20 @@ export {
   writeRelaysOf,
 } from "./nip65";
 export {
+  copyFilters,
+  MAX_NOTICES,
+  type Notice,
+  type NoticeKind,
+  type NoticeOptions,
+  type NoticeScope,
+  notificationFilters,
+  sortNotices,
+  subscribeCopies,
+  subscribeNotices,
+  subscribeRetractions,
+  targetFilters,
+} from "./notifications";
+export {
   closeRelayPool,
   queryRelays,
   type RelayOptions,
@@ -206,3 +220,11 @@ export {
   toIdentifier,
   withdrawSpec,
 } from "./spec";
+export {
+  inChunks,
+  MAX_IDS_PER_FILTER,
+  openWidening,
+  type Subscription,
+  type WideningSubscription,
+  without,
+} from "./subscribe";

@@ -13,7 +13,8 @@ import {
 } from "./nip25";
 import { parseZapReceipt, ZAP_RECEIPT_KIND, type ZapReceipt } from "./nip57";
 import { fetchRelayList, type RelayListOptions } from "./nip65";
-import { queryRelays, type RelayOptions, relayPool, relaySet } from "./pool";
+import { queryRelays, type RelayOptions, relaySet } from "./pool";
+import { inChunks, openWidening, type Subscription, without } from "./subscribe";
 
 /**
  * Where a conversation about a specification is. `relay.ditto.pub` is the one
@@ -30,9 +31,6 @@ export const DISCUSSION_RELAYS = [
   "wss://relay.primal.net",
   "wss://relay.nmail.li",
 ];
-
-/** A filter with a thousand ids in it is refused by relays that bound their inputs. */
-const MAX_IDS_PER_FILTER = 200;
 
 /**
  * `#A` alone catches every comment seen in the wild. The other three are asked
@@ -63,17 +61,11 @@ export const discussionFilters = (coordinate: string, specEventId: string): Filt
  * the comment it answers: asked for by coordinate it does not exist, and asked
  * for by its parent it is an ordinary part of the conversation.
  */
-export const referenceFilters = (ids: string[]): Filter[] => {
-  const unique = [...new Set(ids)];
-  const filters: Filter[] = [];
-  for (let index = 0; index < unique.length; index += MAX_IDS_PER_FILTER) {
-    filters.push({
-      kinds: [COMMENT_KIND, REACTION_KIND, ZAP_RECEIPT_KIND, DELETION_KIND],
-      "#e": unique.slice(index, index + MAX_IDS_PER_FILTER),
-    });
-  }
-  return filters;
-};
+export const referenceFilters = (ids: string[]): Filter[] =>
+  inChunks(ids).map((chunk) => ({
+    kinds: [COMMENT_KIND, REACTION_KIND, ZAP_RECEIPT_KIND, DELETION_KIND],
+    "#e": chunk,
+  }));
 
 export type Discussion = {
   comments: Comment[];
@@ -258,10 +250,7 @@ export const fetchDiscussion = async (
   });
 };
 
-const without = (relays: string[], already: string[]): string[] =>
-  relays.filter((relay) => !already.includes(relay));
-
-export type DiscussionSubscription = { close: () => void };
+export type DiscussionSubscription = Subscription;
 
 /**
  * The conversation as it happens. A page holding this open sees a comment posted
@@ -269,9 +258,7 @@ export type DiscussionSubscription = { close: () => void };
  * which is the whole argument for relays being the source of truth.
  *
  * Subscribing starts on the relays already known and widens to the author's own
- * once their list resolves, rather than waiting for it: the conversation should
- * be on screen while that lookup is still happening, and the relays it adds send
- * what they have the moment they are asked.
+ * once their list resolves, rather than waiting for it.
  *
  * The second pass is left to the caller: it depends on ids that arrive over
  * time, and only the caller knows which of them it has already asked about.
@@ -284,7 +271,7 @@ export const subscribeDiscussion = (
   const filters = discussionFilters(pointer.coordinate, pointer.specEventId);
   const known = relaysFor(pointer, options);
 
-  const subscription = open(known, filters, onEvent, options);
+  const subscription = openWidening(known, filters, onEvent, options);
   void outboxOf(pointer, options).then((relays) =>
     subscription.widen(without(relays, known), options.onEose === undefined),
   );
@@ -307,50 +294,9 @@ export const subscribeReferences = (
   const filters = referenceFilters(ids);
   const known = relaysFor(pointer, options);
 
-  const subscription = open(known, filters, onEvent, options);
+  const subscription = openWidening(known, filters, onEvent, options);
   void outboxOf(pointer, options).then((relays) =>
     subscription.widen(without(relays, known), true),
   );
   return subscription;
-};
-
-type WideningSubscription = DiscussionSubscription & {
-  /** Adds relays to a subscription already running, unless it has been closed. */
-  widen: (relays: string[], quiet: boolean) => void;
-};
-
-const open = (
-  relays: string[],
-  filters: Filter[],
-  onEvent: (event: NostrEvent) => void,
-  options: DiscussionOptions & { onEose?: () => void },
-): WideningSubscription => {
-  const pool = options.pool ?? relayPool();
-  const closers: { close: () => void }[] = [];
-  let closed = false;
-
-  const subscribe = (to: string[], onEose: (() => void) | undefined) => {
-    if (closed || to.length === 0) return;
-    for (const filter of filters) {
-      closers.push(
-        pool.subscribe(to, filter, {
-          onevent: (event) => onEvent(event as NostrEvent),
-          oneose: onEose,
-        }),
-      );
-    }
-  };
-
-  subscribe(relays, options.onEose);
-
-  return {
-    // The widening relays do not report an end of stored events: the caller was
-    // told the conversation had arrived once already, and saying so again would
-    // put a page that has finished loading back into loading.
-    widen: (more, quiet) => subscribe(more, quiet ? undefined : options.onEose),
-    close: () => {
-      closed = true;
-      for (const closer of closers) closer.close();
-    },
-  };
 };
