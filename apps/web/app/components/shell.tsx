@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { newSpecPath } from "~/lib/paths";
+import { aboutPath, atomPath, newSpecPath, rssPath } from "~/lib/paths";
 import { Identity } from "./identity";
 import { Bell } from "./notifications/bell";
 import { SearchBox } from "./search-box";
@@ -13,6 +13,48 @@ const GithubMark = () => (
   </svg>
 );
 
+/**
+ * What is about this site rather than in it: what it does with the documents it
+ * shows, the code that does it, and the feeds. None of them is a control a
+ * reader reaches for while reading, and the line at the top is for the ones that
+ * are.
+ */
+const Footer = () => (
+  <footer className="border-t border-rule">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-start sm:justify-between sm:gap-8 sm:px-6">
+      {/* Not what the home page says in its own words above the fold: this is
+          the sentence every other page needs, and the one the source link
+          beside it makes good on. */}
+      <p className="max-w-md font-serif text-[0.8125rem] leading-relaxed text-muted">
+        This site is one way to read these documents, not where they live. The relays keep them
+        whether it runs or not.
+      </p>
+      <nav className="flex flex-wrap items-center gap-4 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted sm:gap-5">
+        <Link to={aboutPath()} className="hover:text-ink">
+          About
+        </Link>
+        {/* No nofollow: this one link is the project's own, and it is meant to be followed. */}
+        <a
+          href={SOURCE_URL}
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 hover:text-ink"
+        >
+          <GithubMark />
+          Source
+        </a>
+        {/* Anchors rather than links: both are XML off a resource route, and a
+            client side navigation to one has nothing to render. */}
+        <a href={rssPath()} className="hover:text-ink">
+          RSS
+        </a>
+        <a href={atomPath()} className="hover:text-ink">
+          Atom
+        </a>
+      </nav>
+    </div>
+  </footer>
+);
+
 export const Shell = ({
   children,
   search = true,
@@ -23,10 +65,10 @@ export const Shell = ({
   search?: boolean;
   query?: string;
 }) => (
-  <div className="min-h-dvh bg-paper text-ink">
-    <div className="border-b border-rule">
-      {/* Four things want this line and a phone has room for two and a half, so
-          the gaps close first, then the words beside the marks go. */}
+  <div className="flex min-h-dvh flex-col bg-paper text-ink">
+    <header className="border-b border-rule">
+      {/* More wants this line than a phone has room for, so the gaps close first,
+          then the words beside the marks go. */}
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:gap-6 sm:px-6">
         <Link
           to="/"
@@ -40,23 +82,12 @@ export const Shell = ({
           </div>
         ) : null}
         <div className="flex shrink-0 items-center gap-3 font-mono text-[0.6875rem] uppercase tracking-[0.16em] sm:gap-5">
-          {search ? null : <p className="hidden text-muted sm:block">Signed and stored on Nostr</p>}
           {/* Said again here, outside the panel that holds the other one: that
               panel only offers it once a key is connected, and this is the door
               somebody who has none has to be able to see. */}
           <Link to={newSpecPath()} className="hidden text-muted hover:text-ink sm:block">
             Write
           </Link>
-          {/* No nofollow: this one link is the project's own, and it is meant to be followed. */}
-          <a
-            href={SOURCE_URL}
-            rel="noopener noreferrer"
-            title="Source on GitHub"
-            className="inline-flex items-center gap-2 text-muted hover:text-ink"
-          >
-            <GithubMark />
-            <span className="hidden sm:inline">Source</span>
-          </a>
           {/* The reader's own two controls, held as one. The width reserved for
               them is on the pair rather than on either, so the slack a short name
               leaves falls outside the two and never between them. */}
@@ -66,7 +97,8 @@ export const Shell = ({
           </div>
         </div>
       </div>
-    </div>
-    {children}
+    </header>
+    <div className="flex-1">{children}</div>
+    <Footer />
   </div>
 );

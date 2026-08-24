@@ -77,6 +77,9 @@ export const eventPath = (npub: string, identifier: string): string =>
 export const diffPath = (npub: string, identifier: string, otherNpub: string): string =>
   `/spec/${npub}/${encodeURIComponent(identifier)}/diff/${otherNpub}`;
 
+/** What this site does with a document, for somebody who just met the word relay. */
+export const aboutPath = (): string => "/about";
+
 /** A document nobody has written yet, which belongs to whichever key is connected. */
 export const newSpecPath = (): string => "/new";
 

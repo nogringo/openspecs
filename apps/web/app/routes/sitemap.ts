@@ -1,6 +1,6 @@
 import { authorPath } from "@openspecs/nostr";
 import { publicOrigin } from "~/lib/origin.server";
-import { specsPath } from "~/lib/paths";
+import { aboutPath, specsPath } from "~/lib/paths";
 import { newestByAuthor, type SitemapEntry, sitemapXml } from "~/lib/sitemap";
 import { LISTING_WINDOW, loadSpecs } from "~/lib/specs.server";
 import { topicsByFrequency } from "~/lib/topics";
@@ -23,6 +23,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const entries: SitemapEntry[] = [
     { loc: `${origin}/`, ...(newest > 0 && { lastmod: newest }) },
     { loc: `${origin}${specsPath()}`, ...(newest > 0 && { lastmod: newest }) },
+    // No lastmod: this one changes when the code does, which no relay reports.
+    { loc: `${origin}${aboutPath()}` },
     ...topicsByFrequency(specs, TOPICS).map((topic) => ({
       loc: `${origin}${specsPath({ topic })}`,
     })),
