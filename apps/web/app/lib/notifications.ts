@@ -1,4 +1,8 @@
 import type { NostrEvent, Notice, Spec, Subscription } from "@openspecs/nostr";
+import { alertPermission, alertsWanted, clearAlerts, showAlert } from "./alerts";
+import { alertLine, noticePath } from "./notice-copy";
+import { authorName } from "./profile";
+import { authorsState } from "./profiles";
 import { markSeen, noteKey, seenAt, unreadCount } from "./seen";
 
 export type NoticesStatus = "idle" | "loading" | "ready";
@@ -33,6 +37,16 @@ const NOTIFY_MS = 150;
  */
 const MAX_WATCHED_NAMES = 200;
 
+/**
+ * How long after connecting nothing is knocked about, however loudly it arrives.
+ *
+ * A backfill is not news: the relays are sending a year of it in the first
+ * second. The end of stored events is not enough on its own either, since the
+ * relays added by widening announce nothing and keep dribbling stored events
+ * afterwards, so both this and that first announcement have to have passed.
+ */
+const ALERT_AFTER_MS = 3000;
+
 let state = NO_NOTICES;
 let me: string | null = null;
 /** The relays have listed what they hold. Not that events stopped arriving. */
@@ -44,6 +58,10 @@ let copies = new Map<string, Spec>();
 let names = new Set<string>();
 /** Ids a second pass already covers, so widening it asks only about the new ones. */
 let asked = new Set<string>();
+/** Everything already weighed for a knock, whether or not it got one. */
+let weighed = new Set<string>();
+/** When the backfill stops counting as backfill. */
+let alertsFrom = 0;
 let subscriptions: Subscription[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -117,6 +135,40 @@ const askAbout = (notices: Notice[]): void => {
   if (named.length > 0) subscriptions.push(nostr.subscribeNamed(named, receive));
 };
 
+/**
+ * Whether the browser may knock about what just arrived. Every one of these has
+ * to hold, and the awkward one is the third: news that arrives while somebody is
+ * looking at the page has already been delivered by the page.
+ */
+const mayAlert = (): boolean =>
+  listed &&
+  Date.now() >= alertsFrom &&
+  alertsWanted() &&
+  alertPermission() === "granted" &&
+  typeof document !== "undefined" &&
+  document.visibilityState === "hidden";
+
+/**
+ * Everything is weighed exactly once, whether or not it knocks. So a backfill,
+ * which fails the gate on arrival, is not knocked about later when the reader
+ * switches away from the tab and something new comes in behind it.
+ */
+const knockAbout = (notices: Notice[], mark: number): void => {
+  const fresh = notices.filter((notice) => !weighed.has(notice.id));
+  for (const notice of fresh) weighed.add(notice.id);
+  if (!mayAlert()) return;
+
+  const authors = authorsState();
+  for (const notice of fresh) {
+    if (notice.createdAt <= mark) continue;
+    const npub = nostr === null ? notice.pubkey : nostr.toNpub(notice.pubkey);
+    showAlert({
+      body: alertLine(notice, authorName(authors[notice.pubkey] ?? null, npub)),
+      path: noticePath(notice),
+    });
+  }
+};
+
 const publish = (): void => {
   if (timer !== null) {
     clearTimeout(timer);
@@ -124,6 +176,7 @@ const publish = (): void => {
   }
   state = recompute();
   askAbout(state.notices);
+  knockAbout(state.notices, state.seenAt);
   notify();
 };
 
@@ -246,6 +299,8 @@ export const startNotices = (pubkey: string): void => {
   // Cleared even when the events are kept: the subscriptions watching these ids
   // were just closed, and nothing would reopen them.
   asked = new Set();
+  weighed = new Set();
+  alertsFrom = Date.now() + ALERT_AFTER_MS;
 
   // Before anything is asked for, and deliberately: a relay that answers fast
   // could otherwise deliver a year of news to a key this browser has never seen
@@ -279,7 +334,9 @@ export const clearNotices = (): void => {
   copies = new Map();
   names = new Set();
   asked = new Set();
+  weighed = new Set();
   me = null;
+  clearAlerts();
   listed = false;
   if (timer !== null) clearTimeout(timer);
   timer = null;

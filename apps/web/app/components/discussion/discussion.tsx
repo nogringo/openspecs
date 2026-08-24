@@ -9,14 +9,13 @@ import {
   stopDiscussion,
   subscribeDiscussionState,
 } from "~/lib/discussion";
+import { DISCUSSION_ID } from "~/lib/paths";
 import { authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import { serverSessionState, sessionState, subscribeSession } from "~/lib/session";
 import { CommentThread } from "./comment";
 import { Composer } from "./composer";
 import { Tally } from "./tally";
-
-export const DISCUSSION_ID = "discussion";
 
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
 

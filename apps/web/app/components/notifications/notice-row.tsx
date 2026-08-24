@@ -1,38 +1,12 @@
 import type { Notice } from "@openspecs/nostr";
-import { specPath, toNpub } from "@openspecs/nostr";
+import { toNpub } from "@openspecs/nostr";
 import { Link } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
-import { DISCUSSION_ID } from "~/components/discussion/discussion";
 import { keyTextColor } from "~/lib/color";
+import { noticePath, said } from "~/lib/notice-copy";
 import { type Authors, authorName } from "~/lib/profile";
 
 const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString().slice(0, 10);
-
-/**
- * What happened, said the way somebody would say it out loud. The document is
- * named by its identifier rather than by its title: a title costs one relay
- * query per row, and the identifier is the name this site files a document
- * under anyway.
- */
-const said = (notice: Notice): string => {
-  const name = notice.document.identifier;
-  switch (notice.kind) {
-    case "comment":
-      return `commented on ${name}`;
-    case "reply":
-      return `replied to you on ${name}`;
-    case "thread":
-      return `replied under ${name}`;
-    case "reaction":
-      return notice.onComment ? `reacted to your comment on ${name}` : `reacted to ${name}`;
-    case "zap":
-      return notice.onComment
-        ? `zapped your comment on ${name}, ${notice.sats} sats`
-        : `zapped ${name}, ${notice.sats} sats`;
-    case "copy":
-      return `published under the name ${name}`;
-  }
-};
 
 /** A reaction's symbol, drawn the way the tally under a document draws it. */
 const ReactionMark = ({ notice }: { notice: Notice }) =>
@@ -47,32 +21,6 @@ const ReactionMark = ({ notice }: { notice: Notice }) =>
       className="inline-block align-[-2px]"
     />
   );
-
-/**
- * Which comment on the document's page this is about, when it is about one. A
- * comment answering me is itself the place to land; a reaction has no place of
- * its own, so it lands on what it answered.
- */
-const anchor = (notice: Notice): string | null => {
-  switch (notice.kind) {
-    case "comment":
-    case "reply":
-    case "thread":
-      return notice.id;
-    case "reaction":
-    case "zap":
-      return notice.onComment ? notice.targetId : null;
-    case "copy":
-      return null;
-  }
-};
-
-/** Falling back to the conversation as a whole, which every document's page has. */
-const destination = (notice: Notice): string => {
-  const path = specPath(notice.document);
-  if (notice.kind === "copy") return path;
-  return `${path}#${anchor(notice) ?? DISCUSSION_ID}`;
-};
 
 export const NoticeRow = ({
   notice,
@@ -93,7 +41,7 @@ export const NoticeRow = ({
   return (
     <li className="border-t border-rule first:border-t-0">
       <Link
-        to={destination(notice)}
+        to={noticePath(notice)}
         onClick={onFollowed}
         // The unread mark is a rule in the margin rather than a tinted row: this
         // site marks a thing of yours with a border everywhere else it marks one.

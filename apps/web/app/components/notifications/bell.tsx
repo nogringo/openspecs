@@ -1,6 +1,14 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { CHROME, Panel } from "~/components/chrome";
+import {
+  alertPermission,
+  alertsWanted,
+  askToAlert,
+  serverAlertsWanted,
+  setAlertsWanted,
+  subscribeAlerts,
+} from "~/lib/alerts";
 import {
   clearNotices,
   markNoticesSeen,
@@ -19,6 +27,70 @@ const PANEL_ROWS = 8;
 
 /** Past this the badge says there is a pile rather than how big the pile is. */
 const MAX_BADGE = 99;
+
+/** What this puts in front of a page title, and the only thing it takes back off. */
+const BADGE = /^\(\d+\)\s/;
+
+/**
+ * The number in front of the tab's own name, while the tab is in the background,
+ * which is the only time a title is the thing being read.
+ *
+ * A page title is set per route, by `meta`, on every navigation, so this cannot
+ * set it once. It re-applies after each one, and it strips its own prefix before
+ * writing, so that applying it twice says the same thing as applying it once and
+ * `(3) (3) Open Specs` cannot happen however the two race.
+ */
+const useTabBadge = (unread: number): void => {
+  const location = useLocation();
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    const watch = () => setHidden(document.visibilityState === "hidden");
+    watch();
+    document.addEventListener("visibilitychange", watch);
+    return () => document.removeEventListener("visibilitychange", watch);
+  }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the key is the trigger, not a read
+  useEffect(() => {
+    const base = document.title.replace(BADGE, "");
+    document.title = hidden && unread > 0 ? `(${unread}) ${base}` : base;
+    return () => {
+      document.title = document.title.replace(BADGE, "");
+    };
+  }, [unread, hidden, location.key]);
+};
+
+/**
+ * One line, drawn only while the browser has neither been asked nor refused, and
+ * only for somebody who has news to be told about. The permission itself is
+ * asked from the click and nowhere else.
+ */
+const Offer = ({ onDone }: { onDone: () => void }) => {
+  const [asking, setAsking] = useState(false);
+
+  return (
+    <div className="mt-3 border-t border-rule pt-3">
+      <p className="font-serif text-[0.8125rem] leading-snug text-muted">
+        This can knock while you are in another tab.
+      </p>
+      <button
+        type="button"
+        disabled={asking}
+        className={`${CHROME} mt-2`}
+        onClick={() => {
+          setAsking(true);
+          void askToAlert().then((answer) => {
+            if (answer === "granted") setAlertsWanted(true);
+            onDone();
+          });
+        }}
+      >
+        Let it
+      </button>
+    </div>
+  );
+};
 
 const BellMark = () => (
   <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true">
@@ -60,6 +132,11 @@ export const Bell = () => {
     const keys = state.notices.slice(0, PANEL_ROWS).map((notice) => notice.pubkey);
     if (keys.length > 0) wantAuthors(keys);
   }, [state.notices]);
+
+  const wanted = useSyncExternalStore(subscribeAlerts, alertsWanted, serverAlertsWanted);
+  const [permission, setPermission] = useState<string>("unsupported");
+  useEffect(() => setPermission(alertPermission()), []);
+  useTabBadge(state.unread);
 
   const rows = state.notices.slice(0, PANEL_ROWS);
 
@@ -120,6 +197,10 @@ export const Bell = () => {
               ))}
             </ul>
           )}
+          {!wanted && permission === "default" && rows.length > 0 && (
+            <Offer onDone={() => setPermission(alertPermission())} />
+          )}
+
           {/* Outside the branch above: a panel with nothing in it is still the
               only way to the page, and a box that leads nowhere is a dead end. */}
           <div className="mt-3 border-t border-rule pt-3">

@@ -15,6 +15,15 @@ vi.mock("@openspecs/nostr", async (importOriginal) => ({
 
 vi.mock("./relays", () => ({ noticeRelays: vi.fn(async () => []) }));
 
+const alerts = vi.hoisted(() => ({ showAlert: vi.fn(), granted: true, wanted: true }));
+
+vi.mock("./alerts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./alerts")>()),
+  showAlert: alerts.showAlert,
+  alertsWanted: () => alerts.wanted,
+  alertPermission: () => (alerts.granted ? "granted" : "default"),
+}));
+
 import {
   buildComment,
   buildReaction,
@@ -45,8 +54,8 @@ const SOMEBODY_ELSE = getPublicKey(otherKey);
 
 const ROOT = { coordinate: `${SPEC_KIND}:${ME}:a-specification`, pubkey: ME };
 
-const comment = (content: string, at: number) =>
-  finalizeEvent({ ...buildComment({ root: ROOT, content }), created_at: at }, theirKey);
+const comment = (content: string, at: number, root = ROOT) =>
+  finalizeEvent({ ...buildComment({ root, content }), created_at: at }, theirKey);
 
 const specEvent = (
   by: Uint8Array,
@@ -121,6 +130,11 @@ beforeEach(() => {
   forgetSeen();
   opened = 0;
   closed = 0;
+  alerts.showAlert.mockClear();
+  alerts.wanted = true;
+  alerts.granted = true;
+  // Somebody looking at another tab, which is the only time a knock is wanted.
+  vi.stubGlobal("document", { visibilityState: "hidden" });
   copyChannel = null;
   secondPass = null;
   nostr.subscribeNotices.mockClear();
@@ -542,5 +556,120 @@ describe("the second passes", () => {
     send(secondPass, theirs, "named");
     await settle();
     expect(noticesState().notices).toEqual([]);
+  });
+});
+
+describe("knocking while you are elsewhere", () => {
+  /** Everything the gate needs open, plus a mark so what arrives counts as new. */
+  const ready = async () => {
+    noteKey(ME, 1_000);
+    startNotices(ME);
+    await settle();
+    channel.eose();
+    // The backfill window, which nothing is knocked about inside of.
+    await vi.advanceTimersByTimeAsync(3_000);
+    alerts.showAlert.mockClear();
+  };
+
+  it("knocks about what arrives once the backfill is over", async () => {
+    await ready();
+    channel.send(comment("a note", 2_000) as NostrEvent);
+    await settle();
+    expect(alerts.showAlert).toHaveBeenCalledTimes(1);
+  });
+
+  it("says nothing about the backfill itself, however much of it there is", async () => {
+    noteKey(ME, 1_000);
+    startNotices(ME);
+    await settle();
+
+    // A year of it, arriving in the first second, all of it dated after the mark.
+    for (let index = 0; index < 5; index += 1) {
+      channel.send(comment(`old ${index}`, 2_000 + index) as NostrEvent);
+    }
+    channel.eose();
+    await settle();
+
+    expect(noticesState().notices).toHaveLength(5);
+    expect(alerts.showAlert).not.toHaveBeenCalled();
+  });
+
+  it("does not knock later about something it stayed quiet on", async () => {
+    noteKey(ME, 1_000);
+    startNotices(ME);
+    await settle();
+    channel.send(comment("during the backfill", 2_000) as NostrEvent);
+    channel.eose();
+    await settle();
+    expect(alerts.showAlert).not.toHaveBeenCalled();
+
+    // The window passes and something else arrives, on another document of mine
+    // so that the one knock can be told apart from the one that stayed quiet.
+    await vi.advanceTimersByTimeAsync(3_000);
+    const other = { coordinate: `${SPEC_KIND}:${ME}:another-one`, pubkey: ME };
+    channel.send(comment("after it", 2_100, other) as NostrEvent);
+    await settle();
+
+    expect(alerts.showAlert).toHaveBeenCalledTimes(1);
+    expect(alerts.showAlert.mock.calls[0]?.[0]?.body).toContain("another-one");
+  });
+
+  it("stays quiet until the relays have said what they hold, however long they take", async () => {
+    noteKey(ME, 1_000);
+    startNotices(ME);
+    await settle();
+
+    // The window has passed and the relays are still listing. Both have to be
+    // over: the ones added by widening announce nothing and keep sending stored
+    // events, so a clock alone cannot tell a backfill from what is happening.
+    await vi.advanceTimersByTimeAsync(3_000);
+    channel.send(comment("still the backfill", 2_000) as NostrEvent);
+    await settle();
+    expect(alerts.showAlert).not.toHaveBeenCalled();
+
+    channel.eose();
+    await settle();
+    channel.send(comment("news", 2_100) as NostrEvent);
+    await settle();
+    expect(alerts.showAlert).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays quiet while the reader is looking at the page", async () => {
+    await ready();
+    vi.stubGlobal("document", { visibilityState: "visible" });
+    channel.send(comment("a note", 2_000) as NostrEvent);
+    await settle();
+    expect(alerts.showAlert).not.toHaveBeenCalled();
+  });
+
+  it("stays quiet when the setting is off", async () => {
+    await ready();
+    alerts.wanted = false;
+    channel.send(comment("a note", 2_000) as NostrEvent);
+    await settle();
+    expect(alerts.showAlert).not.toHaveBeenCalled();
+  });
+
+  it("stays quiet when the browser has not granted it", async () => {
+    await ready();
+    alerts.granted = false;
+    channel.send(comment("a note", 2_000) as NostrEvent);
+    await settle();
+    expect(alerts.showAlert).not.toHaveBeenCalled();
+  });
+
+  it("stays quiet about what was already read in another tab", async () => {
+    await ready();
+    // Older than the mark, so it is news this browser has already been shown.
+    channel.send(comment("old news", 500) as NostrEvent);
+    await settle();
+    expect(alerts.showAlert).not.toHaveBeenCalled();
+  });
+
+  it("leads to the document it is about", async () => {
+    await ready();
+    channel.send(comment("a note", 2_000) as NostrEvent);
+    await settle();
+    expect(alerts.showAlert.mock.calls[0]?.[0]?.path).toContain("/spec/");
   });
 });
