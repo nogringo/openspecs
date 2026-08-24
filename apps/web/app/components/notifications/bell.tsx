@@ -17,6 +17,14 @@ import {
   startNotices,
   subscribeNoticesState,
 } from "~/lib/notifications";
+import {
+  closePanel,
+  closePanels,
+  openPanel,
+  panelState,
+  serverPanelState,
+  subscribePanels,
+} from "~/lib/panels";
 import { notificationsPath } from "~/lib/paths";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import { serverSessionState, sessionState, subscribeSession } from "~/lib/session";
@@ -109,7 +117,8 @@ const BellMark = () => (
  * The store outlives the route, which is why it is a module and not a hook.
  */
 export const Bell = () => {
-  const [open, setOpen] = useState(false);
+  const open =
+    useSyncExternalStore(subscribePanels, panelState, serverPanelState) === "notifications";
   /**
    * The mark as it stood when the panel was opened. Opening reads the news, so
    * the badge has to clear, but the rows must stay marked while they are being
@@ -124,6 +133,8 @@ export const Bell = () => {
     if (session.pubkey === null) clearNotices();
     else startNotices(session.pubkey);
   }, [session.pubkey]);
+
+  useEffect(() => () => closePanel("notifications"), []);
 
   const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
   useEffect(() => {
@@ -143,11 +154,13 @@ export const Bell = () => {
   if (session.pubkey === null) return null;
 
   const toggle = () => {
-    if (!open) {
-      setShownFrom(state.seenAt);
-      markNoticesSeen();
+    if (open) {
+      closePanels();
+      return;
     }
-    setOpen(!open);
+    setShownFrom(state.seenAt);
+    markNoticesSeen();
+    openPanel("notifications");
   };
 
   const badge = state.unread > MAX_BADGE ? `${MAX_BADGE}+` : String(state.unread);
@@ -158,7 +171,7 @@ export const Bell = () => {
     // starts it a control short of the right gutter, so it runs off the left
     // edge by whatever the avatar beside it takes. Below `sm` it falls through
     // to the pair, whose right edge is the gutter the width is measured against.
-    <div className="flex shrink-0 sm:relative">
+    <div data-panel="notifications" className="flex shrink-0 sm:relative">
       <button
         type="button"
         onClick={toggle}
@@ -197,7 +210,7 @@ export const Bell = () => {
                   notice={notice}
                   authors={authors}
                   unread={notice.createdAt > shownFrom}
-                  onFollowed={() => setOpen(false)}
+                  onFollowed={closePanels}
                 />
               ))}
             </ul>
@@ -209,7 +222,7 @@ export const Bell = () => {
           {/* Outside the branch above: a panel with nothing in it is still the
               only way to the page, and a box that leads nowhere is a dead end. */}
           <div className="mt-3 border-t border-rule pt-3">
-            <Link to={notificationsPath()} className={CHROME} onClick={() => setOpen(false)}>
+            <Link to={notificationsPath()} className={CHROME} onClick={closePanels}>
               Everything
             </Link>
           </div>

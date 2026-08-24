@@ -1,7 +1,15 @@
 import { toNpub } from "@openspecs/nostr";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Link, useLocation } from "react-router";
 import { keyTextColor } from "~/lib/color";
+import {
+  closePanel,
+  closePanels,
+  panelState,
+  serverPanelState,
+  subscribePanels,
+  togglePanel,
+} from "~/lib/panels";
 import { connectPath, newSpecPath, settingsPath } from "~/lib/paths";
 import { authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
@@ -29,9 +37,9 @@ import { Unlock } from "./unlock";
  * What it leaves behind is a panel that is only a menu.
  */
 export const Identity = () => {
-  const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
+  const open = useSyncExternalStore(subscribePanels, panelState, serverPanelState) === "identity";
   useEffect(restoreSession, []);
+  useEffect(() => () => closePanel("identity"), []);
   const location = useLocation();
 
   const session = useSyncExternalStore(subscribeSession, sessionState, serverSessionState);
@@ -62,11 +70,11 @@ export const Identity = () => {
   }
 
   return (
-    <div className="relative flex shrink-0">
+    <div data-panel="identity" className="relative flex shrink-0">
       <button
         type="button"
         title={npub}
-        onClick={() => setOpen(!open)}
+        onClick={() => togglePanel("identity")}
         className="flex items-center gap-2 rounded-sm border border-rule px-1.5 py-1 hover:border-muted"
       >
         <AuthorAvatar pubkey={session.pubkey} picture={me?.picture ?? null} size={18} />
@@ -86,7 +94,7 @@ export const Identity = () => {
                 is usually met in the middle of something, and a page that opens
                 it by navigating away takes that something with it. */}
             {session.status === "locked" && session.method === "key" ? (
-              <Unlock onDone={close} />
+              <Unlock onDone={closePanels} />
             ) : (
               <div className="flex items-start gap-3">
                 <AuthorAvatar pubkey={session.pubkey} picture={me?.picture ?? null} size={32} />
@@ -126,10 +134,10 @@ export const Identity = () => {
             <div className="flex flex-wrap items-center gap-2">
               {/* The only way in, so it is named for where it goes rather than
                   for the first thing waiting there. */}
-              <Link to={newSpecPath()} className={CHROME} onClick={close}>
+              <Link to={newSpecPath()} className={CHROME} onClick={closePanels}>
                 Write
               </Link>
-              <Link to={settingsPath()} className={CHROME} onClick={close}>
+              <Link to={settingsPath()} className={CHROME} onClick={closePanels}>
                 Settings
               </Link>
               {/* Offered because disconnecting forgets it, and a key made here
@@ -153,7 +161,7 @@ export const Identity = () => {
                     : "Forgets this key on this device. Copy it first if this is the only copy."
                 }
                 onClick={() => {
-                  close();
+                  closePanels();
                   void logout();
                 }}
               >
