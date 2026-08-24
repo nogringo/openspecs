@@ -5,13 +5,16 @@ import "./app.css";
 
 /**
  * The `.ico` first, for the clients that ask for nothing else, then the vector
- * a browser prefers when it understands one. All three are drawn from
- * `public/icon.svg` by `scripts/build-icons.ts`.
+ * a browser prefers when it understands one. Every raster here is drawn from
+ * `public/icon.svg` by `scripts/build-icons.ts`. The manifest is what lets a
+ * phone keep the site on its home screen and open it without a browser around
+ * it.
  */
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.ico", sizes: "48x48" },
   { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
   { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+  { rel: "manifest", href: "/manifest.webmanifest" },
 ];
 
 export const meta: Route.MetaFunction = () => [
@@ -28,6 +31,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#fcfcfa" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
         <Meta />
         <Links />
       </head>
