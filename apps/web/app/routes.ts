@@ -9,6 +9,7 @@ export default [
     route("relays", "routes/settings/relays.tsx"),
     route("browser", "routes/settings/browser.tsx"),
   ]),
+  route("connect", "routes/connect.tsx"),
   route("notifications", "routes/notifications.tsx"),
   route("new", "routes/new.tsx"),
   route("sitemap.xml", "routes/sitemap.ts"),

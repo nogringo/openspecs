@@ -36,9 +36,9 @@ const Choice = ({ label, note, onPick }: { label: string; note: string; onPick: 
  * guessed, since the last of them is the only one where this page holds a key.
  *
  * Making one comes first, because it is the only one that works for somebody who
- * arrived with nothing, and that is most people. It is handed back to the header
- * rather than run here: it signs its reader in halfway through, and this dialog
- * closes the moment anybody is signed in.
+ * arrived with nothing, and that is most people. It is handed back to whichever
+ * page holds this rather than run here: it signs its reader in halfway through,
+ * and this dialog is done the moment anybody is signed in.
  */
 export const SignInDialog = ({ onDone, onMake }: { onDone: () => void; onMake: () => void }) => {
   const [way, setWay] = useState<Way | null>(null);

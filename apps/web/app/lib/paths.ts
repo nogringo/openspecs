@@ -90,6 +90,28 @@ export const DISCUSSION_ID = "discussion";
 export const notificationsPath = (): string => "/notifications";
 
 /**
+ * The ways in, at an address of their own, so anything that wants a key can
+ * point at it rather than describe where the header control is. Where somebody
+ * was when they were asked travels with them, and `returnTo` reads it back.
+ */
+export const connectPath = (next?: string): string =>
+  next === undefined || next === "" ? "/connect" : `/connect?next=${encodeURIComponent(next)}`;
+
+/**
+ * Where to go once a key is connected. Only ever a path on this site: `next` is
+ * whatever was in the address bar, and a page that sends somebody to an origin
+ * of the link's choosing after they connect is a page for laundering links.
+ */
+export const returnTo = (next: string | null): string => {
+  if (next === null || !next.startsWith("/")) return "/";
+  // Both of these are read as another origin, `/\` by browsers being forgiving.
+  if (next.startsWith("//") || next.startsWith("/\\")) return "/";
+  // The door is not a room to be shown back into once it has been walked through.
+  if (next === "/connect" || next.startsWith("/connect?")) return "/";
+  return next;
+};
+
+/**
  * What a key says about itself, where its things are kept, and how this browser
  * behaves. Three separate things, so three addresses: the first is the page
  * itself, since a profile is what somebody coming here almost always wants.
