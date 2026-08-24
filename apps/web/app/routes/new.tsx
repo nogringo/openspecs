@@ -1,7 +1,9 @@
 import { toNpub } from "@openspecs/nostr";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { SpecEditor } from "~/components/editor/spec-editor";
+import { MakeKey } from "~/components/make-key";
 import { Shell } from "~/components/shell";
+import { SignInDialog } from "~/components/sign-in-dialog";
 import { Unlock } from "~/components/unlock";
 import { PAGE_HEADERS } from "~/lib/http";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
@@ -28,10 +30,15 @@ export function headers(_: Route.HeadersArgs) {
  *
  * No loader, and none is possible: the document is signed with the reader's key,
  * in the reader's browser, and this server has neither.
+ *
+ * Somebody arriving here with no key is offered the ways in on the page rather
+ * than sent to find them in the header, because this is the address that says
+ * what they came to do.
  */
 export default function NewSpecRoute() {
   const session = useSyncExternalStore(subscribeSession, sessionState, serverSessionState);
   useEffect(restoreSession, []);
+  const [making, setMaking] = useState(false);
 
   const me = session.pubkey;
   const locked = session.status === "locked" && session.method === "key";
@@ -45,8 +52,20 @@ export default function NewSpecRoute() {
           New document
         </h1>
 
-        {me === null ? (
-          <p className={`mt-8 ${NOTE}`}>Connect a key to write a document with it.</p>
+        {/* Making a key signs its reader in halfway through, so the step showing
+            them their key has to outlive that: the way in holds the page until it
+            says it is done, rather than until a key exists. */}
+        {me === null || making ? (
+          <div className="mt-8 max-w-sm space-y-4">
+            <p className={NOTE}>Connect a key to write a document with it.</p>
+            {making ? (
+              <MakeKey onDone={() => setMaking(false)} />
+            ) : (
+              // Nothing for the dialog to close: the editor takes the page as
+              // soon as a key answers, which is the whole of what it reports.
+              <SignInDialog onDone={() => {}} onMake={() => setMaking(true)} />
+            )}
+          </div>
         ) : locked ? (
           <div className="mt-8 max-w-sm">
             <Unlock />

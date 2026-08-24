@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { newSpecPath } from "~/lib/paths";
 import { Identity } from "./identity";
 import { Bell } from "./notifications/bell";
 import { SearchBox } from "./search-box";
@@ -40,6 +41,12 @@ export const Shell = ({
         ) : null}
         <div className="flex shrink-0 items-center gap-3 font-mono text-[0.6875rem] uppercase tracking-[0.16em] sm:gap-5">
           {search ? null : <p className="hidden text-muted sm:block">Signed and stored on Nostr</p>}
+          {/* Said again here, outside the panel that holds the other one: that
+              panel only offers it once a key is connected, and this is the door
+              somebody who has none has to be able to see. */}
+          <Link to={newSpecPath()} className="hidden text-muted hover:text-ink sm:block">
+            Write
+          </Link>
           {/* No nofollow: this one link is the project's own, and it is meant to be followed. */}
           <a
             href={SOURCE_URL}

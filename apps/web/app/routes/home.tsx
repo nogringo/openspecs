@@ -4,7 +4,7 @@ import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
 import { PAGE_HEADERS } from "~/lib/http";
 import { publicOrigin } from "~/lib/origin.server";
-import { atomPath, feedTitle, rssPath, specsPath } from "~/lib/paths";
+import { atomPath, feedTitle, newSpecPath, rssPath, specsPath } from "~/lib/paths";
 import { loadAuthors } from "~/lib/profile.server";
 import { loadSpecs } from "~/lib/specs.server";
 import type { Route } from "./+types/home";
@@ -81,6 +81,20 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <div className="mt-10 max-w-xl">
           <SearchBox size="hero" />
         </div>
+
+        {/* The header carries this too, but not on a phone and not in the size a
+            first visit deserves. Reading is what the page offers first, writing
+            is what it offers next. */}
+        <p className="mt-4 font-serif text-[0.9375rem] leading-relaxed text-muted">
+          Or{" "}
+          <Link
+            to={newSpecPath()}
+            className="text-ink underline decoration-rule underline-offset-2 hover:decoration-current"
+          >
+            write a document
+          </Link>{" "}
+          of your own.
+        </p>
 
         <section className="mt-20">
           <div className="flex items-baseline justify-between gap-4">
