@@ -162,12 +162,15 @@ export {
   type NoticeKind,
   type NoticeOptions,
   type NoticeScope,
+  namedFilters,
   notificationFilters,
   sortNotices,
   subscribeCopies,
+  subscribeNamed,
   subscribeNotices,
   subscribeRetractions,
   targetFilters,
+  unnamedTargets,
 } from "./notifications";
 export {
   closeRelayPool,

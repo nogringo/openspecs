@@ -79,7 +79,10 @@ export const CommentThread = ({
   const author = authors[comment.pubkey] ?? null;
 
   return (
-    <article className="relative">
+    // Addressable, so a notification can land on the comment it is about rather
+    // than on the conversation holding it. The margin is what keeps the header
+    // off it once the browser has scrolled there.
+    <article id={comment.id} className="relative scroll-mt-24">
       <div className="flex gap-3">
         <Link
           to={authorPath(comment.pubkey)}

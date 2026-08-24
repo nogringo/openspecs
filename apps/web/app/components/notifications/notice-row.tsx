@@ -24,9 +24,11 @@ const said = (notice: Notice): string => {
     case "thread":
       return `replied under ${name}`;
     case "reaction":
-      return `reacted to ${name}`;
+      return notice.onComment ? `reacted to your comment on ${name}` : `reacted to ${name}`;
     case "zap":
-      return `zapped ${name}, ${notice.sats} sats`;
+      return notice.onComment
+        ? `zapped your comment on ${name}, ${notice.sats} sats`
+        : `zapped ${name}, ${notice.sats} sats`;
     case "copy":
       return `published under the name ${name}`;
   }
@@ -47,12 +49,29 @@ const ReactionMark = ({ notice }: { notice: Notice }) =>
   );
 
 /**
- * A conversation is a client rendered part of the document's page, so a link
- * into it can only name the section until the comment itself has an address.
+ * Which comment on the document's page this is about, when it is about one. A
+ * comment answering me is itself the place to land; a reaction has no place of
+ * its own, so it lands on what it answered.
  */
+const anchor = (notice: Notice): string | null => {
+  switch (notice.kind) {
+    case "comment":
+    case "reply":
+    case "thread":
+      return notice.id;
+    case "reaction":
+    case "zap":
+      return notice.onComment ? notice.targetId : null;
+    case "copy":
+      return null;
+  }
+};
+
+/** Falling back to the conversation as a whole, which every document's page has. */
 const destination = (notice: Notice): string => {
   const path = specPath(notice.document);
-  return notice.kind === "copy" ? path : `${path}#${DISCUSSION_ID}`;
+  if (notice.kind === "copy") return path;
+  return `${path}#${anchor(notice) ?? DISCUSSION_ID}`;
 };
 
 export const NoticeRow = ({

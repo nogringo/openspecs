@@ -9,9 +9,11 @@ import {
   copyFilters,
   MAX_NOTICES,
   type Notice,
+  namedFilters,
   notificationFilters,
   sortNotices,
   targetFilters,
+  unnamedTargets,
 } from "../src/notifications";
 import { parseSpec, type Spec } from "../src/spec";
 import { MAX_IDS_PER_FILTER } from "../src/subscribe";
@@ -75,7 +77,10 @@ const zap = (
         ["p", target.pubkey],
         ["bolt11", INVOICE_21_SATS],
         ["description", JSON.stringify(request)],
+        // Copied off the request, which is what NIP-57 asks a paying server to
+        // do and what the receipt is read by.
         ...(target.coordinate ? [["a", target.coordinate]] : []),
+        ...(target.eventId ? [["e", target.eventId]] : []),
       ],
     },
     serverSecret,
@@ -334,5 +339,67 @@ describe("sortNotices, the whole list", () => {
       comment(MINE, theirSecret, { at: 100 + index, content: `note ${index}` }),
     );
     expect(sortNotices(many, { me: ME })).toHaveLength(MAX_NOTICES);
+  });
+});
+
+describe("reactions and zaps that name only an event id", () => {
+  /** A comment I wrote on somebody else's document, which is what gets answered. */
+  const myComment = comment(THEIRS, mySecret, { content: "a point of mine" });
+  const onIt = { id: myComment.id, pubkey: ME, kind: COMMENT_KIND };
+
+  it("asks about an id nothing here explains", () => {
+    const events = [reaction(onIt, theirSecret)];
+    expect(unnamedTargets(events)).toEqual([myComment.id]);
+  });
+
+  it("stops asking once the event is held", () => {
+    expect(unnamedTargets([reaction(onIt, theirSecret), myComment])).toEqual([]);
+  });
+
+  it("asks nothing about a reaction that named a coordinate", () => {
+    const onDocument = {
+      id: "a".repeat(64),
+      pubkey: ME,
+      kind: SPEC_KIND,
+      coordinate: MINE.coordinate,
+    };
+    expect(unnamedTargets([reaction(onDocument, theirSecret)])).toEqual([]);
+  });
+
+  it("asks for the events themselves, chunked", () => {
+    expect(namedFilters([myComment.id])).toEqual([{ ids: [myComment.id] }]);
+  });
+
+  it("draws the reaction once the comment turns out to be mine", () => {
+    const notices = sortNotices([reaction(onIt, theirSecret), myComment], { me: ME });
+    expect(kinds(notices)).toEqual(["reaction"]);
+    // The document is the one my comment hangs from, which is somebody else's.
+    expect(notices[0]?.document.pubkey).toBe(THEM);
+    expect(notices[0]?.onComment).toBe(true);
+    expect(notices[0]?.targetId).toBe(myComment.id);
+  });
+
+  it("keeps dropping it when the comment turns out to be somebody else's", () => {
+    const theirComment = comment(THEIRS, thirdSecret);
+    const onTheirs = { id: theirComment.id, pubkey: ME, kind: COMMENT_KIND };
+    expect(sortNotices([reaction(onTheirs, theirSecret), theirComment], { me: ME })).toEqual([]);
+  });
+
+  it("does the same for a zap on a comment of mine", () => {
+    const receipt = zap(theirSecret, { pubkey: ME, eventId: myComment.id });
+    const notices = sortNotices([receipt, myComment], { me: ME });
+    expect(kinds(notices)).toEqual(["zap"]);
+    expect(notices[0]?.onComment).toBe(true);
+    expect(notices[0]?.sats).toBe(21);
+  });
+
+  it("marks a reaction on a document of mine as not being on a comment", () => {
+    const onDocument = {
+      id: "a".repeat(64),
+      pubkey: ME,
+      kind: SPEC_KIND,
+      coordinate: MINE.coordinate,
+    };
+    expect(sortNotices([reaction(onDocument, theirSecret)], { me: ME })[0]?.onComment).toBe(false);
   });
 });

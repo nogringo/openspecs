@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const nostr = vi.hoisted(() => ({
   subscribeNotices: vi.fn(),
   subscribeCopies: vi.fn(),
+  subscribeRetractions: vi.fn(),
+  subscribeNamed: vi.fn(),
   fetchSpecs: vi.fn(),
 }));
 
@@ -13,7 +15,16 @@ vi.mock("@openspecs/nostr", async (importOriginal) => ({
 
 vi.mock("./relays", () => ({ noticeRelays: vi.fn(async () => []) }));
 
-import { buildComment, type NostrEvent, parseSpec, SPEC_KIND, type Spec } from "@openspecs/nostr";
+import {
+  buildComment,
+  buildReaction,
+  buildRetraction,
+  COMMENT_KIND,
+  type NostrEvent,
+  parseSpec,
+  SPEC_KIND,
+  type Spec,
+} from "@openspecs/nostr";
 import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
 import {
   clearNotices,
@@ -74,13 +85,33 @@ const fakeStorage = (): Storage => {
   } as unknown as Storage;
 };
 
+const sign = (
+  draft: { kind: number; content: string; tags: string[][] },
+  by: Uint8Array,
+  at = 100,
+) => finalizeEvent({ ...draft, created_at: at }, by) as NostrEvent;
+
 /** The one subscription, held so a test can play the relays' part by hand. */
 type Channel = { send: (event: NostrEvent) => void; eose: () => void };
 
 let channel: Channel;
 /** The copy subscription, opened only once my own documents are known. */
 let copyChannel: Channel | null;
+/** Whichever of the two second passes was opened last. */
+let secondPass: Channel | null;
+/** Every subscription the store opened, and every one it closed again. */
+let opened = 0;
 let closed = 0;
+
+/** What a mocked subscription hands back, counted so nothing can be leaked. */
+const handle = () => {
+  opened += 1;
+  return {
+    close: () => {
+      closed += 1;
+    },
+  };
+};
 
 beforeEach(() => {
   vi.stubGlobal("window", {});
@@ -88,30 +119,35 @@ beforeEach(() => {
   vi.useFakeTimers();
   clearNotices();
   forgetSeen();
+  opened = 0;
   closed = 0;
   copyChannel = null;
+  secondPass = null;
   nostr.subscribeNotices.mockClear();
   nostr.subscribeCopies.mockClear();
+  nostr.subscribeRetractions.mockClear();
+  nostr.subscribeNamed.mockClear();
+
+  // The two second passes deliver on the same channel the first one does, so a
+  // test plays them by holding on to the callback they were opened with.
+  for (const second of [nostr.subscribeRetractions, nostr.subscribeNamed]) {
+    second.mockImplementation((_ids, onEvent) => {
+      secondPass = { send: onEvent, eose: () => {} };
+      return handle();
+    });
+  }
   nostr.fetchSpecs.mockReset();
   // Nobody has published anything unless a test says so.
   nostr.fetchSpecs.mockResolvedValue([]);
 
   nostr.subscribeCopies.mockImplementation((_names, onEvent, options) => {
     copyChannel = { send: onEvent, eose: () => options?.onEose?.() };
-    return {
-      close: () => {
-        closed += 1;
-      },
-    };
+    return handle();
   });
 
   nostr.subscribeNotices.mockImplementation((_pubkey, onEvent, options) => {
     channel = { send: onEvent, eose: () => options?.onEose?.() };
-    return {
-      close: () => {
-        closed += 1;
-      },
-    };
+    return handle();
   });
 });
 
@@ -150,9 +186,11 @@ describe("startNotices", () => {
     await settle();
     expect(noticesState().notices).toHaveLength(1);
 
+    // Everything the previous key had open, second passes included, is closed.
+    const hadOpen = opened;
     startNotices(SOMEBODY_ELSE);
     await settle();
-    expect(closed).toBe(1);
+    expect(closed).toBe(hadOpen);
     expect(noticesState().me).toBe(SOMEBODY_ELSE);
     expect(noticesState().notices).toEqual([]);
   });
@@ -254,7 +292,7 @@ describe("clearNotices", () => {
     await settle();
 
     clearNotices();
-    expect(closed).toBe(1);
+    expect(closed).toBe(opened);
     expect(noticesState().me).toBeNull();
     expect(noticesState().notices).toEqual([]);
   });
@@ -405,6 +443,103 @@ describe("copies under one of my names", () => {
 
     nostr.fetchSpecs.mockResolvedValue([]);
     startNotices(SOMEBODY_ELSE);
+    await settle();
+    expect(noticesState().notices).toEqual([]);
+  });
+});
+
+describe("the second passes", () => {
+  const ROOT_THEIRS = {
+    coordinate: `${SPEC_KIND}:${SOMEBODY_ELSE}:their-doc`,
+    pubkey: SOMEBODY_ELSE,
+  };
+
+  const send = (channel: Channel | null, event: NostrEvent, what: string) => {
+    if (channel === null) throw new Error(`the ${what} subscription was never opened`);
+    channel.send(event);
+  };
+
+  it("asks whether what arrived is still standing", async () => {
+    startNotices(ME);
+    await settle();
+    const written = comment("a note", 2_000) as NostrEvent;
+    channel.send(written);
+    await settle();
+
+    expect(nostr.subscribeRetractions).toHaveBeenCalled();
+    expect(nostr.subscribeRetractions.mock.calls[0]?.[0]).toContain(written.id);
+  });
+
+  it("asks about an id once and not again on the next event", async () => {
+    startNotices(ME);
+    await settle();
+    channel.send(comment("one", 2_000) as NostrEvent);
+    await settle();
+    const asked = nostr.subscribeRetractions.mock.calls.length;
+
+    channel.send(comment("two", 2_100) as NostrEvent);
+    await settle();
+
+    const second = nostr.subscribeRetractions.mock.calls[asked]?.[0] as string[] | undefined;
+    expect(second).toHaveLength(1);
+  });
+
+  it("drops a row once the answer says its author took it back", async () => {
+    startNotices(ME);
+    await settle();
+    const written = comment("a note", 2_000) as NostrEvent;
+    channel.send(written);
+    await settle();
+    expect(noticesState().notices).toHaveLength(1);
+
+    send(secondPass, sign(buildRetraction(written.id), theirKey, 2_100), "retraction");
+    await settle();
+    expect(noticesState().notices).toEqual([]);
+  });
+
+  it("resolves a reaction that named only an event id, and draws it", async () => {
+    startNotices(ME);
+    await settle();
+
+    // My own comment on somebody else's document, and a reaction to it.
+    const mine = finalizeEvent(
+      { ...buildComment({ root: ROOT_THEIRS, content: "a point of mine" }), created_at: 1_900 },
+      myKey,
+    ) as NostrEvent;
+    const reacted = sign(
+      buildReaction({ id: mine.id, pubkey: ME, kind: COMMENT_KIND }, "+"),
+      theirKey,
+      2_000,
+    );
+
+    channel.send(reacted);
+    await settle();
+    // Nothing yet: the id names something this browser cannot see is mine.
+    expect(noticesState().notices).toEqual([]);
+    expect(nostr.subscribeNamed.mock.calls[0]?.[0]).toEqual([mine.id]);
+
+    send(secondPass, mine, "named");
+    await settle();
+
+    const [notice] = noticesState().notices;
+    expect(notice?.kind).toBe("reaction");
+    expect(notice?.onComment).toBe(true);
+  });
+
+  it("leaves it dropped when the answer says the comment was somebody else's", async () => {
+    startNotices(ME);
+    await settle();
+
+    const theirs = finalizeEvent(
+      { ...buildComment({ root: ROOT_THEIRS, content: "not mine" }), created_at: 1_900 },
+      theirKey,
+    ) as NostrEvent;
+    channel.send(
+      sign(buildReaction({ id: theirs.id, pubkey: ME, kind: COMMENT_KIND }, "+"), otherKey, 2_000),
+    );
+    await settle();
+
+    send(secondPass, theirs, "named");
     await settle();
     expect(noticesState().notices).toEqual([]);
   });

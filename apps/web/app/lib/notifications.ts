@@ -42,6 +42,8 @@ let events = new Map<string, NostrEvent>();
 let copies = new Map<string, Spec>();
 /** The names I publish under, which is what makes a copy a copy of mine. */
 let names = new Set<string>();
+/** Ids a second pass already covers, so widening it asks only about the new ones. */
+let asked = new Set<string>();
 let subscriptions: Subscription[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -84,12 +86,44 @@ const recompute = (): NoticesState => {
   };
 };
 
+/**
+ * The two questions that can only be asked once the answers to the first have
+ * arrived: whether what is held has since been taken back, and what the events
+ * a reaction pointed at without explaining actually are.
+ *
+ * Every new id opens one more subscription rather than replacing the one
+ * running: the relays have already sent what they hold for the ids asked
+ * before, and asking again pays for it twice.
+ *
+ * Unlike the conversation under a document, nothing here waits on these. A
+ * conversation is the page, so it is worth four seconds not to show a comment
+ * about to be taken away again. A notification is a glance, and a bell with no
+ * number on it for four seconds of every page load is the worse lie.
+ */
+const askAbout = (notices: Notice[]): void => {
+  if (nostr === null) return;
+
+  const want = (ids: string[]) => ids.filter((id) => !asked.has(id));
+
+  // Zaps are left out: a receipt is signed by somebody's LNURL server, and a
+  // deletion of it by anybody else is not the author taking their words back.
+  const standing = want(
+    notices.filter((notice) => notice.kind !== "copy" && notice.kind !== "zap").map((n) => n.id),
+  );
+  const named = want(nostr.unnamedTargets([...events.values()]));
+
+  for (const id of [...standing, ...named]) asked.add(id);
+  if (standing.length > 0) subscriptions.push(nostr.subscribeRetractions(standing, receive));
+  if (named.length > 0) subscriptions.push(nostr.subscribeNamed(named, receive));
+};
+
 const publish = (): void => {
   if (timer !== null) {
     clearTimeout(timer);
     timer = null;
   }
   state = recompute();
+  askAbout(state.notices);
   notify();
 };
 
@@ -209,6 +243,9 @@ export const startNotices = (pubkey: string): void => {
   }
   me = pubkey;
   listed = false;
+  // Cleared even when the events are kept: the subscriptions watching these ids
+  // were just closed, and nothing would reopen them.
+  asked = new Set();
 
   // Before anything is asked for, and deliberately: a relay that answers fast
   // could otherwise deliver a year of news to a key this browser has never seen
@@ -241,6 +278,7 @@ export const clearNotices = (): void => {
   events = new Map();
   copies = new Map();
   names = new Set();
+  asked = new Set();
   me = null;
   listed = false;
   if (timer !== null) clearTimeout(timer);

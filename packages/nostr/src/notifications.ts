@@ -51,6 +51,32 @@ export const copyFilters = (identifiers: string[]): Filter[] =>
 export const targetFilters = (ids: string[]): Filter[] =>
   inChunks(ids).map((chunk) => ({ kinds: [DELETION_KIND], "#e": chunk }));
 
+/** The events themselves, for the ids a reaction or a zap named and nothing explained. */
+export const namedFilters = (ids: string[]): Filter[] =>
+  inChunks(ids).map((chunk) => ({ ids: chunk }));
+
+/**
+ * The ids a reaction or a zap pointed at without saying which document it was
+ * about, and which nothing here holds the event for yet.
+ *
+ * A client reacting to a comment has no coordinate to name, since a comment is
+ * not addressable, so it names an id and nothing else. Fetched, that id is
+ * either a comment I wrote, which makes the reaction mine to hear about, or it
+ * is not, which makes the `p` tag on it somebody tagging a stranger.
+ */
+export const unnamedTargets = (events: NostrEvent[]): string[] => {
+  const held = new Set(events.map((event) => event.id));
+  const wanted = new Set<string>();
+
+  for (const event of events) {
+    if (event.kind !== REACTION_KIND && event.kind !== ZAP_RECEIPT_KIND) continue;
+    if (tagValue(event, "a") !== "") continue;
+    const targetId = tagValue(event, "e");
+    if (targetId !== "" && !held.has(targetId)) wanted.add(targetId);
+  }
+  return [...wanted];
+};
+
 /**
  * What happened, which decides the sentence the row is drawn with.
  *
@@ -71,6 +97,12 @@ export type Notice = {
   document: { pubkey: string; identifier: string; coordinate: string };
   /** What was answered, when it was something other than the document itself. */
   targetId: string | null;
+  /**
+   * Whether `targetId` is a comment of mine rather than a document of mine. It
+   * decides both the sentence the row is drawn with and whether the link can
+   * name a place in the conversation or only the conversation.
+   */
+  onComment: boolean;
   /** The words, the reaction's symbol, or the copy's title. */
   content: string;
   /** A NIP-30 custom emoji's image, on a reaction that named one. */
@@ -112,41 +144,65 @@ const noticeFromComment = (comment: Comment, me: string): Notice | null => {
   const document = documentOf(comment.rootCoordinate);
   if (document === null) return null;
 
-  const answered = tagValue(comment.event, "p") === me;
-  if (document.pubkey !== me && !answered) return null;
+  const answersMe = tagValue(comment.event, "p") === me;
+  if (document.pubkey !== me && !answersMe) return null;
 
   return {
     id: comment.id,
-    kind: comment.parentId === null ? "comment" : answered ? "reply" : "thread",
+    kind: comment.parentId === null ? "comment" : answersMe ? "reply" : "thread",
     pubkey: comment.pubkey,
     createdAt: comment.createdAt,
     document,
     targetId: comment.parentId,
+    onComment: comment.parentId !== null,
     content: comment.content,
     emojiUrl: null,
     sats: null,
   };
 };
 
+/** A comment of mine, by id, so that what answers it can be attributed. */
+type MyComments = ReadonlyMap<string, ReturnType<typeof documentOf>>;
+
 /**
+ * What a reaction or a zap was about, and whether it is mine to hear about.
+ *
  * Anyone may put my key in a `p` tag, so that tag decides what a relay sends and
- * never what is shown. What is shown is decided by the target: a reaction to a
- * document of mine is one I can see is mine. A reaction naming only an event id
- * is dropped here rather than trusted, and asking whose event that id is takes a
- * second round trip the caller makes when it wants those rows.
+ * never what is shown. The target decides that. A coordinate naming a document
+ * of mine is one I can see is mine; an event id is only mine once it has been
+ * fetched and turns out to be a comment I wrote. Anything else is somebody
+ * tagging me, and is dropped.
  */
-const noticeFromReaction = (reaction: Reaction, event: NostrEvent, me: string): Notice | null => {
+const answered = (
+  target: { targetId: string | null; targetCoordinate: string | null },
+  me: string,
+  mine: MyComments,
+): { document: NonNullable<ReturnType<typeof documentOf>>; onComment: boolean } | null => {
+  const named = documentOf(target.targetCoordinate);
+  if (named !== null && named.pubkey === me) return { document: named, onComment: false };
+
+  const comment = target.targetId === null ? undefined : mine.get(target.targetId);
+  return comment === undefined || comment === null ? null : { document: comment, onComment: true };
+};
+
+const noticeFromReaction = (
+  reaction: Reaction,
+  event: NostrEvent,
+  me: string,
+  mine: MyComments,
+): Notice | null => {
   if (event.pubkey === me) return null;
-  const document = documentOf(reaction.targetCoordinate);
-  if (document === null || document.pubkey !== me) return null;
+  const about = answered(reaction, me, mine);
+  if (about === null) return null;
 
   return {
     id: reaction.id,
     kind: "reaction",
     pubkey: reaction.pubkey,
     createdAt: reaction.createdAt,
-    document,
+    document: about.document,
     targetId: reaction.targetId,
+    onComment: about.onComment,
     content: reaction.symbol,
     emojiUrl: reaction.emojiUrl,
     sats: null,
@@ -158,18 +214,19 @@ const noticeFromReaction = (reaction: Reaction, event: NostrEvent, me: string): 
  * known through the request it echoed back. A receipt that carries no request
  * names nobody, and a row that cannot say who paid is not worth a line.
  */
-const noticeFromZap = (zap: ZapReceipt, me: string): Notice | null => {
+const noticeFromZap = (zap: ZapReceipt, me: string, mine: MyComments): Notice | null => {
   if (zap.recipient !== me || zap.zapper === null || zap.zapper === me) return null;
-  const document = documentOf(zap.targetCoordinate);
-  if (document === null || document.pubkey !== me) return null;
+  const about = answered(zap, me, mine);
+  if (about === null) return null;
 
   return {
     id: zap.id,
     kind: "zap",
     pubkey: zap.zapper,
     createdAt: zap.createdAt,
-    document,
+    document: about.document,
     targetId: zap.targetId,
+    onComment: about.onComment,
     content: zap.comment,
     emojiUrl: null,
     sats: zap.amountSats,
@@ -189,6 +246,7 @@ const noticeFromCopy = (spec: Spec, me: string): Notice | null => {
       coordinate: toCoordinate(spec),
     },
     targetId: null,
+    onComment: false,
     content: spec.title,
     emojiUrl: null,
     sats: null,
@@ -229,6 +287,16 @@ export const sortNotices = (events: NostrEvent[], scope: NoticeScope): Notice[] 
   const deletions: Deletion[] = [];
   const seen = new Set<string>();
 
+  // My own comments are never news, but they are what a reaction naming an id
+  // and nothing else has to be read against, so they are indexed before the
+  // pass that would otherwise throw them away.
+  const mine = new Map<string, ReturnType<typeof documentOf>>();
+  for (const event of events) {
+    if (event.kind !== COMMENT_KIND || event.pubkey !== scope.me) continue;
+    const comment = parseComment(event);
+    if (comment !== null) mine.set(comment.id, documentOf(comment.rootCoordinate));
+  }
+
   for (const event of events) {
     if (seen.has(event.id)) continue;
     seen.add(event.id);
@@ -239,11 +307,11 @@ export const sortNotices = (events: NostrEvent[], scope: NoticeScope): Notice[] 
       if (notice !== null) notices.push(notice);
     } else if (event.kind === REACTION_KIND) {
       const reaction = parseReaction(event);
-      const notice = reaction === null ? null : noticeFromReaction(reaction, event, scope.me);
+      const notice = reaction === null ? null : noticeFromReaction(reaction, event, scope.me, mine);
       if (notice !== null) notices.push(notice);
     } else if (event.kind === ZAP_RECEIPT_KIND) {
       const zap = parseZapReceipt(event);
-      const notice = zap === null ? null : noticeFromZap(zap, scope.me);
+      const notice = zap === null ? null : noticeFromZap(zap, scope.me, mine);
       if (notice !== null) notices.push(notice);
     } else if (event.kind === DELETION_KIND) {
       const deletion = parseDeletion(event);
@@ -318,6 +386,22 @@ export const subscribeCopies = (
   openNotices(
     relaySet(options.relays ?? [...READ_RELAYS, ...DISCUSSION_RELAYS]),
     copyFilters(identifiers),
+    onEvent,
+    options,
+  );
+
+/**
+ * The events a reaction or a zap named. Read from the relays that hold the
+ * conversations, since what is being asked for is a comment.
+ */
+export const subscribeNamed = (
+  ids: string[],
+  onEvent: (event: NostrEvent) => void,
+  options: NoticeOptions & { onEose?: () => void } = {},
+): Subscription =>
+  openNotices(
+    relaySet(options.relays ?? [...DISCUSSION_RELAYS, ...DEFAULT_RELAYS]),
+    namedFilters(ids),
     onEvent,
     options,
   );

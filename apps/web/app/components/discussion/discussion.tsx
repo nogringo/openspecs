@@ -1,5 +1,6 @@
 import { type CommentNode, SPEC_KIND, toNpub } from "@openspecs/nostr";
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useLocation } from "react-router";
 import {
   discussionState,
   NO_RESPONSE,
@@ -124,6 +125,22 @@ export const Discussion = ({
 
   const { before, after } = useMemo(() => split(roots, revisedAt), [roots, revisedAt]);
   const since = roots[0]?.comment.createdAt ?? null;
+
+  /**
+   * A link from a notification names the comment it is about. The browser looks
+   * for that anchor when the page loads and does not find it: the conversation
+   * is fetched from the relays afterwards, and drawn later still. So the scroll
+   * is done here, once the record stands, and once per hash, or a reader who has
+   * scrolled away would be dragged back by the next event to arrive.
+   */
+  const { hash } = useLocation();
+  const jumped = useRef<string | null>(null);
+  useEffect(() => {
+    const id = hash.slice(1);
+    if (!ready || id === "" || id === DISCUSSION_ID || jumped.current === hash) return;
+    jumped.current = hash;
+    document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, [hash, ready]);
 
   return (
     <section id={DISCUSSION_ID} className="mt-16 border-t border-rule pt-8">
