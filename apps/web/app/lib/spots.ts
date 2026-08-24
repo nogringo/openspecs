@@ -55,21 +55,39 @@ export type SpotBase = {
   identifier: string;
 };
 
+/** Where a copy stands against this document, said in one short phrase on its card. */
+export type Standing = { kind: "kin"; places: number } | { kind: "same" } | { kind: "independent" };
+
+export type CopiesComparison = {
+  spots: Spot[];
+  /** By the copy's pubkey. A copy whose comparison never ran has no standing. */
+  standings: Record<string, Standing>;
+};
+
 /**
  * Every place where another key's copy departs from this document, grouped by
- * the element it concerns so five copies touching one paragraph make one mark.
- * A copy below the kinship floor annotates nothing: it would mark every
- * paragraph, and the "Under this name" section already says it exists.
+ * the element it concerns so five copies touching one paragraph make one mark,
+ * and each copy's standing alongside. A copy below the kinship floor annotates
+ * nothing: it would mark every paragraph, and its card says it is its own
+ * writing instead.
  */
-export const spotsOf = (base: SpotBase, others: Spec[]): Spot[] => {
+export const compareCopies = (base: SpotBase, others: Spec[]): CopiesComparison => {
   const anchors = blockAnchors(base.content, base.title);
   const spots = new Map<number, Spot>();
+  const standings: Record<string, Standing> = {};
 
   for (const other of others) {
     const comparison = compareMarkdown(base.content, other.content, {
       mention: mentionResolver({}),
     });
-    if (comparison.similarity < KINSHIP_FLOOR) continue;
+    if (comparison.similarity < KINSHIP_FLOOR) {
+      standings[other.pubkey] = { kind: "independent" };
+      continue;
+    }
+    standings[other.pubkey] =
+      comparison.changes.length === 0
+        ? { kind: "same" }
+        : { kind: "kin", places: comparison.changes.length };
 
     const npub = toNpub(other.pubkey);
     for (const change of comparison.changes) {
@@ -85,5 +103,5 @@ export const spotsOf = (base: SpotBase, others: Spec[]): Spot[] => {
       spots.set(element, spot);
     }
   }
-  return [...spots.values()].sort((a, b) => a.element - b.element);
+  return { spots: [...spots.values()].sort((a, b) => a.element - b.element), standings };
 };

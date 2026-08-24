@@ -1,7 +1,7 @@
 import { fetchSpecs, type NostrEvent, type Spec, specPath, toNpub } from "@openspecs/nostr";
 import { useEffect, useState } from "react";
 import { eventPath } from "./paths";
-import { type Spot, spotsOf } from "./spots";
+import { compareCopies, type Spot, type Standing } from "./spots";
 
 /** Another key's document under the same identifier, reduced to what its row draws. */
 export type Variant = {
@@ -37,9 +37,11 @@ export type UnderThisName = {
   variants: Variant[];
   /** The places in the shown revision where those copies differ, for the margin. */
   spots: Spot[];
+  /** Each copy's standing against the shown revision, for its card. */
+  standings: Record<string, Standing>;
 };
 
-const NOTHING: UnderThisName = { variants: [], spots: [] };
+const NOTHING: UnderThisName = { variants: [], spots: [], standings: {} };
 
 /**
  * The marks must sit on the text the reader is looking at, so the base source
@@ -92,14 +94,14 @@ export const useVariants = (shown: {
         const specs = await fetchSpecs({ identifiers: [identifier] });
         if (!live) return;
         const variants = selectVariants(specs, pubkey);
-        setFound({ variants, spots: [] });
+        setFound({ variants, spots: [], standings: {} });
         if (variants.length === 0) return;
 
         const content = await baseContentOf(specs, { pubkey, npub, identifier, eventId });
         if (!live || content === null) return;
         const others = specs.filter((spec) => spec.pubkey !== pubkey && !spec.isEmpty);
-        const spots = spotsOf({ content, title, npub, identifier }, others);
-        if (live) setFound({ variants, spots });
+        const { spots, standings } = compareCopies({ content, title, npub, identifier }, others);
+        if (live) setFound({ variants, spots, standings });
       } catch {
         // A page that could not learn who else signs this name still has its document.
       }

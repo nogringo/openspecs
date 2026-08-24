@@ -390,7 +390,7 @@ const Article = ({
 }) => {
   const { shown, fresher, show } = useLiveRevision(served);
   // On the shown revision, not the served one: the marks sit on the text on screen.
-  const { variants, spots } = useVariants(shown);
+  const { variants, spots, standings } = useVariants(shown);
 
   // A preview was fetched for the links the served revision cited. One that no
   // longer appears in the document has no business under it.
@@ -424,7 +424,11 @@ const Article = ({
             <AnnotatedDoc key={shown.eventId} html={shown.html} spots={spots} />
           )}
           {cited.length > 0 && <CitedLinks previews={cited} />}
-          <Variants variants={variants} from={{ npub: shown.npub, identifier: shown.identifier }} />
+          <Variants
+            variants={variants}
+            standings={standings}
+            from={{ npub: shown.npub, identifier: shown.identifier }}
+          />
           <Discussion
             coordinate={toCoordinate(shown)}
             specEventId={shown.eventId}

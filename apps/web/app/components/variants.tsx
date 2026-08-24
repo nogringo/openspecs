@@ -4,6 +4,7 @@ import { keyTextColor } from "~/lib/color";
 import { diffPath } from "~/lib/paths";
 import { authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
+import type { Standing } from "~/lib/spots";
 import type { Variant } from "~/lib/variants";
 import { AuthorAvatar } from "./author-avatar";
 
@@ -12,15 +13,28 @@ export const VARIANTS_ID = "under-this-name";
 const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString().slice(0, 10);
 
 /**
+ * What their copy is, against the one on this page, in the fewest words that
+ * stay honest: how many passages it changes, that it reads the same, or that
+ * it only shares the name.
+ */
+const said = (standing: Standing): string => {
+  if (standing.kind === "same") return "reads the same";
+  if (standing.kind === "independent") return "its own writing";
+  return `changes ${standing.places} ${standing.places === 1 ? "passage" : "passages"}`;
+};
+
+/**
  * The other documents published under this page's identifier. Drawn dashed like
  * everything on this site that is available rather than settled: nobody vouches
  * for these, they exist, and existing is the whole point.
  */
 export const Variants = ({
   variants,
+  standings,
   from,
 }: {
   variants: Variant[];
+  standings: Record<string, Standing>;
   /** The document whose page this section sits on, and a comparison's base side. */
   from: { npub: string; identifier: string };
 }) => {
@@ -43,6 +57,7 @@ export const Variants = ({
       <ul className="mt-5 space-y-3">
         {variants.map((variant) => {
           const author = authors[variant.pubkey] ?? null;
+          const standing = standings[variant.pubkey];
           return (
             <li
               key={variant.pubkey}
@@ -77,7 +92,7 @@ export const Variants = ({
                     {variant.summary}
                   </p>
                 )}
-                <div className="mt-3">
+                <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <Link
                     to={diffPath(from.npub, from.identifier, variant.npub)}
                     title="This document, marked with what their copy changes"
@@ -85,6 +100,9 @@ export const Variants = ({
                   >
                     Compare
                   </Link>
+                  {standing !== undefined && (
+                    <span className="font-mono text-xs text-muted">{said(standing)}</span>
+                  )}
                 </div>
               </div>
             </li>
