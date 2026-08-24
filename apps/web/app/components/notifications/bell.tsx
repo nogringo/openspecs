@@ -153,7 +153,12 @@ export const Bell = () => {
   const badge = state.unread > MAX_BADGE ? `${MAX_BADGE}+` : String(state.unread);
 
   return (
-    <div className="relative flex shrink-0">
+    // Only what hangs off this is positioned here, and only from `sm` up. On a
+    // phone the panel is as wide as the page allows, and hanging it off the bell
+    // starts it a control short of the right gutter, so it runs off the left
+    // edge by whatever the avatar beside it takes. Below `sm` it falls through
+    // to the pair, whose right edge is the gutter the width is measured against.
+    <div className="flex shrink-0 sm:relative">
       <button
         type="button"
         onClick={toggle}

@@ -91,7 +91,7 @@ export const Shell = ({
           {/* The reader's own two controls, held as one. The width reserved for
               them is on the pair rather than on either, so the slack a short name
               leaves falls outside the two and never between them. */}
-          <div className="flex shrink-0 items-center justify-end gap-3 sm:min-w-24 sm:gap-5">
+          <div className="relative flex shrink-0 items-center justify-end gap-3 sm:min-w-24 sm:gap-5">
             <Bell />
             <Identity />
           </div>
