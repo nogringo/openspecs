@@ -3,7 +3,7 @@ import type { Profile } from "@openspecs/nostr";
 /** What a page shows of an author. `updatedAt` is what a drawn card is cached under. */
 export type Author = Pick<
   Profile,
-  "name" | "picture" | "nip05" | "about" | "lud16" | "lud06" | "updatedAt"
+  "name" | "picture" | "nip05" | "website" | "about" | "lud16" | "lud06" | "updatedAt"
 >;
 
 export type Authors = Record<string, Author>;
@@ -21,6 +21,7 @@ export const toAuthor = (profile: Profile | null): Author | null =>
   (profile.name === "" &&
     profile.picture === null &&
     profile.nip05 === null &&
+    profile.website === null &&
     profile.about === "" &&
     profile.lud16 === null &&
     profile.lud06 === null)
@@ -29,6 +30,7 @@ export const toAuthor = (profile: Profile | null): Author | null =>
         name: profile.name,
         picture: profile.picture,
         nip05: profile.nip05,
+        website: profile.website,
         about: profile.about,
         lud16: profile.lud16,
         lud06: profile.lud06,
@@ -40,6 +42,7 @@ export const namedAuthor = (name: string): Author => ({
   name,
   picture: null,
   nip05: null,
+  website: null,
   about: "",
   lud16: null,
   lud06: null,

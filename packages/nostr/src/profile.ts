@@ -21,6 +21,8 @@ export type Profile = {
   picture: string | null;
   /** A claim the author makes about themselves, which nothing here resolves. */
   nip05: string | null;
+  /** Somewhere else of theirs on the web, which NIP-24 leaves at exactly that. */
+  website: string | null;
   /** The author's own description of themselves, shown on their page. */
   about: string;
   /** A lightning address, which is where a zap is paid. */
@@ -43,6 +45,7 @@ const metadataSchema = z.object({
   displayName: text,
   picture: text,
   nip05: text,
+  website: text,
   about: text,
   lud16: text,
   lud06: text,
@@ -76,6 +79,26 @@ export const pictureUrl = (value: string | undefined): string | null => {
   }
 };
 
+/**
+ * The value becomes an `href` a reader clicks, so the scheme is the whole of the
+ * question: `javascript:` there is the author's code running in the reader's
+ * page. http survives where a picture's would not, since a link is followed
+ * rather than loaded into this one, and plenty of these were written years ago.
+ *
+ * A bare host is taken as https, the way `relayUrl` takes one as wss: somebody
+ * typing their own address rarely types the scheme.
+ */
+export const websiteUrl = (value: string | undefined): string | null => {
+  const raw = (value ?? "").trim();
+  if (raw === "" || raw.length > MAX_URL) return null;
+  try {
+    const url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
 export const parseProfile = (input: unknown): Profile | null => {
   const parsed = nostrEventSchema.safeParse(input);
   if (!parsed.success || parsed.data.kind !== PROFILE_KIND) return null;
@@ -90,13 +113,15 @@ export const parseProfile = (input: unknown): Profile | null => {
   const metadata = metadataSchema.safeParse(content);
   if (!metadata.success) return null;
 
-  const { display_name, displayName, name, picture, nip05, about, lud16, lud06 } = metadata.data;
+  const { display_name, displayName, name, picture, nip05, website, about, lud16, lud06 } =
+    metadata.data;
   return {
     pubkey: parsed.data.pubkey,
     // A blank `display_name` is common, and the author's `name` is what it hides.
     name: clean(display_name ?? displayName, MAX_NAME) || clean(name, MAX_NAME),
     picture: pictureUrl(picture),
     nip05: clean(nip05, MAX_NIP05) || null,
+    website: websiteUrl(website),
     // Folded to one line: it is drawn as a paragraph, and a profile written as
     // ten lines of Markdown would take over the page it introduces.
     about: clean(about, MAX_ABOUT),
@@ -114,6 +139,7 @@ export type ProfileDraft = {
   about?: string;
   picture?: string;
   nip05?: string;
+  website?: string;
   lud16?: string;
 };
 
@@ -134,7 +160,7 @@ const liveMetadata = (live: NostrEvent | null): Record<string, unknown> => {
  * A kind 0 replaces the whole of a profile, every field of it, so an edit starts
  * from the live one and hands back every field it had. Most profiles in the wild
  * carry fields written by clients this one has never heard of, a banner or a
- * website, and a save that knew only the five below would delete them.
+ * birthday, and a save that knew only the six below would delete them.
  *
  * The draft is the whole of what this client has an opinion about: a field left
  * blank in it is cleared rather than left alone. That is the difference between
@@ -162,6 +188,7 @@ export const editProfile = (live: NostrEvent | null, draft: ProfileDraft): Event
     ["about", draft.about],
     ["picture", draft.picture],
     ["nip05", draft.nip05],
+    ["website", draft.website],
     ["lud16", draft.lud16],
   ] as const) {
     const trimmed = (value ?? "").trim();
@@ -201,6 +228,7 @@ export const profileDraftOf = (live: NostrEvent | null): ProfileDraft => {
     about: field("about"),
     picture: field("picture"),
     nip05: field("nip05"),
+    website: field("website"),
     lud16: field("lud16"),
   };
 };

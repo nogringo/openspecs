@@ -158,6 +158,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
           ...(author?.name && { alternateName: npub }),
           ...(author?.picture && { image: author.picture }),
           ...(author?.about && { description: author.about }),
+          // Not `url`, which is this page: `sameAs` is for the same person elsewhere.
+          ...(author?.website && { sameAs: [author.website] }),
         },
       },
     },
@@ -177,6 +179,9 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
     <dd className="min-w-0 break-all">{children}</dd>
   </div>
 );
+
+/** The scheme and the trailing slash are the browser's business, not the reader's. */
+const readable = (url: string): string => url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
 const FeedLink = ({ to, children }: { to: string; children: string }) => (
   <a
@@ -223,6 +228,19 @@ const Masthead = ({
 
     <dl className="mt-8 min-w-0 space-y-1 font-mono text-xs">
       <Field label="key">{npub}</Field>
+      {/* Somewhere the author sent a reader, so it is theirs rather than this
+          site's: nofollow, and opened without a handle back onto this page. */}
+      {author?.website && (
+        <Field label="website">
+          <a
+            href={author.website}
+            rel="noopener noreferrer nofollow"
+            className="underline decoration-rule underline-offset-2 hover:decoration-current"
+          >
+            {readable(author.website)}
+          </a>
+        </Field>
+      )}
       {total > 0 && (
         <Field label="publishing">{`since ${new Date(oldest * 1000).toISOString().slice(0, 10)}`}</Field>
       )}

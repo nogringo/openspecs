@@ -4,6 +4,7 @@ import {
   type ProfileDraft,
   pictureUrl,
   profileDraftOf,
+  websiteUrl,
 } from "@openspecs/nostr";
 import { useId, useMemo, useState } from "react";
 import { AuthorAvatar } from "~/components/author-avatar";
@@ -72,6 +73,13 @@ const Preview = ({
       {draft.nip05?.trim() && (
         <p className="truncate font-mono text-[0.6875rem] text-muted">{draft.nip05}</p>
       )}
+      {/* Drawn as the author's page will draw it, which is not as it was typed:
+          a bare host is taken as https and the scheme is not shown back. */}
+      {websiteUrl(draft.website) !== null && (
+        <p className="truncate font-mono text-[0.6875rem] text-muted">
+          {(websiteUrl(draft.website) ?? "").replace(/^https?:\/\//, "").replace(/\/$/, "")}
+        </p>
+      )}
       {draft.about?.trim() && (
         <p className="font-serif text-[0.8125rem] leading-snug text-muted">{draft.about}</p>
       )}
@@ -117,6 +125,8 @@ export const ProfileForm = ({
   const changed = JSON.stringify(draft) !== JSON.stringify(published);
   const picture = (draft.picture ?? "").trim();
   const unshowable = picture !== "" && pictureUrl(picture) === null;
+  const website = (draft.website ?? "").trim();
+  const unreachable = website !== "" && websiteUrl(website) === null;
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -226,6 +236,27 @@ export const ProfileForm = ({
             />
           )}
         </Row>
+
+        <Row label="Website" note="Somewhere else of yours, shown on your page here.">
+          {(id) => (
+            <input
+              id={id}
+              className={FIELD}
+              value={draft.website ?? ""}
+              onChange={set("website")}
+              placeholder="example.com"
+              inputMode="url"
+              spellCheck={false}
+            />
+          )}
+        </Row>
+
+        {unreachable && (
+          <p className={WRONG}>
+            Only a web address can be linked to, so this one would be shown nowhere. Something like
+            example.com, or the whole thing starting with https.
+          </p>
+        )}
 
         <Row label="Lightning address" note="Where a zap of yours is paid.">
           {(id) => (

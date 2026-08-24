@@ -14,6 +14,7 @@ import {
   parseProfile,
   profileDraftOf,
   selectProfiles,
+  websiteUrl,
 } from "../src/profile";
 import { events } from "./fixtures";
 
@@ -49,6 +50,7 @@ describe("parseProfile", () => {
       name: "Alice",
       picture: "https://example.com/alice.png",
       nip05: "alice@example.com",
+      website: null,
       about: "Writes specifications.",
       lud16: "alice@example.com",
       lud06: null,
@@ -103,6 +105,19 @@ describe("parseProfile", () => {
     expect(pictureOf("data:image/svg+xml,<svg onload='alert(1)'/>")).toBeNull();
     expect(pictureOf("/relative.png")).toBeNull();
     expect(pictureOf("   ")).toBeNull();
+  });
+
+  it("only reads a website a reader can be sent to", () => {
+    const siteOf = (website: string) => parseProfile(profileEvent({ website }))?.website;
+
+    expect(siteOf("https://ada.example.com/blog")).toBe("https://ada.example.com/blog");
+    // Followed rather than loaded into this page, so an old http one still works.
+    expect(siteOf("http://ada.example.com/")).toBe("http://ada.example.com/");
+    expect(siteOf("ada.example.com")).toBe("https://ada.example.com/");
+    expect(siteOf("javascript:alert(1)")).toBeNull();
+    expect(siteOf("data:text/html,<script>alert(1)</script>")).toBeNull();
+    expect(siteOf("mailto:ada@example.com")).toBeNull();
+    expect(siteOf("   ")).toBeNull();
   });
 
   it("strips what would reorder the line the name sits on", () => {
@@ -264,8 +279,17 @@ describe("profileDraftOf", () => {
       about: "",
       picture: "",
       nip05: "",
+      website: "",
       lud16: "",
     });
+  });
+
+  it("hands a website back as it was published, scheme and all", () => {
+    const live = profileEvent({ name: "ada", website: "ada.example.com" });
+    // What `websiteUrl` makes of it is for drawing a link, not for a form: this
+    // one saves what its author typed rather than tidying it behind their back.
+    expect(profileDraftOf(live).website).toBe("ada.example.com");
+    expect(websiteUrl("ada.example.com")).toBe("https://ada.example.com/");
   });
 
   it("ignores a field of the wrong type rather than reading it back as one", () => {
@@ -296,7 +320,7 @@ describe("editProfile", () => {
     display_name: "Ada",
     about: "Writes specifications.",
     banner: "https://example.com/banner.png",
-    website: "https://ada.example.com",
+    bot: false,
   });
 
   it("keeps the fields this client has never heard of", () => {
@@ -305,8 +329,16 @@ describe("editProfile", () => {
       display_name: "Ada",
       about: "Writes more of them.",
       banner: "https://example.com/banner.png",
-      website: "https://ada.example.com",
+      bot: false,
     });
+  });
+
+  it("writes a website, and clears the one that was there when it is left blank", () => {
+    expect(content(live, { name: "Ada", website: "ada.example.com" })).toMatchObject({
+      website: "ada.example.com",
+    });
+    const had = profileEvent({ name: "ada", website: "https://ada.example.com" });
+    expect(content(had, { name: "Ada" })).not.toHaveProperty("website");
   });
 
   it("clears a field left blank, since the draft is the whole of what it knows", () => {

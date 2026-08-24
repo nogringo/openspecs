@@ -196,6 +196,7 @@ export {
   pictureUrl,
   profileDraftOf,
   selectProfiles,
+  websiteUrl,
 } from "./profile";
 export {
   DEFAULT_RELAYS,

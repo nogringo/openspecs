@@ -17,6 +17,7 @@ const profile = (pubkey: string, name: string, picture: string | null = null): P
   name,
   picture,
   nip05: null,
+  website: null,
   about: "",
   lud16: null,
   lud06: null,
