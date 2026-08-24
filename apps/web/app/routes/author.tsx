@@ -79,6 +79,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     page,
     pages,
     total,
+    capped: total >= LISTING_WINDOW,
     oldest,
     origin,
     // The clamped page, so a number past the end still points at a page there is.
@@ -236,7 +237,7 @@ const Masthead = ({
 );
 
 export default function AuthorRoute({ loaderData }: Route.ComponentProps) {
-  const { pubkey, npub, author, specs, page, pages, total, oldest } = loaderData;
+  const { pubkey, npub, author, specs, page, pages, total, capped, oldest } = loaderData;
 
   return (
     <Shell>
@@ -245,7 +246,7 @@ export default function AuthorRoute({ loaderData }: Route.ComponentProps) {
 
         <section className="mt-14">
           <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">
-            {shelf(total, total >= LISTING_WINDOW)}
+            {shelf(total, capped)}
             {pages > 1 && <span className="text-rule">{` / page ${page} of ${pages}`}</span>}
           </h2>
           {total === 0 ? (
