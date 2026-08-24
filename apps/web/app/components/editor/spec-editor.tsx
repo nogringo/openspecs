@@ -21,14 +21,13 @@ import { clearDraft, readDraft, type StoredDraft, writeDraft } from "~/lib/spec-
 import {
   ACTION,
   DocumentField,
-  FIELD,
   IdentifierField,
   KindField,
   NOTE,
-  notEnter,
   Row,
   StatusField,
   SUGGESTION,
+  SummaryField,
   TitleField,
   TopicField,
   WRONG,
@@ -289,6 +288,12 @@ export const SpecEditor = ({
           }}
         />
 
+        {/* Where the published page puts it: under the title, above the
+            document, at the measure the rest of the prose is read at. */}
+        <div className="pt-2">
+          <SummaryField value={draft.summary} onChange={(summary) => edit({ summary })} />
+        </div>
+
         <div className="pt-4">
           <DocumentField
             content={draft.content}
@@ -373,19 +378,6 @@ export const SpecEditor = ({
         </div>
 
         <div className="space-y-6 border-t border-rule pt-6">
-          <Row label="Summary" note="Left empty, the opening paragraph is used.">
-            {(id) => (
-              <input
-                id={id}
-                className={FIELD}
-                value={draft.summary}
-                onChange={(event) => edit({ summary: event.target.value })}
-                onKeyDown={notEnter}
-                placeholder="One sentence"
-              />
-            )}
-          </Row>
-
           {/* The examples belong in the note, not in the field: a placeholder
               reading "draft" in a field that can hold exactly that looks like a
               status already chosen. */}

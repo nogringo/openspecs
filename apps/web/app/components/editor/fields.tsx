@@ -413,6 +413,44 @@ export const TitleField = ({
 };
 
 /**
+ * Under the title, set the way the published page sets it, rather than as a box
+ * in the rail beside it. A summary is a sentence, and a sentence typed into a
+ * sixteen rem field at twelve pixels arrives one word at a time through a slot:
+ * the beginning of it has scrolled out of sight by the end, and rereading it
+ * means dragging back through it.
+ *
+ * Multiple lines because it grows to hold what is written, not because a
+ * summary has any: a pasted paragraph loses its line breaks on the way in, the
+ * same as the title above.
+ */
+export const SummaryField = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (summary: string) => void;
+}) => {
+  const area = useAutoGrow(value);
+  return (
+    <div className="space-y-1.5">
+      <textarea
+        ref={area}
+        rows={1}
+        value={value}
+        onChange={(event) => onChange(event.target.value.replace(/\s*\n\s*/g, " "))}
+        placeholder="One sentence"
+        aria-label="Summary"
+        className="writing w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-serif text-lg leading-relaxed text-ink placeholder:text-muted"
+      />
+      <p className={NOTE}>
+        Shown wherever the document is listed, and under its title when it is read. Left empty, the
+        opening paragraph is used.
+      </p>
+    </div>
+  );
+};
+
+/**
  * The document itself, in the reading face at the reading measure, and without a
  * border for the same reason the published page has none around its prose. The
  * numbers match `.doc` in `app.css`, so what is written here is set exactly as
