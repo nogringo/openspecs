@@ -14,6 +14,23 @@ const GithubMark = () => (
 );
 
 /**
+ * The three lines of a document, the same mark as `public/icon.svg` and as the
+ * icon that file draws for a home screen. Drawn again here rather than pointed
+ * at that file, because its two colours are written into it and this one has to
+ * turn over with the page: a dark stamp on paper, a light one on ink.
+ */
+const SiteMark = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 32 32" width="20" height="20" aria-hidden="true">
+    <rect width="32" height="32" rx="5" className="fill-ink" />
+    <g className="fill-paper">
+      <rect x="7" y="8" width="18" height="4" />
+      <rect x="7" y="14" width="11" height="4" />
+      <rect x="7" y="20" width="15" height="4" />
+    </g>
+  </svg>
+);
+
+/**
  * What is about this site rather than in it: what it does with the documents it
  * shows, the code that does it, and the feeds. None of them is a control a
  * reader reaches for while reading, and the line at the top is for the ones that
@@ -70,11 +87,15 @@ export const Shell = ({
       {/* More wants this line than a phone has room for, so the gaps close first,
           then the words beside the marks go. */}
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:gap-6 sm:px-6">
-        <Link
-          to="/"
-          className="shrink-0 font-mono text-xs uppercase tracking-[0.14em] sm:tracking-[0.2em]"
-        >
-          Open Specs
+        {/* The stamp on a phone and the name on anything wider. The name is
+            eighty-nine pixels of a line that has none to spare, and what was
+            paying for them is the search box beside it, which had lost enough
+            of its width to be cutting off its own placeholder. */}
+        <Link to="/" aria-label="Open Specs" className="flex shrink-0 items-center">
+          <SiteMark className="sm:hidden" />
+          <span className="hidden font-mono text-xs uppercase tracking-[0.2em] sm:block">
+            Open Specs
+          </span>
         </Link>
         {search ? (
           <div className="min-w-0 max-w-xs flex-1">
