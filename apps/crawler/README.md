@@ -47,8 +47,9 @@ Reading is `sync_engine_shim_for_ndk`. The engine is told once what to keep
 available, and it owns the paging and the watermarks from there: a relay that
 answered is only asked what it learned since, a relay that was unreachable is
 walked again, and the state survives a restart, so a crawler that was down for a
-day does not read the whole corpus back. It has no clock of its own, so this app
-brings the ticker: each tick is a refresh.
+day does not read the whole corpus back. It carries its own clock too, going
+back to the sources every `--interval`, and this app listens: a pass that lands
+is a copy to the mirrors.
 
 Writing is NIP-77. Negentropy settles which documents a relay is missing in a
 couple of round trips, whatever the size of the corpus, which is what makes it
@@ -110,6 +111,9 @@ it and anyone can publish one.
 | `--interval`, `-i` | `300` | Seconds between two looks at the source relays |
 | `--timeout`, `-t` | `30` | Seconds a relay may take to answer before it is left for later |
 | none | `OPENSPECS_CRAWLER_ARCHIVIST_KEY`, else no archiving | The key versions are archived under, as an `nsec` or in hex |
+
+The sync engine never goes back to a relay more than once every 15 seconds, so
+an `--interval` shorter than that is read as 15.
 
 Both relay variables list them separated by commas, and only move the default: an
 option given on the command line still wins, and a variable left empty means the

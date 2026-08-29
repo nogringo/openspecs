@@ -15,14 +15,12 @@ const carriedKinds = [specKind, snapshotKind];
 
 /// Keeps every document published on the source relays alive on the mirrors.
 ///
-/// It runs until it is stopped. The sync engine holds the reading side: it owns
-/// the paging and the watermarks, so a relay that was unreachable is walked
-/// again while one that answered is only asked what it learned since. It has no
-/// clock of its own, hence the ticker here: each tick is a `refresh`, and every
-/// pass that lands is followed by a copy to the mirrors.
-///
-/// Nothing is scheduled twice over: a tick that fires while a pass is still
-/// walking joins it instead of starting a second one.
+/// It runs until it is stopped. The sync engine holds the reading side, the
+/// clock included: it owns the paging and the watermarks, so a relay that was
+/// unreachable is walked again while one that answered is only asked what it
+/// learned since, and it goes back on its own every [interval]. This app
+/// listens rather than schedules: every pass that lands is followed by a copy
+/// to the mirrors.
 class Crawler {
   Crawler(
     this.ndk, {
@@ -49,7 +47,8 @@ class Crawler {
   /// opts into.
   final Archivist? archivist;
 
-  /// How long between two looks at the source relays.
+  /// How long between two looks at the source relays. The engine will not poll
+  /// faster than its own floor of 15 seconds, whatever is asked here.
   final Duration interval;
 
   /// Given to a reconciliation and to a broadcast alike: a relay that stops
@@ -65,7 +64,6 @@ class Crawler {
 
   SyncHandle? _handle;
   StreamSubscription<SyncRequestStatus>? _watching;
-  Timer? _ticker;
   Future<void>? _mirroring;
   var _walking = false;
 
@@ -90,19 +88,15 @@ class Crawler {
     _handle = handle;
 
     _watching = _engine.watchStatus(handle).listen(_onStatus);
-    _ticker = Timer.periodic(interval, (_) => _tick(handle));
   }
 
-  /// Stops the ticker and the walk. What was synced stays in the cache, and
-  /// starting again picks up where this left off.
+  /// Stops the walk. What was synced stays in the cache, and starting again
+  /// picks up where this left off.
   ///
   /// Returns once the walk has actually stopped, which takes as long as the page
   /// in flight: whatever is closed afterwards, the database first among them, is
   /// no longer being read.
   Future<void> stop() async {
-    _ticker?.cancel();
-    _ticker = null;
-
     await _watching?.cancel();
     _watching = null;
 
@@ -112,10 +106,6 @@ class Crawler {
     // and outlives no request of its own, so there is nobody left to hold one.
     await _engine.dispose();
     _handle = null;
-  }
-
-  void _tick(SyncHandle handle) {
-    unawaited(_engine.refresh(handle).catchError((_) {}));
   }
 
   void _onStatus(SyncRequestStatus status) {

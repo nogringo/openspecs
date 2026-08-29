@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.1
+
+- Requires `sync_engine_shim_for_ndk` 0.4.0, where a held request goes back to
+  the relays on its own, every `--interval`, for as long as the engine runs
+- Drops the ticker this app carried. It asked for a pass the engine was already
+  scheduling, and each one ignored the freshness the engine had just written, so
+  the sources were read about twice as often as `--interval` announced
+- Reads an `--interval` under 15 seconds as 15, the floor the engine holds
+
 ## 1.2.0
 
 - Archives versions, when `OPENSPECS_CRAWLER_ARCHIVIST_KEY` names a key. Each
