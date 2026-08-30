@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { SearchBox } from "~/components/search-box";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
+import { useShown } from "~/lib/blocked";
 import { PAGE_HEADERS } from "~/lib/http";
 import { likeKey, useLikes } from "~/lib/likes";
 import { publicOrigin } from "~/lib/origin.server";
@@ -65,7 +66,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { specs, authors } = loaderData;
+  const { authors } = loaderData;
+  const specs = useShown(loaderData.specs);
   const likes = useLikes(specs);
 
   return (

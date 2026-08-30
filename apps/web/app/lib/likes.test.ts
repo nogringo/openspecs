@@ -17,6 +17,7 @@ import {
 } from "@openspecs/nostr";
 import type { Filter } from "nostr-tools/filter";
 import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
+import { block, clearBlocked, unblock } from "./blocked";
 import { clearLikes, likeKey, likesState, rememberLike, subscribeLikes, wantLikes } from "./likes";
 
 const authorKey = generateSecretKey();
@@ -65,14 +66,17 @@ const filters = () => mocks.queryRelays.mock.calls.map((call) => call[1] as Filt
 const settle = () => vi.advanceTimersByTimeAsync(200);
 
 beforeEach(() => {
-  vi.stubGlobal("window", {});
+  vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
   vi.useFakeTimers();
   clearLikes();
+  clearBlocked();
   mocks.queryRelays.mockReset();
   holding([]);
 });
 
 afterEach(() => {
+  clearLikes();
+  clearBlocked();
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
@@ -152,6 +156,31 @@ describe("wantLikes", () => {
     await settle();
 
     expect(likesState()).toBe(before);
+  });
+});
+
+describe("what a block hides", () => {
+  it("leaves out a like from a blocked key, before and after the count arrived", async () => {
+    holding([reaction(aliceKey, A), reaction(bobKey, A)]);
+    wantLikes([A]);
+    await settle();
+    expect(likesState()[A]).toBe(2);
+
+    block({ type: "p", value: alice });
+    expect(likesState()[A]).toBe(1);
+
+    unblock({ type: "p", value: alice });
+    expect(likesState()[A]).toBe(2);
+  });
+
+  it("keeps this browser's own click on top of the count it redraws", async () => {
+    holding([reaction(aliceKey, A)]);
+    wantLikes([A]);
+    await settle();
+    rememberLike(A, 1);
+
+    block({ type: "p", value: alice });
+    expect(likesState()[A]).toBe(1);
   });
 });
 

@@ -9,13 +9,16 @@ import {
   specPath,
   toNpub,
 } from "@openspecs/nostr";
+import { useState } from "react";
 import { data, redirect } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
 import { ErrorPage } from "~/components/error-page";
+import { BlockedNotice } from "~/components/moderation/blocked-notice";
 import { Pagination } from "~/components/pagination";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
+import { unblock, useBlocked, useShown } from "~/lib/blocked";
 import { withDeadline } from "~/lib/cache.server";
 import { keyTextColor } from "~/lib/color";
 import { parsePage } from "~/lib/filter";
@@ -292,8 +295,27 @@ const Masthead = ({
 );
 
 export default function AuthorRoute({ loaderData }: Route.ComponentProps) {
-  const { pubkey, npub, author, confirmed, specs, page, pages, total, capped, oldest } = loaderData;
+  const { pubkey, npub, author, confirmed, page, pages, total, capped, oldest } = loaderData;
+  const specs = useShown(loaderData.specs);
   const likes = useLikes(specs);
+  const blocked = useBlocked();
+  const [shownAnyway, setShownAnyway] = useState(false);
+
+  // The name and the picture go with the rest: they are this key's words too.
+  if (blocked.pubkeys.has(pubkey) && !shownAnyway) {
+    return (
+      <Shell>
+        <main className="mx-auto max-w-5xl px-6 py-16">
+          <BlockedNotice
+            line="You blocked this account."
+            detail={npub}
+            onUnblock={() => unblock({ type: "p", value: pubkey })}
+            onShow={() => setShownAnyway(true)}
+          />
+        </main>
+      </Shell>
+    );
+  }
 
   return (
     <Shell>

@@ -1,5 +1,6 @@
-import { type Reaction, toCoordinate } from "@openspecs/nostr";
+import { type Deletion, type Reaction, toCoordinate } from "@openspecs/nostr";
 import { useEffect, useSyncExternalStore } from "react";
+import { blockedState, subscribeBlocked } from "./blocked";
 
 /** How many liked each document, by coordinate. Only what has been asked for is here. */
 export type Likes = Record<string, number>;
@@ -9,10 +10,18 @@ export const NO_LIKES: Likes = Object.freeze({});
 /** Long enough that a page of rows asks once, short enough not to be felt. */
 const BATCH_MS = 200;
 
+/** What the relays said about one document, kept whole so the count can be redrawn. */
+type Held = { likes: Reaction[]; deletions: Deletion[] };
+
 let state: Likes = NO_LIKES;
+let held = new Map<string, Held>();
+/** What this browser's own clicks moved a count by, until the relays are asked. */
+let adjust: Record<string, number> = {};
 let asked = new Set<string>();
 let pending: string[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
+let unwatch: (() => void) | null = null;
+let nostr: typeof import("@openspecs/nostr") | null = null;
 
 const listeners = new Set<() => void>();
 
@@ -35,6 +44,25 @@ const notify = (): void => {
 export const likeKey = (spec: { pubkey: string; identifier: string }): string => toCoordinate(spec);
 
 /**
+ * Derived rather than stored, from what the relays said and what this browser
+ * did since: a reader who blocks somebody mid-page is owed a count without them,
+ * and the relays are not asked again for that.
+ */
+const recount = (): void => {
+  const hidden = blockedState().pubkeys;
+  const next: Likes = {};
+  for (const [coordinate, { likes, deletions }] of held) {
+    const shown = likes.filter((like) => !hidden.has(like.pubkey));
+    next[coordinate] = nostr === null ? 0 : nostr.likeCount(nostr.tallyReactions(shown, deletions));
+  }
+  for (const [coordinate, delta] of Object.entries(adjust)) {
+    next[coordinate] = Math.max(0, (next[coordinate] ?? 0) + delta);
+  }
+  state = next;
+  notify();
+};
+
+/**
  * Two passes, the way the discussion reads them: the likes by the documents'
  * coordinates, then the retractions by the likes' ids, since nothing indexes a
  * deletion by the document it eventually concerns. Relays index tags without
@@ -45,18 +73,17 @@ export const likeKey = (spec: { pubkey: string; identifier: string }): string =>
  */
 const resolve = async (coordinates: string[]): Promise<void> => {
   try {
+    nostr ??= await import("@openspecs/nostr");
     const {
       CONVERSATION_RELAYS,
       DELETION_KIND,
       inChunks,
       LIKE,
-      likeCount,
       parseDeletion,
       parseReaction,
       queryRelays,
       REACTION_KIND,
-      tallyReactions,
-    } = await import("@openspecs/nostr");
+    } = nostr;
 
     const wanted = new Set(coordinates);
     const found = await Promise.all(
@@ -89,13 +116,16 @@ const resolve = async (coordinates: string[]): Promise<void> => {
       .map(parseDeletion)
       .filter((deletion) => deletion !== null);
 
-    const next = { ...state };
     for (const coordinate of coordinates) {
-      const own = likes.filter((like) => like.targetCoordinate === coordinate);
-      next[coordinate] = likeCount(tallyReactions(own, deletions));
+      held.set(coordinate, {
+        likes: likes.filter((like) => like.targetCoordinate === coordinate),
+        deletions,
+      });
+      // The relays' answer is the count from here on. A click made while they
+      // were being asked is either in it already or arrives with the next ask.
+      delete adjust[coordinate];
     }
-    state = next;
-    notify();
+    recount();
   } catch {
     // Rows keep their empty slot, which is what they were drawn with.
   }
@@ -104,6 +134,7 @@ const resolve = async (coordinates: string[]): Promise<void> => {
 /** Each coordinate is asked for once per session, and the ones that appear together, together. */
 export const wantLikes = (coordinates: string[]): void => {
   if (typeof window === "undefined") return;
+  unwatch ??= subscribeBlocked(recount);
 
   const fresh = coordinates.filter((coordinate) => !asked.has(coordinate));
   if (fresh.length === 0) return;
@@ -125,8 +156,8 @@ export const wantLikes = (coordinates: string[]): void => {
  */
 export const rememberLike = (coordinate: string, delta: 1 | -1): void => {
   if (!asked.has(coordinate)) return;
-  state = { ...state, [coordinate]: Math.max(0, (state[coordinate] ?? 0) + delta) };
-  notify();
+  adjust[coordinate] = (adjust[coordinate] ?? 0) + delta;
+  recount();
 };
 
 /** The counts for a page of rows, asked for together and filled in as they arrive. */
@@ -140,8 +171,12 @@ export const useLikes = (specs: { pubkey: string; identifier: string }[]): Likes
 
 export const clearLikes = (): void => {
   state = NO_LIKES;
+  held = new Map();
+  adjust = {};
   asked = new Set();
   pending = [];
+  unwatch?.();
+  unwatch = null;
   if (timer !== null) clearTimeout(timer);
   timer = null;
 };

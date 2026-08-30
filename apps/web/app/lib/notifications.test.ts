@@ -123,7 +123,7 @@ const handle = () => {
 };
 
 beforeEach(() => {
-  vi.stubGlobal("window", {});
+  vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
   vi.stubGlobal("localStorage", fakeStorage());
   vi.useFakeTimers();
   clearNotices();

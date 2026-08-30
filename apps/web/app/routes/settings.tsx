@@ -3,7 +3,12 @@ import { useEffect, useSyncExternalStore } from "react";
 import { NavLink, Outlet } from "react-router";
 import { TAB_OFF, TAB_ON } from "~/components/chrome";
 import { Shell } from "~/components/shell";
-import { browserSettingsPath, relaySettingsPath, settingsPath } from "~/lib/paths";
+import {
+  blockedSettingsPath,
+  browserSettingsPath,
+  relaySettingsPath,
+  settingsPath,
+} from "~/lib/paths";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
 
 /** Whose settings these are, read once here and handed to whichever tab is open. */
@@ -50,14 +55,15 @@ export default function SettingsRoute() {
           )}
         </header>
 
-        {/* All three whether or not a key is connected: the last one is this
-            browser's own and has nothing to do with a key. */}
+        {/* All four whether or not a key is connected: the last two are this
+            browser's own and work without a key. */}
         <nav aria-label="Settings" className="mt-8 flex flex-wrap items-center gap-1">
           <Tab to={settingsPath()} end>
             Profile
           </Tab>
           <Tab to={relaySettingsPath()}>Where things go</Tab>
           <Tab to={browserSettingsPath()}>This browser</Tab>
+          <Tab to={blockedSettingsPath()}>Blocked</Tab>
         </nav>
 
         <div className="mt-10">

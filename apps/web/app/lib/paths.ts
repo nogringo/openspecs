@@ -112,13 +112,15 @@ export const returnTo = (next: string | null): string => {
 };
 
 /**
- * What a key says about itself, where its things are kept, and how this browser
- * behaves. Three separate things, so three addresses: the first is the page
- * itself, since a profile is what somebody coming here almost always wants.
+ * What a key says about itself, where its things are kept, how this browser
+ * behaves, and what its reader chose not to see. Four separate things, so four
+ * addresses: the first is the page itself, since a profile is what somebody
+ * coming here almost always wants.
  */
 export const settingsPath = (): string => "/settings";
 export const relaySettingsPath = (): string => "/settings/relays";
 export const browserSettingsPath = (): string => "/settings/browser";
+export const blockedSettingsPath = (): string => "/settings/blocked";
 
 /**
  * Writing a document again, under the address it already has. `specPath` is
