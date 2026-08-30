@@ -107,6 +107,8 @@ export {
   DELETION_KIND,
   type Deletion,
   LIKE,
+  likeCount,
+  myLike,
   parseDeletion,
   parseReaction,
   REACTION_KIND,

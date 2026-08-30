@@ -333,11 +333,17 @@ export const startDiscussion = (next: DiscussionPointer): void => {
 };
 
 /**
- * An event this browser just published, shown before any relay has echoed it
- * back. The subscription delivers the same event moments later and drops it as a
+ * An event this browser just signed, shown before any relay has echoed it back.
+ * The subscription delivers the same event moments later and drops it as a
  * duplicate, so this is a head start rather than a second copy.
+ *
+ * Recomputed at once rather than on the next tick: whoever added it reads the
+ * record straight after to decide whether anything is still owed.
  */
-export const addToDiscussion = (event: NostrEvent): void => receive(event);
+export const addToDiscussion = (event: NostrEvent): void => {
+  receive(event);
+  publish();
+};
 
 export const stopDiscussion = (): void => close();
 

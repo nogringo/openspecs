@@ -1,16 +1,14 @@
-import {
-  buildReaction,
-  buildRetraction,
-  LIKE,
-  type ReactionTally,
-  type ReactionTarget,
-} from "@openspecs/nostr";
-import { useState } from "react";
+import { LIKE, type ReactionTally, type ReactionTarget } from "@openspecs/nostr";
+import { useState, useSyncExternalStore } from "react";
 import type { Response } from "~/lib/discussion";
-import { addToDiscussion } from "~/lib/discussion";
 import type { Author } from "~/lib/profile";
-import { signAndPublish } from "~/lib/publish";
-import { writeRelays } from "~/lib/relays";
+import {
+  intentsState,
+  serverIntentsState,
+  setReaction,
+  subscribeIntents,
+  withIntent,
+} from "~/lib/reactions";
 import { canBeZapped } from "~/lib/zap";
 import { ZapDialog } from "./zap-dialog";
 
@@ -62,47 +60,36 @@ export const Tally = ({
   const [open, setOpen] = useState(false);
   const [zapping, setZapping] = useState(false);
   const [typed, setTyped] = useState("");
-  const [busy, setBusy] = useState(false);
+  const intents = useSyncExternalStore(subscribeIntents, intentsState, serverIntentsState);
   const canReact = me !== null && target !== null;
   // Offered only to somebody who can be paid: a button that fails after three
   // clicks and a signature is worse than no button.
   const canZap = canReact && canBeZapped(author);
 
-  const react = async (symbol: string) => {
-    if (!canReact || busy) return;
-    setBusy(true);
+  // What the reader clicked counts from the click, not from the relays' echo.
+  const reactions = canReact
+    ? withIntent(response.reactions, me, target, intents)
+    : response.reactions;
+
+  const react = (symbol: string) => {
+    if (!canReact) return;
     setOpen(false);
     setTyped("");
-    try {
-      const mine = response.reactions.find((tally) => tally.symbol === symbol)?.by[me];
-      // Reacting again to what you already said takes it back, which is the
-      // only thing a second click could sensibly mean.
-      const draft = mine === undefined ? buildReaction(target, symbol) : buildRetraction(mine);
-      const relays = writeRelays(me, {
-        addressed: [target.pubkey],
-        hints: target.relay ? [target.relay] : [],
-      });
-      const report = await signAndPublish(draft, relays);
-      if (report.accepted > 0) addToDiscussion(report.event);
-    } catch {
-      // Nothing said: the tally simply does not move, which is what a reader can
-      // see for themselves. A reaction is not worth interrupting anybody over.
-    } finally {
-      setBusy(false);
-    }
+    const mine = reactions.find((tally) => tally.symbol === symbol)?.by[me] !== undefined;
+    setReaction(me, target, symbol, !mine);
   };
 
-  if (!canReact && response.reactions.length === 0 && response.zapSats === 0) return null;
+  if (!canReact && reactions.length === 0 && response.zapSats === 0) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
-      {response.reactions.map((tally) => {
+      {reactions.map((tally) => {
         const mine = me !== null && tally.by[me] !== undefined;
         return (
           <button
             key={tally.symbol}
             type="button"
-            disabled={!canReact || busy}
+            disabled={!canReact}
             onClick={() => react(tally.symbol)}
             title={mine ? "Take yours back" : `${tally.count} reacted with ${tally.symbol}`}
             className={`${CHIP} ${mine ? "border-ink text-ink" : "border-rule"} ${canReact ? "hover:border-muted" : "cursor-default"}`}
@@ -149,7 +136,6 @@ export const Tally = ({
         <span className="relative">
           <button
             type="button"
-            disabled={busy}
             onClick={() => setOpen(!open)}
             title="React"
             className={`${CHIP} border-rule text-muted hover:border-muted hover:text-ink`}
@@ -174,7 +160,7 @@ export const Tally = ({
                 value={typed}
                 onChange={(event) => setTyped(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && typed.trim() !== "") void react(typed.trim());
+                  if (event.key === "Enter" && typed.trim() !== "") react(typed.trim());
                 }}
                 placeholder="or type one"
                 className="w-20 rounded-sm border border-rule bg-paper px-1.5 py-1 font-mono text-xs"

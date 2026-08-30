@@ -179,3 +179,10 @@ export const tallyReactions = (
       (a.symbol === LIKE ? -1 : b.symbol === LIKE ? 1 : a.symbol.localeCompare(b.symbol)),
   );
 };
+
+export const likeCount = (tallies: ReactionTally[]): number =>
+  tallies.find((tally) => tally.symbol === LIKE)?.count ?? 0;
+
+/** The id of this key's own like, which is what a retraction has to name. */
+export const myLike = (tallies: ReactionTally[], me: string): string | undefined =>
+  tallies.find((tally) => tally.symbol === LIKE)?.by[me];

@@ -5,6 +5,8 @@ import {
   buildRetraction,
   DELETION_KIND,
   LIKE,
+  likeCount,
+  myLike,
   parseDeletion,
   parseReaction,
   REACTION_KIND,
@@ -148,13 +150,13 @@ describe("parseDeletion", () => {
   });
 });
 
+const alice = "1".repeat(64);
+const bob = "2".repeat(64);
+
+const parseAll = (events: unknown[]) =>
+  events.map(parseReaction).filter((reaction) => reaction !== null);
+
 describe("tallyReactions", () => {
-  const alice = "1".repeat(64);
-  const bob = "2".repeat(64);
-
-  const parseAll = (events: unknown[]) =>
-    events.map(parseReaction).filter((reaction) => reaction !== null);
-
   it("counts one reader once, however many times their client resent it", () => {
     const reactions = parseAll([
       asReaction(LIKE, alice, { id: "a".repeat(64), created_at: 10 }),
@@ -202,5 +204,37 @@ describe("tallyReactions", () => {
       ]),
     );
     expect(tallies.map((tally) => tally.symbol)).toEqual([LIKE, "🔥"]);
+  });
+});
+
+describe("likeCount", () => {
+  it("counts the likes and nothing else", () => {
+    const tallies = tallyReactions(
+      parseAll([
+        asReaction(LIKE, alice, { id: "a".repeat(64) }),
+        asReaction("🔥", bob, { id: "b".repeat(64) }),
+        asReaction("🔥", alice, { id: "c".repeat(64) }),
+      ]),
+    );
+    expect(likeCount(tallies)).toBe(1);
+  });
+
+  it("is zero where nobody liked", () => {
+    expect(likeCount([])).toBe(0);
+    expect(likeCount(tallyReactions(parseAll([asReaction("🔥", bob)])))).toBe(0);
+  });
+});
+
+describe("myLike", () => {
+  it("names the like this key can take back, and nothing for a key that did not like", () => {
+    const tallies = tallyReactions(
+      parseAll([
+        asReaction(LIKE, alice, { id: "a".repeat(64), created_at: 10 }),
+        asReaction(LIKE, alice, { id: "b".repeat(64), created_at: 20 }),
+        asReaction("🔥", bob, { id: "c".repeat(64) }),
+      ]),
+    );
+    expect(myLike(tallies, alice)).toBe("b".repeat(64));
+    expect(myLike(tallies, bob)).toBeUndefined();
   });
 });

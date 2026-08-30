@@ -8,11 +8,14 @@ export type RelayResult = { relay: string; accepted: boolean; message: string };
 /** A relay that never answers must not leave the report unfinished. */
 const TIMEOUT_MS = 8000;
 
+export const NO_ANSWER = "no answer";
+export const NOT_REACHED = "not reached";
+
 const withTimeout = (work: Promise<string>): Promise<string> =>
   Promise.race([
     work,
     new Promise<string>((_, reject) => {
-      setTimeout(() => reject(new Error("no answer")), TIMEOUT_MS);
+      setTimeout(() => reject(new Error(NO_ANSWER)), TIMEOUT_MS);
     }),
   ]);
 
@@ -39,9 +42,16 @@ export const toResult = (relay: string, settled: PromiseSettledResult<string>): 
   }
   const answer = said(settled.value, "accepted");
   return answer.startsWith(UNREACHABLE)
-    ? { relay, accepted: false, message: "not reached" }
+    ? { relay, accepted: false, message: NOT_REACHED }
     : { relay, accepted: true, message: answer };
 };
+
+/** A no worth asking again: the relay was not there, or asked for a pause. */
+export const transient = (result: RelayResult): boolean =>
+  !result.accepted &&
+  (result.message === NOT_REACHED ||
+    result.message === NO_ANSWER ||
+    result.message.startsWith("rate-limited"));
 
 /**
  * Publishing is a write, and this project never writes from the server: the
@@ -119,23 +129,24 @@ export type PublishReport = {
  * before the signature covers it. `publishTo` is left alone on purpose: what it
  * is handed elsewhere is already signed.
  */
+export const signDraft = async (draft: Draft): Promise<NostrEvent> => {
+  const ready = await signer();
+  const event = await ready.signEvent({
+    kind: draft.kind,
+    content: draft.content,
+    tags: withClientTag(draft.tags),
+    created_at: draft.created_at ?? Math.floor(Date.now() / 1000),
+  });
+  if (event.pubkey !== sessionState().pubkey) throw new SessionMismatch();
+  return event;
+};
+
 export const signAndPublish = async (
   draft: Draft,
   relays: string[] | Promise<string[]>,
   onResult?: (result: RelayResult) => void,
 ): Promise<PublishReport> => {
-  const signing = signer().then((ready) =>
-    ready.signEvent({
-      kind: draft.kind,
-      content: draft.content,
-      tags: withClientTag(draft.tags),
-      created_at: draft.created_at ?? Math.floor(Date.now() / 1000),
-    }),
-  );
-
-  const [event, targets] = await Promise.all([signing, relays]);
-  if (event.pubkey !== sessionState().pubkey) throw new SessionMismatch();
-
+  const [event, targets] = await Promise.all([signDraft(draft), relays]);
   const results = await publishTo(event, targets, onResult);
   return { event, results, accepted: results.filter((result) => result.accepted).length };
 };

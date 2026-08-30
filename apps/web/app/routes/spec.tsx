@@ -12,6 +12,7 @@ import { AnnotatedDoc } from "~/components/annotated-doc";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
 import { Discussion } from "~/components/discussion/discussion";
+import { LikeButton } from "~/components/discussion/like-button";
 import { EditLink } from "~/components/editor/edit-link";
 import { Withdraw } from "~/components/editor/withdraw";
 import { ErrorPage } from "~/components/error-page";
@@ -296,6 +297,7 @@ const Masthead = ({
     </div>
 
     <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
+      <LikeButton coordinate={toCoordinate(spec)} specEventId={spec.eventId} pubkey={spec.pubkey} />
       <CopyButton value={canonical} label="Copy link" title={canonical} />
       <CopyButton
         value={spec.naddr}

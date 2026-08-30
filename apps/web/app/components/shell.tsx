@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { Link } from "react-router";
+import { startOutbox } from "~/lib/outbox";
 import { aboutPath, atomPath, newSpecPath, rssPath } from "~/lib/paths";
 import { Identity } from "./identity";
 import { Bell } from "./notifications/bell";
@@ -81,45 +83,50 @@ export const Shell = ({
   /** The home page carries its own, so the header does not repeat it. */
   search?: boolean;
   query?: string;
-}) => (
-  <div className="flex min-h-dvh flex-col bg-paper text-ink">
-    <header className="border-b border-rule">
-      {/* More wants this line than a phone has room for, so the gaps close first,
+}) => {
+  // What was signed and not yet taken by every relay is owed from every page.
+  useEffect(startOutbox, []);
+
+  return (
+    <div className="flex min-h-dvh flex-col bg-paper text-ink">
+      <header className="border-b border-rule">
+        {/* More wants this line than a phone has room for, so the gaps close first,
           then the words beside the marks go. */}
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:gap-6 sm:px-6">
-        {/* The stamp on a phone and the name on anything wider. The name is
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:gap-6 sm:px-6">
+          {/* The stamp on a phone and the name on anything wider. The name is
             eighty-nine pixels of a line that has none to spare, and what was
             paying for them is the search box beside it, which had lost enough
             of its width to be cutting off its own placeholder. */}
-        <Link to="/" aria-label="Open Specs" className="flex shrink-0 items-center">
-          <SiteMark className="sm:hidden" />
-          <span className="hidden font-mono text-xs uppercase tracking-[0.2em] sm:block">
-            Open Specs
-          </span>
-        </Link>
-        {search ? (
-          <div className="min-w-0 max-w-xs flex-1">
-            <SearchBox query={query} />
-          </div>
-        ) : null}
-        <div className="flex shrink-0 items-center gap-3 font-mono text-[0.6875rem] uppercase tracking-[0.16em] sm:gap-5">
-          {/* Said again here, outside the panel that holds the other one: that
+          <Link to="/" aria-label="Open Specs" className="flex shrink-0 items-center">
+            <SiteMark className="sm:hidden" />
+            <span className="hidden font-mono text-xs uppercase tracking-[0.2em] sm:block">
+              Open Specs
+            </span>
+          </Link>
+          {search ? (
+            <div className="min-w-0 max-w-xs flex-1">
+              <SearchBox query={query} />
+            </div>
+          ) : null}
+          <div className="flex shrink-0 items-center gap-3 font-mono text-[0.6875rem] uppercase tracking-[0.16em] sm:gap-5">
+            {/* Said again here, outside the panel that holds the other one: that
               panel only offers it once a key is connected, and this is the door
               somebody who has none has to be able to see. */}
-          <Link to={newSpecPath()} className="hidden text-muted hover:text-ink sm:block">
-            Write
-          </Link>
-          {/* The reader's own two controls, held as one. The width reserved for
+            <Link to={newSpecPath()} className="hidden text-muted hover:text-ink sm:block">
+              Write
+            </Link>
+            {/* The reader's own two controls, held as one. The width reserved for
               them is on the pair rather than on either, so the slack a short name
               leaves falls outside the two and never between them. */}
-          <div className="relative flex shrink-0 items-center justify-end gap-3 sm:min-w-24 sm:gap-5">
-            <Bell />
-            <Identity />
+            <div className="relative flex shrink-0 items-center justify-end gap-3 sm:min-w-24 sm:gap-5">
+              <Bell />
+              <Identity />
+            </div>
           </div>
         </div>
-      </div>
-    </header>
-    <div className="flex-1">{children}</div>
-    <Footer />
-  </div>
-);
+      </header>
+      <div className="flex-1">{children}</div>
+      <Footer />
+    </div>
+  );
+};
