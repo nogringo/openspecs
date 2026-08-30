@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   signDraft: vi.fn(),
   writeRelays: vi.fn(),
   enqueue: vi.fn(),
+  rememberLike: vi.fn(),
 }));
 
 vi.mock("./discussion", () => ({
@@ -23,6 +24,7 @@ vi.mock("./discussion", () => ({
 vi.mock("./publish", () => ({ signDraft: mocks.signDraft }));
 vi.mock("./relays", () => ({ writeRelays: mocks.writeRelays }));
 vi.mock("./outbox", () => ({ enqueue: mocks.enqueue }));
+vi.mock("./likes", () => ({ rememberLike: mocks.rememberLike }));
 
 import {
   DEFAULT_RELAYS,
@@ -137,8 +139,27 @@ describe("setReaction", () => {
     expect(record.addToDiscussion).toHaveBeenCalledTimes(1);
     expect(mocks.writeRelays).toHaveBeenCalledWith(me, { addressed: [author], hints: [] });
     expect(mocks.enqueue).toHaveBeenCalledWith(expect.objectContaining({ kind: 7 }), RELAYS);
+    expect(mocks.rememberLike).toHaveBeenCalledWith(TARGET.coordinate, 1);
     // The record now says what the click said, so there is nothing left to want.
     expect(intentsState()).toEqual({});
+  });
+
+  it("tells the listings about a like, and about nothing else", async () => {
+    hold("ready", [tally(LIKE, { [me]: "a".repeat(64) })]);
+    setReaction(me, TARGET, LIKE, false);
+    await flush();
+    expect(mocks.rememberLike).toHaveBeenCalledWith(TARGET.coordinate, -1);
+
+    mocks.rememberLike.mockClear();
+    setReaction(me, TARGET, "🔥", true);
+    setReaction(me, { id: "e".repeat(64), pubkey: bob, kind: 1111 }, LIKE, true);
+    hold("ready", []);
+    record.box.state = {
+      ...(record.box.state as object),
+      byComment: { ["e".repeat(64)]: { reactions: [], zapSats: 0 } },
+    };
+    await flush();
+    expect(mocks.rememberLike).not.toHaveBeenCalled();
   });
 
   it("retracts the like the record holds for this key", async () => {

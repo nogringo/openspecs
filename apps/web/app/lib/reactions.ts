@@ -14,6 +14,7 @@ import {
   discussionState,
   subscribeDiscussionState,
 } from "./discussion";
+import { rememberLike } from "./likes";
 import { enqueue } from "./outbox";
 import { signDraft } from "./publish";
 import { writeRelays } from "./relays";
@@ -130,6 +131,9 @@ const settle = async (key: string, intent: Intent, mine: string | undefined): Pr
     const event = await signDraft({ ...draft, created_at: at });
     lastSignedAt.set(key, at);
     addToDiscussion(event);
+    if (intent.symbol === LIKE && intent.target.coordinate) {
+      rememberLike(intent.target.coordinate, mine === undefined ? 1 : -1);
+    }
     inFlight.delete(key);
     reconcile();
 

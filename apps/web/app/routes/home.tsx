@@ -3,6 +3,7 @@ import { SearchBox } from "~/components/search-box";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
 import { PAGE_HEADERS } from "~/lib/http";
+import { likeKey, useLikes } from "~/lib/likes";
 import { publicOrigin } from "~/lib/origin.server";
 import { atomPath, feedTitle, newSpecPath, rssPath, specsPath } from "~/lib/paths";
 import { loadAuthors } from "~/lib/profile.server";
@@ -65,6 +66,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { specs, authors } = loaderData;
+  const likes = useLikes(specs);
 
   return (
     <Shell search={false}>
@@ -116,7 +118,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           ) : (
             <ul className="mt-6">
               {specs.map((spec) => (
-                <SpecRow key={spec.path} spec={spec} author={authors[spec.pubkey] ?? null} />
+                <SpecRow
+                  key={spec.path}
+                  spec={spec}
+                  author={authors[spec.pubkey] ?? null}
+                  likes={likes[likeKey(spec)] ?? null}
+                />
               ))}
             </ul>
           )}

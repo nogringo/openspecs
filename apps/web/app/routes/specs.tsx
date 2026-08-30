@@ -7,6 +7,7 @@ import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
 import { parsePage, parseSearchQuery, parseSpecFilter } from "~/lib/filter";
 import { PAGE_HEADERS } from "~/lib/http";
+import { likeKey, useLikes } from "~/lib/likes";
 import { publicOrigin } from "~/lib/origin.server";
 import { pageOf } from "~/lib/pagination";
 import {
@@ -18,12 +19,14 @@ import {
   specsPath,
 } from "~/lib/paths";
 import { loadAuthors } from "~/lib/profile.server";
-import { LISTING_WINDOW, loadSpecs } from "~/lib/specs.server";
+import { LISTING_WINDOW, loadSpecs, type SpecCard } from "~/lib/specs.server";
 import { topicsByFrequency } from "~/lib/topics";
 import type { Route } from "./+types/specs";
 
 /** Short enough that a page is one glance down the listing. */
 const PAGE_SIZE = 20;
+
+const NO_ROWS: SpecCard[] = [];
 /** Enough to browse by, few enough to read at a glance. */
 const TOPICS_SHOWN = 14;
 
@@ -149,6 +152,8 @@ const Chip = ({ to, active, children }: { to: string; active: boolean; children:
 
 export default function Specs({ loaderData }: Route.ComponentProps) {
   const { specs, authors, topics, topic, kind, query, filtered, page, pages } = loaderData;
+  // Under a search the rows on screen are the results', which ask for their own.
+  const likes = useLikes(query === null ? specs : NO_ROWS);
 
   return (
     <Shell query={query ?? undefined}>
@@ -210,7 +215,12 @@ export default function Specs({ loaderData }: Route.ComponentProps) {
             )}
             <ul className={pages > 1 ? "mt-6" : "mt-10"}>
               {specs.map((spec) => (
-                <SpecRow key={spec.path} spec={spec} author={authors[spec.pubkey] ?? null} />
+                <SpecRow
+                  key={spec.path}
+                  spec={spec}
+                  author={authors[spec.pubkey] ?? null}
+                  likes={likes[likeKey(spec)] ?? null}
+                />
               ))}
             </ul>
             <Pagination

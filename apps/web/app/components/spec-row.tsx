@@ -4,6 +4,7 @@ import type { SpecCard } from "~/lib/specs.server";
 import { AuthorAvatar } from "./author-avatar";
 import { Highlight } from "./highlight";
 import { SpecTags } from "./spec-tags";
+import { ThumbMark } from "./thumb-mark";
 
 const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString().slice(0, 10);
 
@@ -13,6 +14,7 @@ export const SpecRow = ({
   avatar = true,
   excerpt,
   terms,
+  likes = null,
 }: {
   spec: SpecCard;
   /**
@@ -25,6 +27,8 @@ export const SpecRow = ({
   /** What a search found in the body, shown in place of the summary. */
   excerpt?: string;
   terms?: string[];
+  /** How many liked it, or null while nobody has asked the relays yet. */
+  likes?: number | null;
 }) => {
   const line = excerpt || spec.summary;
 
@@ -42,12 +46,25 @@ export const SpecRow = ({
               <h3 className="min-w-0 font-mono text-base font-medium group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">
                 <Highlight text={spec.title} terms={terms} />
               </h3>
-              <time
-                dateTime={new Date(spec.revisedAt * 1000).toISOString()}
-                className="shrink-0 font-mono text-xs text-muted"
-              >
-                {asDate(spec.revisedAt)}
-              </time>
+              <span className="flex shrink-0 items-baseline gap-3 font-mono text-xs text-muted">
+                {/* Reserved whether or not a number is known: a count landing after the
+                    row is drawn must not move the date beside it. Spans only, since the
+                    row is already one link. */}
+                <span
+                  className="inline-flex min-w-[3rem] items-center justify-end gap-1 tabular-nums"
+                  title={likes ? `${likes} liked this` : undefined}
+                >
+                  {likes ? (
+                    <>
+                      <ThumbMark size={11} />
+                      <span>{likes}</span>
+                    </>
+                  ) : null}
+                </span>
+                <time dateTime={new Date(spec.revisedAt * 1000).toISOString()}>
+                  {asDate(spec.revisedAt)}
+                </time>
+              </span>
             </div>
             {line !== "" && (
               <p className="mt-2 line-clamp-2 max-w-[44rem] font-serif text-muted">

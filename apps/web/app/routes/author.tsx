@@ -20,6 +20,7 @@ import { withDeadline } from "~/lib/cache.server";
 import { keyTextColor } from "~/lib/color";
 import { parsePage } from "~/lib/filter";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
+import { likeKey, useLikes } from "~/lib/likes";
 import { publicOrigin } from "~/lib/origin.server";
 import { pageOf } from "~/lib/pagination";
 import { authorAtomPath, authorOgImagePath, authorPagePath, authorRssPath } from "~/lib/paths";
@@ -292,6 +293,7 @@ const Masthead = ({
 
 export default function AuthorRoute({ loaderData }: Route.ComponentProps) {
   const { pubkey, npub, author, confirmed, specs, page, pages, total, capped, oldest } = loaderData;
+  const likes = useLikes(specs);
 
   return (
     <Shell>
@@ -321,7 +323,12 @@ export default function AuthorRoute({ loaderData }: Route.ComponentProps) {
                 {specs.map((spec) => (
                   // Every row here is signed by the same key, so the mark beside each
                   // one would say what the page already says at the top.
-                  <SpecRow key={spec.path} spec={spec} avatar={false} />
+                  <SpecRow
+                    key={spec.path}
+                    spec={spec}
+                    avatar={false}
+                    likes={likes[likeKey(spec)] ?? null}
+                  />
                 ))}
               </ul>
               <Pagination

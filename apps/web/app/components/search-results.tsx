@@ -2,6 +2,7 @@ import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { useSearchParams } from "react-router";
 import { corpusState, serverCorpusState, startCorpus, subscribeCorpus } from "~/lib/corpus";
 import { parsePage } from "~/lib/filter";
+import { likeKey, useLikes } from "~/lib/likes";
 import { pageOf } from "~/lib/pagination";
 import { specsPath } from "~/lib/paths";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
@@ -62,6 +63,8 @@ export const SearchResults = ({
   useEffect(() => {
     wantAuthors(items.map((hit) => hit.doc.pubkey));
   }, [items]);
+  const rows = useMemo(() => items.map((hit) => hit.doc), [items]);
+  const likes = useLikes(rows);
 
   const walking = status === "idle" || status === "loading" || status === "syncing";
   const count = walking
@@ -104,6 +107,7 @@ export const SearchResults = ({
                 author={authors[hit.doc.pubkey] ?? null}
                 excerpt={hit.excerpt}
                 terms={terms}
+                likes={likes[likeKey(hit.doc)] ?? null}
               />
             ))}
           </ul>
