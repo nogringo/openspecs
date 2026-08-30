@@ -119,6 +119,12 @@ export type NoticeScope = {
    * revision per coordinate by whoever collected them.
    */
   copies?: Spec[];
+  /** What the reader muted. Nothing from, about or under any of it is news. */
+  muted?: {
+    pubkeys: ReadonlySet<string>;
+    eventIds: ReadonlySet<string>;
+    coordinates: ReadonlySet<string>;
+  };
 };
 
 /** Rebuilt rather than carried through, so one document has one spelling here. */
@@ -272,6 +278,13 @@ const collapsed = (notices: Notice[]): Notice[] => {
   return [...kept.values()];
 };
 
+/** Dropped before the collapse, so a muted like is not the one a collapse keeps. */
+const muted = (scope: NoticeScope["muted"]) => (notice: Notice) =>
+  scope !== undefined &&
+  (scope.pubkeys.has(notice.pubkey) ||
+    scope.eventIds.has(notice.id) ||
+    scope.coordinates.has(notice.document.coordinate));
+
 const retracted = (deletions: Deletion[]) => {
   const taken = retractions(deletions);
   return (notice: Notice): boolean => taken.get(notice.id)?.has(notice.pubkey) === true;
@@ -328,7 +341,8 @@ export const sortNotices = (events: NostrEvent[], scope: NoticeScope): Notice[] 
   }
 
   const taken = retracted(deletions);
-  return collapsed(notices)
+  const hidden = muted(scope.muted);
+  return collapsed(notices.filter((notice) => !hidden(notice)))
     .filter((notice) => !taken(notice))
     .sort((a, b) => b.createdAt - a.createdAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .slice(0, MAX_NOTICES);

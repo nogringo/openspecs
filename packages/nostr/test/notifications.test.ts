@@ -317,6 +317,62 @@ describe("sortNotices, copies", () => {
   });
 });
 
+describe("sortNotices, muted", () => {
+  const NONE = new Set<string>();
+  const muted = (
+    partial: Partial<{ pubkeys: Set<string>; eventIds: Set<string>; coordinates: Set<string> }>,
+  ) => ({
+    pubkeys: NONE,
+    eventIds: NONE,
+    coordinates: NONE,
+    ...partial,
+  });
+
+  it("drops what a muted key did, and keeps the rest", () => {
+    const theirs = comment(MINE, theirSecret, { content: "theirs" });
+    const thirds = comment(MINE, thirdSecret, { content: "thirds" });
+    const notices = sortNotices([theirs, thirds], {
+      me: ME,
+      muted: muted({ pubkeys: new Set([THEM]) }),
+    });
+    expect(notices.map((notice) => notice.id)).toEqual([thirds.id]);
+  });
+
+  it("drops a muted event by its id", () => {
+    const one = comment(MINE, theirSecret);
+    expect(sortNotices([one], { me: ME, muted: muted({ eventIds: new Set([one.id]) }) })).toEqual(
+      [],
+    );
+  });
+
+  it("drops everything under a muted document", () => {
+    const under = comment(MINE, theirSecret);
+    const scope = { me: ME, muted: muted({ coordinates: new Set([MINE.coordinate]) }) };
+    expect(sortNotices([under], scope)).toEqual([]);
+  });
+
+  it("drops a muted like before the collapse, so it is not the one kept", () => {
+    const target = { id: "a".repeat(64), pubkey: ME, kind: SPEC_KIND, coordinate: MINE.coordinate };
+    const kept = reaction(target, thirdSecret, { at: 100 });
+    const scope = { me: ME, muted: muted({ pubkeys: new Set([THEM]) }) };
+    const notices = sortNotices([kept, reaction(target, theirSecret, { at: 200 })], scope);
+    expect(notices.map((notice) => notice.id)).toEqual([kept.id]);
+  });
+
+  it("still stops at one page after the muted rows are gone", () => {
+    const many = Array.from({ length: MAX_NOTICES + 10 }, (_, index) =>
+      comment(MINE, index % 2 === 0 ? theirSecret : thirdSecret, {
+        at: 100 + index,
+        content: `note ${index}`,
+      }),
+    );
+    const scope = { me: ME, muted: muted({ pubkeys: new Set([THEM]) }) };
+    const notices = sortNotices(many, scope);
+    expect(notices).toHaveLength((MAX_NOTICES + 10) / 2);
+    expect(notices.every((notice) => notice.pubkey === THIRD)).toBe(true);
+  });
+});
+
 describe("sortNotices, the whole list", () => {
   it("takes the same event served by three relays as one row", () => {
     const one = comment(MINE, theirSecret);
