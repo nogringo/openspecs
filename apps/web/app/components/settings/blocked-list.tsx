@@ -148,22 +148,16 @@ export const BlockedList = ({ me }: { me: string | null }) => {
       )}
 
       {documents.length > 0 && (
-        <section className="space-y-4">
-          <Rows title="Documents" count={documents.length}>
-            {documents.map((document) => (
-              <Row key={document.coordinate} target={{ type: "a", value: document.coordinate }}>
-                <Link to={specPath(document)} className={LINK}>
-                  {document.identifier}
-                  <span className="ml-3 text-muted">{shortNpub(toNpub(document.pubkey))}</span>
-                </Link>
-              </Row>
-            ))}
-          </Rows>
-          <p className={NOTE}>
-            A document in a mute list is this site's addition. Other clients keep the entry and
-            ignore it.
-          </p>
-        </section>
+        <Rows title="Documents" count={documents.length}>
+          {documents.map((document) => (
+            <Row key={document.coordinate} target={{ type: "a", value: document.coordinate }}>
+              <Link to={specPath(document)} className={LINK}>
+                {document.identifier}
+                <span className="ml-3 text-muted">{shortNpub(toNpub(document.pubkey))}</span>
+              </Link>
+            </Row>
+          ))}
+        </Rows>
       )}
 
       {comments.length > 0 && (
