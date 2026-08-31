@@ -22,16 +22,13 @@ const ACTION =
 
 const shorten = (id: string): string => `${id.slice(0, 10)}...${id.slice(-4)}`;
 
-/** Where the list stands between this device and the relays, in one sentence. */
-const standing = (blocked: Blocked, me: string | null): string => {
+/** Said only when the list is short of what the reader would expect. Nothing, when it is not. */
+const standing = (blocked: Blocked, me: string | null): string | null => {
   if (me === null) {
     return "Kept on this device. Connect a key and your other apps follow it too.";
   }
   if (blocked.refused) return "Kept on this device. You turned down the signature.";
-  if (blocked.owed.length > 0) return "Sharing this with your other apps.";
-  return blocked.published
-    ? "Shared with your other apps."
-    : "Reading what you already blocked elsewhere.";
+  return blocked.published ? null : "Reading what you already blocked elsewhere.";
 };
 
 const Rows = ({
@@ -86,12 +83,13 @@ export const BlockedList = ({ me }: { me: string | null }) => {
   }, [pubkeys]);
 
   const empty = pubkeys.length + documents.length + comments.length === 0;
+  const note = standing(blocked, me);
 
   return (
     <div className="space-y-12">
       <section className="space-y-3">
-        <p className={NOTE}>What you block is hidden from you on this site. Nobody is told.</p>
-        <p className={NOTE}>{standing(blocked, me)}</p>
+        <p className={NOTE}>What you block is hidden from you. Nobody is told.</p>
+        {note !== null && <p className={NOTE}>{note}</p>}
         {blocked.hasPrivate && (
           <p className={NOTE}>Part of your list is private, and this site cannot read that part.</p>
         )}
