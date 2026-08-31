@@ -284,6 +284,29 @@ const Masthead = ({
               {shorten(spec.npub, 10, 6)}
             </Link>
           </Field>
+          {spec.forkedFrom.map((source) => (
+            <Field key={source.type === "spec" ? source.path : source.url} label="forked from">
+              {source.type === "spec" ? (
+                <>
+                  <Link
+                    to={source.path}
+                    className="underline decoration-rule underline-offset-2 hover:decoration-current"
+                  >
+                    {source.identifier}
+                  </Link>{" "}
+                  <span className="text-muted">{shorten(source.npub, 10, 6)}</span>
+                </>
+              ) : (
+                <a
+                  href={source.url}
+                  rel="nofollow noopener noreferrer"
+                  className="underline decoration-rule underline-offset-2 hover:decoration-current"
+                >
+                  {source.host}
+                </a>
+              )}
+            </Field>
+          ))}
           <Field label="published">{asDate(spec.publishedAt)}</Field>
           {spec.revisedAt > spec.publishedAt && (
             <Field label="revised">{asDate(spec.revisedAt)}</Field>
