@@ -1,20 +1,28 @@
 import {
+  type EventDraft,
   editSpec,
+  type ForkOrigin,
   fetchSpec,
   firstHeading,
+  forkSpec,
   type NostrEvent,
   type SpecDraft,
   type SpecFault,
   specDraftOf,
   specFaults,
   specPath,
+  tagValue,
+  toCoordinate,
   toIdentifier,
+  toNpub,
 } from "@openspecs/nostr";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { RelayReport } from "~/components/relay-results";
 import { rememberSpec } from "~/lib/corpus";
 import { specEditPath } from "~/lib/paths";
+import { authorName } from "~/lib/profile";
+import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import { type RelayResult, signAndPublish } from "~/lib/publish";
 import { documentRelays } from "~/lib/relays";
 import {
@@ -99,6 +107,35 @@ const Held = ({
 );
 
 /**
+ * Whose document this one is starting from, said once above the fields rather
+ * than in a warning: forking is not a thing to be talked out of, and the only
+ * part worth knowing is that theirs is left alone.
+ */
+const ForkedFrom = ({ origin }: { origin: NostrEvent }) => {
+  const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
+  const npub = toNpub(origin.pubkey);
+  const identifier = tagValue(origin, "d");
+
+  useEffect(() => {
+    wantAuthors([origin.pubkey]);
+  }, [origin.pubkey]);
+
+  return (
+    <p className={NOTE}>
+      Starting from{" "}
+      <Link
+        to={specPath({ pubkey: origin.pubkey, identifier })}
+        className="underline decoration-rule underline-offset-2 hover:decoration-current"
+      >
+        {tagValue(origin, "title") || identifier}
+      </Link>{" "}
+      by {authorName(authors[origin.pubkey] ?? null, npub)}. What you publish is your own document,
+      signed by your key, carrying a tag that says where it came from. Theirs is untouched.
+    </p>
+  );
+};
+
+/**
  * A document replaces the whole of its previous revision, so what is on screen
  * has to be what was published: the fields start filled from the live event, and
  * `editSpec` hands back every tag nothing here draws untouched.
@@ -111,17 +148,41 @@ export const SpecEditor = ({
   me,
   npub,
   live: initial,
+  fork = null,
 }: {
   me: string;
   npub: string;
   /** The revision being edited, or null for a document nobody has published. */
   live: NostrEvent | null;
+  /** The document this one starts from, for a fork nobody has published yet. */
+  fork?: { origin: NostrEvent; relay: string | null } | null;
 }) => {
   const [live, setLive] = useState(initial);
-  const published = useMemo(() => specDraftOf(live), [live]);
+  // Read off `live` and never off the prop: publishing the fork makes it a
+  // document of its own, and every save after that is an ordinary revision.
+  const forking = live === null && fork !== null;
+  const origin = useMemo(
+    (): ForkOrigin | null =>
+      fork === null
+        ? null
+        : {
+            pubkey: fork.origin.pubkey,
+            // Read off the event rather than off the route, so the marker names
+            // what was actually signed.
+            identifier: tagValue(fork.origin, "d"),
+            relay: fork.relay,
+          },
+    [fork],
+  );
+  const published = useMemo(
+    () => (live === null && fork !== null ? specDraftOf(fork.origin) : specDraftOf(live)),
+    [live, fork],
+  );
   const [draft, setDraft] = useState<SpecDraft>(published);
-  // Only until somebody types one of their own. A published address never moves.
-  const [deriving, setDeriving] = useState(initial === null);
+  // Only until somebody types one of their own. A published address never moves,
+  // and neither does a fork's, which keeps the name it was forked from until its
+  // author decides otherwise.
+  const [deriving, setDeriving] = useState(initial === null && fork === null);
   const [state, setState] = useState<State>("editing");
   const [relays, setRelays] = useState<string[]>([]);
   const [results, setResults] = useState<RelayResult[]>([]);
@@ -133,19 +194,26 @@ export const SpecEditor = ({
   // The slot a draft is kept in, fixed for as long as this editor is open: a
   // first save turns a new document into an existing one, and the half written
   // draft it replaces is the one under the address it did not have yet.
-  const slot = useMemo(
-    (): DraftSlot =>
-      initial === null ? { of: "new" } : { of: "doc", identifier: specDraftOf(initial).identifier },
-    [initial],
-  );
+  const slot = useMemo((): DraftSlot => {
+    if (initial !== null) return { of: "doc", identifier: specDraftOf(initial).identifier };
+    if (origin !== null) return { of: "fork", origin: toCoordinate(origin) };
+    return { of: "new" };
+  }, [initial, origin]);
+
+  /**
+   * The event this form would sign. A fork is built from the draft alone, never
+   * from the document it came from: see `forkSpec`. Only the first one is, and
+   * after it every revision is an ordinary edit that carries the marker through.
+   */
+  const build = (fields: SpecDraft): EventDraft =>
+    origin !== null && !existing ? forkSpec(origin, me, fields) : editSpec(live, fields);
 
   /**
    * Whether saving would say anything different, asked of the event rather than
    * of the form. A blank kind row, a repeated topic and a trailing space all
    * change the draft and none of them changes the document.
    */
-  const changed =
-    JSON.stringify(editSpec(live, draft)) !== JSON.stringify(editSpec(live, published));
+  const changed = JSON.stringify(build(draft)) !== JSON.stringify(build(published));
 
   const faults = specFaults(draft);
   const suggested = toIdentifier(draft.title);
@@ -219,7 +287,7 @@ export const SpecEditor = ({
       const targets = documentRelays(me);
       targets.then(setRelays).catch(() => {});
 
-      const report = await signAndPublish(editSpec(live, draft), targets, (result) =>
+      const report = await signAndPublish(build(draft), targets, (result) =>
         setResults((answered) => [...answered, result]),
       );
 
@@ -253,6 +321,8 @@ export const SpecEditor = ({
      */
     <form className="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-12" onSubmit={save}>
       <div className="max-w-[40rem] space-y-4">
+        {forking && fork !== null && <ForkedFrom origin={fork.origin} />}
+
         {held !== null && (
           <Held
             held={held}
@@ -324,16 +394,26 @@ export const SpecEditor = ({
           those pixels back and the padding puts the fields where they were. */}
       <aside className="mt-16 space-y-8 border-t border-rule pt-8 lg:-mx-1.5 lg:mt-0 lg:self-start lg:border-t-0 lg:px-1.5 lg:pt-0 lg:sticky lg:top-10 lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto">
         <div className="space-y-3">
+          {/* A fork that changes nothing is still a real thing to publish: a copy
+              under your own key, which is what a mirror is. Everywhere else an
+              untouched form has nothing to send, and a blank one is refused by
+              its faults rather than by this. */}
           <button
             type="submit"
             className={ACTION}
-            disabled={!changed || faults.length > 0 || state === "sending"}
+            disabled={(!changed && !forking) || faults.length > 0 || state === "sending"}
           >
             {state === "sending" ? "Publishing" : existing ? "Publish revision" : "Publish"}
           </button>
 
           {!changed && state !== "sent" && (
-            <p className={NOTE}>{existing ? "Nothing to save yet." : "Nothing written yet."}</p>
+            <p className={NOTE}>
+              {forking
+                ? "Unchanged from the document you forked. Publishing it puts a copy of it under your key."
+                : existing
+                  ? "Nothing to save yet."
+                  : "Nothing written yet."}
+            </p>
           )}
           {state === "sent" && !changed && <p className={NOTE}>Published.</p>}
 
@@ -373,7 +453,9 @@ export const SpecEditor = ({
 
           {taken !== null && (
             <p className={WRONG}>
-              A document of yours is already published at that address.{" "}
+              {forking
+                ? "A fork keeps the name it was forked from, and this key already publishes a document under that name. "
+                : "A document of yours is already published at that address. "}
               <Link to={specEditPath(npub, taken)} className="underline underline-offset-2">
                 Edit that one
               </Link>
