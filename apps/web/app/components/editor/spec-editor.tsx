@@ -107,9 +107,10 @@ const Held = ({
 );
 
 /**
- * Whose document this one is starting from, said once above the fields rather
- * than in a warning: forking is not a thing to be talked out of, and the only
- * part worth knowing is that theirs is left alone.
+ * Whose document this one is starting from, and nothing else. The form below is
+ * already full of somebody else's writing, so the one thing it does not show is
+ * whose. That a document signed by one key does not change another's needs no
+ * saying, and the tag recording it is not the reader's business.
  */
 const ForkedFrom = ({ origin }: { origin: NostrEvent }) => {
   const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
@@ -129,8 +130,7 @@ const ForkedFrom = ({ origin }: { origin: NostrEvent }) => {
       >
         {tagValue(origin, "title") || identifier}
       </Link>{" "}
-      by {authorName(authors[origin.pubkey] ?? null, npub)}. What you publish is your own document,
-      signed by your key, carrying a tag that says where it came from. Theirs is untouched.
+      by {authorName(authors[origin.pubkey] ?? null, npub)}.
     </p>
   );
 };
