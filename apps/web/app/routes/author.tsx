@@ -15,6 +15,7 @@ import { AuthorAvatar } from "~/components/author-avatar";
 import { CopyButton } from "~/components/copy-button";
 import { ErrorPage } from "~/components/error-page";
 import { BlockedNotice } from "~/components/moderation/blocked-notice";
+import { More } from "~/components/moderation/more";
 import { Pagination } from "~/components/pagination";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
@@ -290,6 +291,7 @@ const Masthead = ({
       <CopyButton value={npub} label="Copy npub" title={npub} />
       <FeedLink to={authorRssPath(npub)}>RSS</FeedLink>
       <FeedLink to={authorAtomPath(npub)}>Atom</FeedLink>
+      <More target={{ kind: "account", pubkey }} />
     </div>
   </header>
 );

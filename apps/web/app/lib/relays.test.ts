@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const nostr = vi.hoisted(() => ({
   fetchRelayLists: vi.fn(),
   writeRelaysOf: vi.fn(),
+  authorRelays: vi.fn(),
   DEFAULT_RELAYS: ["wss://relay.nmail.li", "wss://nos.lol"],
   DISCUSSION_RELAYS: ["wss://relay.ditto.pub", "wss://nos.lol"],
   INDEXER_RELAYS: ["wss://indexer.example", "wss://nos.lol"],
@@ -23,7 +24,9 @@ import {
   MAX_WRITE_RELAYS,
   MAX_ZAP_RELAYS,
   newKeyRelays,
+  PUBLIC_RELAYS,
   relayListRelays,
+  reportRelays,
   writeRelays,
   zapReceiptRelays,
 } from "./relays";
@@ -38,6 +41,8 @@ const lists = (entries: Record<string, { read: string[]; write: string[] }>) =>
 beforeEach(() => {
   nostr.fetchRelayLists.mockReset();
   nostr.writeRelaysOf.mockReset();
+  nostr.authorRelays.mockReset();
+  nostr.authorRelays.mockResolvedValue(["wss://theirs.example"]);
   nostr.writeRelaysOf.mockResolvedValue(["wss://mine.example"]);
   nostr.fetchRelayLists.mockResolvedValue(
     lists({ [AUTHOR]: { read: ["wss://their-inbox.example"], write: [] } }),
@@ -45,6 +50,44 @@ beforeEach(() => {
 });
 
 afterEach(() => vi.restoreAllMocks());
+
+describe("reportRelays", () => {
+  it("starts with mine and the reported key's own, then reaches everywhere else", async () => {
+    const relays = await reportRelays(ME, AUTHOR);
+
+    expect(relays.slice(0, 2)).toEqual(["wss://mine.example", "wss://theirs.example"]);
+    for (const relay of [
+      ...nostr.DISCUSSION_RELAYS,
+      ...nostr.DEFAULT_RELAYS,
+      ...nostr.INDEXER_RELAYS,
+      ...PUBLIC_RELAYS,
+    ]) {
+      expect(relays).toContain(relay);
+    }
+    expect(nostr.authorRelays).toHaveBeenCalledWith(AUTHOR);
+  });
+
+  it("is the one write that is never cut short", async () => {
+    nostr.writeRelaysOf.mockResolvedValue(
+      Array.from({ length: 30 }, (_, index) => `wss://mine-${index}.example`),
+    );
+    nostr.authorRelays.mockResolvedValue(
+      Array.from({ length: 8 }, (_, index) => `wss://theirs-${index}.example`),
+    );
+
+    const relays = await reportRelays(ME, AUTHOR);
+    expect(relays.length).toBeGreaterThan(MAX_WRITE_RELAYS);
+    expect(relays).toContain(PUBLIC_RELAYS[PUBLIC_RELAYS.length - 1]);
+  });
+
+  it("goes out without the reported key's list when that lookup fails", async () => {
+    nostr.authorRelays.mockRejectedValue(new Error("gone"));
+
+    const relays = await reportRelays(ME, AUTHOR);
+    expect(relays[0]).toBe("wss://mine.example");
+    expect(relays).toContain(PUBLIC_RELAYS[0]);
+  });
+});
 
 describe("writeRelays", () => {
   it("puts my own relays first, then the inboxes of everyone addressed", async () => {

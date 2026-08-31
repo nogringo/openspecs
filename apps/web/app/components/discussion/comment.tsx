@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { CHROME } from "~/components/chrome";
+import { More } from "~/components/moderation/more";
 import { hidesComment, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
 import { NO_RESPONSE, type Response } from "~/lib/discussion";
@@ -175,6 +176,7 @@ export const CommentThread = ({
                 Reply
               </button>
             )}
+            <More target={{ kind: "comment", pubkey: comment.pubkey, id: comment.id }} />
           </div>
 
           {me !== null && replying && (

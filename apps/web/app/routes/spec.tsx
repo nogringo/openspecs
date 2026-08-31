@@ -18,6 +18,7 @@ import { EditLink } from "~/components/editor/edit-link";
 import { Withdraw } from "~/components/editor/withdraw";
 import { ErrorPage } from "~/components/error-page";
 import { BlockedNotice } from "~/components/moderation/blocked-notice";
+import { More } from "~/components/moderation/more";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
@@ -313,6 +314,15 @@ const Masthead = ({
         title="The signed event, exactly as the relays serve it"
       />
       <Rebroadcast eventUrl={eventPath(spec.npub, spec.identifier)} relays={relays} />
+      <More
+        target={{
+          kind: "document",
+          pubkey: spec.pubkey,
+          id: spec.eventId,
+          coordinate: toCoordinate(spec),
+          identifier: spec.identifier,
+        }}
+      />
       <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
       <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
     </div>
