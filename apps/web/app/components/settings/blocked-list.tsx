@@ -131,7 +131,9 @@ export const BlockedList = ({ me }: { me: string | null }) => {
                   className="flex min-w-0 items-center gap-3"
                   title={`Everything signed by ${npub}`}
                 >
-                  <AuthorAvatar pubkey={pubkey} picture={author?.picture ?? null} size={24} />
+                  {/* The mark, never the picture: loading it would call on a
+                      server this key chose, and the picture may be the reason. */}
+                  <AuthorAvatar pubkey={pubkey} picture={null} size={24} />
                   <span
                     style={{ color: keyTextColor(pubkey) }}
                     className="min-w-0 truncate font-mono text-xs font-medium"
