@@ -25,10 +25,10 @@ const said = (value: unknown, fallback: string): string => {
 };
 
 /**
- * A relay that could not be reached at all does not reject. `SimplePool.publish`
- * catches the connection failure and resolves with this sentence in place of the
- * relay's answer, so a browser with no network would otherwise be told every
- * relay accepted what it never sent.
+ * A relay nothing could open a socket to says this instead of an answer.
+ * `SimplePool.publish` rejects with it since nostr-tools 2.24.2 and resolved
+ * with it before, so both sides of a settled promise are read for it: a no one
+ * is worth asking again, never a yes.
  */
 const UNREACHABLE = "connection failure:";
 
@@ -37,13 +37,12 @@ const UNREACHABLE = "connection failure:";
  * than as a refusal, so every outcome gets words.
  */
 export const toResult = (relay: string, settled: PromiseSettledResult<string>): RelayResult => {
-  if (settled.status === "rejected") {
-    return { relay, accepted: false, message: said(settled.reason, "refused") };
-  }
-  const answer = said(settled.value, "accepted");
-  return answer.startsWith(UNREACHABLE)
-    ? { relay, accepted: false, message: NOT_REACHED }
-    : { relay, accepted: true, message: answer };
+  const answer =
+    settled.status === "rejected"
+      ? said(settled.reason, "refused")
+      : said(settled.value, "accepted");
+  if (answer.startsWith(UNREACHABLE)) return { relay, accepted: false, message: NOT_REACHED };
+  return { relay, accepted: settled.status === "fulfilled", message: answer };
 };
 
 /** A no worth asking again: the relay was not there, or asked for a pause. */

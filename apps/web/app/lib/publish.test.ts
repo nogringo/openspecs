@@ -13,7 +13,7 @@ const session = vi.hoisted(() => ({ signer: vi.fn(), sessionState: vi.fn() }));
 vi.mock("./session", () => session);
 
 import { setNamesClient } from "./client-tag";
-import { publishAnonymously, publishTo, signAndPublish, toResult } from "./publish";
+import { NOT_REACHED, publishAnonymously, publishTo, signAndPublish, toResult } from "./publish";
 import { SessionMismatch, SessionMissing } from "./signer";
 import { keySigner } from "./signer-key";
 
@@ -54,16 +54,18 @@ describe("toResult", () => {
    * seven relays had taken what none of them had seen.
    */
   it("reports a relay it never reached as a refusal", () => {
-    const settled = {
-      status: "fulfilled",
-      value: "connection failure: Error: connection failed",
-    } as const;
+    const settled: PromiseSettledResult<string>[] = [
+      { status: "rejected", reason: new Error("connection failure: connection failed") },
+      { status: "fulfilled", value: "connection failure: Error: connection failed" },
+    ];
 
-    expect(toResult(RELAY, settled)).toEqual({
-      relay: RELAY,
-      accepted: false,
-      message: "not reached",
-    });
+    for (const one of settled) {
+      expect(toResult(RELAY, one)).toEqual({
+        relay: RELAY,
+        accepted: false,
+        message: NOT_REACHED,
+      });
+    }
   });
 
   it("reports a refusal in the relay's own words", () => {
@@ -78,9 +80,9 @@ describe("toResult", () => {
 
   /**
    * The behaviour the case above is written against, read from the library
-   * rather than assumed: a resolved publish is not a published event. Nothing
-   * listens on the discard port, so this asks the real pool a local question and
-   * fails the day nostr-tools words its answer differently.
+   * rather than assumed. Nothing listens on the discard port, so this asks the
+   * real pool a local question and fails the day nostr-tools words its answer
+   * differently.
    */
   it("is how nostr-tools really answers for a relay that cannot be opened", async () => {
     const { SimplePool } =
@@ -88,11 +90,15 @@ describe("toResult", () => {
     const real = new SimplePool();
     const signed = await keySigner(secret).signEvent({ ...DRAFT, created_at: 1_700_000_000 });
 
-    const [answer] = await Promise.all(real.publish(["wss://127.0.0.1:9/"], signed));
+    const [answer] = await Promise.allSettled(real.publish(["wss://127.0.0.1:9/"], signed));
     real.destroy();
 
-    expect(answer).toMatch(/^connection failure:/);
-    expect(toResult(RELAY, { status: "fulfilled", value: answer ?? "" }).accepted).toBe(false);
+    expect(answer).toBeDefined();
+    expect(toResult(RELAY, answer as PromiseSettledResult<string>)).toEqual({
+      relay: RELAY,
+      accepted: false,
+      message: NOT_REACHED,
+    });
   });
 
   it("gives words to a relay that refuses without saying why", () => {

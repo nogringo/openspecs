@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@openspecs/nostr": "workspace:*",
-    "nostr-tools": "2.24.1",
+    "nostr-tools": "2.25.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
