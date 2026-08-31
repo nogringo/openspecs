@@ -1,3 +1,4 @@
+import { toCoordinate } from "./address";
 import {
   allTags,
   type EventDraft,
@@ -269,6 +270,45 @@ export const editSpec = (live: NostrEvent | null, draft: SpecDraft): EventDraft 
 
 /** The same, for a document nobody has published yet: there is no live revision to read first. */
 export const buildSpec = (draft: SpecDraft): EventDraft => editSpec(null, draft);
+
+/** The document a fork came from, as the marker naming it will be written. */
+export type ForkOrigin = {
+  pubkey: string;
+  identifier: string;
+  /** A relay it is known to sit on. The slot is positional, so an empty one is still written. */
+  relay?: string | null;
+};
+
+/**
+ * A document somebody starts from another key's, carrying one tag that says
+ * where it came from.
+ *
+ * Built from the draft and never from the origin's event. `editSpec(origin, draft)`
+ * looks like the way to do this and is the trap: it hands back every tag it does
+ * not own, so the other author's `published_at` and whatever else they wrote
+ * would travel into a document signed by somebody else.
+ *
+ * The marker is written here and never again. Every later revision of the fork
+ * goes through `editSpec`, which copies an `a` tag through with everything else
+ * this editor has no opinion about, so a fork renamed a year later still names
+ * the document it came from rather than the name it used to have.
+ */
+export const forkSpec = (origin: ForkOrigin, forker: string, draft: SpecDraft): EventDraft => {
+  const event = buildSpec(draft);
+  const pubkey = origin.pubkey.trim();
+  const identifier = origin.identifier.trim();
+  // A marker pointing at the document being built says nothing, and drawn on a
+  // page it is a link back to the page you are on.
+  const itself = pubkey === forker && identifier === draft.identifier.trim();
+  if (pubkey === "" || identifier === "" || itself) return event;
+
+  const marker = ["a", toCoordinate({ pubkey, identifier }), origin.relay?.trim() ?? "", "fork"];
+  // Where `editSpec` puts the foreign tags it carries through, so a fork and its
+  // own later revisions order their tags the same way.
+  const alt = event.tags.findIndex((tag) => tag[0] === "alt");
+  const at = alt === -1 ? event.tags.length : alt;
+  return { ...event, tags: [...event.tags.slice(0, at), marker, ...event.tags.slice(at)] };
+};
 
 /**
  * The empty revision an author replaces their own document with, and the first

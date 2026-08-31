@@ -238,6 +238,8 @@ export {
   buildSpec,
   buildSpecDeletion,
   editSpec,
+  type ForkOrigin,
+  forkSpec,
   parseSpec,
   type Spec,
   type SpecDraft,
