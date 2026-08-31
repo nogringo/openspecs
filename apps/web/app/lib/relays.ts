@@ -3,6 +3,7 @@ import {
   DEFAULT_RELAYS,
   DISCUSSION_RELAYS,
   fetchRelayLists,
+  IMPORT_RELAYS,
   INDEXER_RELAYS,
   MAX_RELAYS_PER_AUTHOR,
   relaySet,
@@ -194,11 +195,13 @@ export const writeRelays = async (me: string, target: WriteTarget): Promise<stri
 /**
  * Where a report goes: everywhere this page can name, in this order.
  *
- * 1. my own write relays, so my own clients see what I signed;
+ * 1. my own write relays, so my own clients see what I signed. None for a
+ *    report sent from a key made on the spot: it has no clients;
  * 2. the reported key's own relays, read and write, since the operators who
  *    carry that key are the ones a report is for;
  * 3. the relays this kind of client reads, where the conversation is;
- * 4. the relays this site reads;
+ * 4. the relays this site reads, and the one it runs, which is where a report
+ *    nobody else weighs is still read;
  * 5. the indexers, so a report about an account sits beside the account;
  * 6. the large operators.
  *
@@ -206,12 +209,20 @@ export const writeRelays = async (me: string, target: WriteTarget): Promise<stri
  * worst honest case is about thirty, and a report exists to reach operators:
  * cutting from the tail would drop exactly them.
  */
-export const reportRelays = async (me: string, reported: string): Promise<string[]> => {
+export const reportRelays = async (me: string | null, reported: string): Promise<string[]> => {
   const [mine, theirs] = await Promise.all([
-    outboxRelays(me),
+    me === null ? [] : outboxRelays(me),
     authorRelays(reported).catch(() => []),
   ]);
-  return relaySet(mine, theirs, DISCUSSION_RELAYS, DEFAULT_RELAYS, INDEXER_RELAYS, PUBLIC_RELAYS);
+  return relaySet(
+    mine,
+    theirs,
+    DISCUSSION_RELAYS,
+    DEFAULT_RELAYS,
+    IMPORT_RELAYS,
+    INDEXER_RELAYS,
+    PUBLIC_RELAYS,
+  );
 };
 
 /**

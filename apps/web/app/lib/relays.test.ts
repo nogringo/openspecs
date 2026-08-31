@@ -5,6 +5,7 @@ const nostr = vi.hoisted(() => ({
   writeRelaysOf: vi.fn(),
   authorRelays: vi.fn(),
   DEFAULT_RELAYS: ["wss://relay.nmail.li", "wss://nos.lol"],
+  IMPORT_RELAYS: ["wss://relay.openspecs.example"],
   DISCUSSION_RELAYS: ["wss://relay.ditto.pub", "wss://nos.lol"],
   INDEXER_RELAYS: ["wss://indexer.example", "wss://nos.lol"],
   MAX_RELAYS_PER_AUTHOR: 4,
@@ -71,12 +72,22 @@ describe("reportRelays", () => {
     for (const relay of [
       ...nostr.DISCUSSION_RELAYS,
       ...nostr.DEFAULT_RELAYS,
+      ...nostr.IMPORT_RELAYS,
       ...nostr.INDEXER_RELAYS,
       ...PUBLIC_RELAYS,
     ]) {
       expect(relays).toContain(relay);
     }
     expect(nostr.authorRelays).toHaveBeenCalledWith(AUTHOR);
+  });
+
+  it("has no relays of mine for a report from a key made on the spot", async () => {
+    const relays = await reportRelays(null, AUTHOR);
+
+    expect(relays[0]).toBe("wss://theirs.example");
+    expect(relays).not.toContain("wss://mine.example");
+    expect(nostr.writeRelaysOf).not.toHaveBeenCalled();
+    expect(relays).toContain(nostr.IMPORT_RELAYS[0]);
   });
 
   it("is the one write that is never cut short", async () => {

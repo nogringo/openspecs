@@ -2,7 +2,7 @@ import { buildReport, REPORT_TYPES, type ReportType } from "@openspecs/nostr";
 import { useId, useState } from "react";
 import { RelayReport } from "~/components/relay-results";
 import { block, useBlocked } from "~/lib/blocked";
-import { type RelayResult, signAndPublish } from "~/lib/publish";
+import { publishAnonymously, type RelayResult, signAndPublish } from "~/lib/publish";
 import { reportRelays } from "~/lib/relays";
 import type { MoreTarget } from "./more";
 import { FIELD, NOTE, SUGGESTION, WRONG } from "./styles";
@@ -27,13 +27,18 @@ const said = (reason: unknown): string =>
  * One event, signed and sent wide. The two sentences before the form are the
  * whole of what a reader is agreeing to, and they are there because a report
  * feels like a private word to a moderator and is nothing of the kind.
+ *
+ * With no key, or when asked, the event is signed by a key made for it and
+ * thrown away. That is the only report a reader who fears an answer can send,
+ * and it is also one most relays weigh at nothing: both are said.
  */
 export const ReportForm = ({
   me,
   target,
   onClose,
 }: {
-  me: string;
+  /** Null when nobody is signed in: the report is then sent from a key made for it. */
+  me: string | null;
   target: MoreTarget;
   onClose: () => void;
 }) => {
@@ -41,12 +46,14 @@ export const ReportForm = ({
   const blocked = useBlocked();
   const [type, setType] = useState<ReportType | null>(null);
   const [words, setWords] = useState("");
+  const [withoutKey, setWithoutKey] = useState(false);
   const [stage, setStage] = useState<Stage>("asking");
   const [relays, setRelays] = useState<string[]>([]);
   const [results, setResults] = useState<RelayResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const noun = target.kind;
+  const nameless = me === null || withoutKey;
   const accountBlocked = blocked.pubkeys.has(target.pubkey);
 
   const send = async () => {
@@ -55,7 +62,7 @@ export const ReportForm = ({
     setResults([]);
     setError(null);
 
-    const targets = reportRelays(me, target.pubkey);
+    const targets = reportRelays(nameless ? null : me, target.pubkey);
     targets.then(setRelays).catch(() => {});
 
     const reported =
@@ -64,11 +71,13 @@ export const ReportForm = ({
         : target.kind === "comment"
           ? { pubkey: target.pubkey, id: target.id }
           : { pubkey: target.pubkey };
+    const draft = buildReport(reported, type, words);
+    const heard = (result: RelayResult) => setResults((answered) => [...answered, result]);
 
     try {
-      const report = await signAndPublish(buildReport(reported, type, words), targets, (result) =>
-        setResults((answered) => [...answered, result]),
-      );
+      const report = nameless
+        ? await publishAnonymously(draft, targets, heard)
+        : await signAndPublish(draft, targets, heard);
       if (report.accepted === 0) {
         setStage("failed");
         setError("No relay accepted it. Nothing was published.");
@@ -85,7 +94,9 @@ export const ReportForm = ({
     return (
       <>
         <p className={NOTE}>
-          A report is a signed public event. Anyone can read it, and it names you as the reporter.
+          {nameless
+            ? "Sent from a key made for this and thrown away. Nobody can tie it to you, and most relays give such a report little weight."
+            : "A report is a signed public event. Anyone can read it, and it names you as the reporter."}
         </p>
         <p className={NOTE}>
           It goes to every relay this page knows about, so the people who run them see it. This site
@@ -116,6 +127,17 @@ export const ReportForm = ({
           aria-label="Anything else the relays should know"
           className={`${FIELD} font-serif text-[0.9375rem] leading-relaxed`}
         />
+
+        {me !== null && (
+          <label className="flex items-center gap-2 font-mono text-xs text-ink">
+            <input
+              type="checkbox"
+              checked={withoutKey}
+              onChange={(event) => setWithoutKey(event.target.checked)}
+            />
+            Send without my key
+          </label>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" className={SUGGESTION} onClick={send} disabled={type === null}>

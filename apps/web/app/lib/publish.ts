@@ -150,3 +150,30 @@ export const signAndPublish = async (
   const results = await publishTo(event, targets, onResult);
   return { event, results, accepted: results.filter((result) => result.accepted).length };
 };
+
+/**
+ * Signed by a key made for this one event and forgotten the moment it has
+ * signed. What a reader sends when they would rather not be named: nothing
+ * ties the event to them, and nothing ties it to anything else either, which
+ * is what it is worth to a relay weighing who said it. The session is not
+ * consulted, so this works for a reader who has no key at all. The client tag
+ * follows the same setting as everything else this browser signs.
+ */
+export const publishAnonymously = async (
+  draft: Draft,
+  relays: string[] | Promise<string[]>,
+  onResult?: (result: RelayResult) => void,
+): Promise<PublishReport> => {
+  const { finalizeEvent, generateSecretKey } = await import("nostr-tools/pure");
+  const event = finalizeEvent(
+    {
+      kind: draft.kind,
+      content: draft.content,
+      tags: withClientTag(draft.tags),
+      created_at: draft.created_at ?? Math.floor(Date.now() / 1000),
+    },
+    generateSecretKey(),
+  ) as NostrEvent;
+  const results = await publishTo(event, await relays, onResult);
+  return { event, results, accepted: results.filter((result) => result.accepted).length };
+};
