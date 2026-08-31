@@ -17,6 +17,7 @@ import { LikeButton } from "~/components/discussion/like-button";
 import { EditLink } from "~/components/editor/edit-link";
 import { Withdraw } from "~/components/editor/withdraw";
 import { ErrorPage } from "~/components/error-page";
+import { FORKS_ID, Forks } from "~/components/forks";
 import { BlockedNotice } from "~/components/moderation/blocked-notice";
 import { More } from "~/components/moderation/more";
 import { Shell } from "~/components/shell";
@@ -24,6 +25,7 @@ import { SpecTags } from "~/components/spec-tags";
 import { VARIANTS_ID, Variants } from "~/components/variants";
 import { hidesSpec, unblock, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
+import { useForks } from "~/lib/forks";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { useLiveRevision } from "~/lib/live-revision";
 import { publicOrigin } from "~/lib/origin.server";
@@ -169,9 +171,11 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 const Contents = ({
   headings,
   variantCount,
+  forkCount,
 }: {
   headings: MarkdownHeading[];
   variantCount: number;
+  forkCount: number;
 }) => (
   <nav
     aria-label="Contents"
@@ -203,6 +207,11 @@ const Contents = ({
         {variantCount > 0 && (
           <a href={`#${VARIANTS_ID}`} className="mb-2 block text-muted hover:text-ink">
             Under this name
+          </a>
+        )}
+        {forkCount > 0 && (
+          <a href={`#${FORKS_ID}`} className="mb-2 block text-muted hover:text-ink">
+            Written from this one
           </a>
         )}
         <a href={`#${DISCUSSION_ID}`} className="text-muted hover:text-ink">
@@ -436,12 +445,14 @@ const Article = ({
   const { shown, fresher, show } = useLiveRevision(served);
   // On the shown revision, not the served one: the marks sit on the text on screen.
   const { variants: every, spots, standings } = useVariants(shown);
+  const declared = useForks(shown);
 
   const blocked = useBlocked();
   const [shownAnyway, setShownAnyway] = useState(false);
   const variants = every.filter(
     (variant) => !hidesSpec(blocked, { pubkey: variant.pubkey, identifier: shown.identifier }),
   );
+  const forks = declared.filter((fork) => !hidesSpec(blocked, fork));
 
   // A preview was fetched for the links the served revision cited. One that no
   // longer appears in the document has no business under it.
@@ -485,7 +496,11 @@ const Article = ({
       />
 
       <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
-        <Contents headings={shown.headings} variantCount={variants.length} />
+        <Contents
+          headings={shown.headings}
+          variantCount={variants.length}
+          forkCount={forks.length}
+        />
         <div className="max-w-[40rem]">
           {shown.isEmpty ? (
             <p className="font-serif text-lg text-muted">
@@ -504,6 +519,7 @@ const Article = ({
             standings={standings}
             from={{ npub: shown.npub, identifier: shown.identifier }}
           />
+          <Forks forks={forks} />
           <Discussion
             coordinate={toCoordinate(shown)}
             specEventId={shown.eventId}

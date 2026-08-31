@@ -46,6 +46,13 @@ export type SpecQuery = {
   topics?: string[];
   /** Event kinds the document is about, matched on its `k` tags. */
   covers?: number[];
+  /**
+   * Documents naming one of these coordinates in an `a` tag. Relays index the
+   * tag's value and nothing else, so this also returns whatever cites the
+   * coordinate as an `update`, an `extends` or a page of a documentation space:
+   * the marker at index 3 is the caller's to check.
+   */
+  cites?: string[];
   since?: number;
   until?: number;
   limit?: number;
@@ -135,6 +142,7 @@ export const fetchSpecs = async (
   if (specQuery.identifiers?.length) filter["#d"] = specQuery.identifiers;
   if (specQuery.topics?.length) filter["#t"] = specQuery.topics;
   if (specQuery.covers?.length) filter["#k"] = specQuery.covers.map(String);
+  if (specQuery.cites?.length) filter["#a"] = specQuery.cites;
   if (specQuery.since !== undefined) filter.since = specQuery.since;
   if (specQuery.until !== undefined) filter.until = specQuery.until;
   if (specQuery.limit !== undefined) filter.limit = specQuery.limit;
