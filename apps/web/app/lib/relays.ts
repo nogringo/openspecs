@@ -63,6 +63,14 @@ export const documentRelays = async (me: string): Promise<string[]> =>
   relaySet(await outboxRelays(me), DEFAULT_RELAYS).slice(0, MAX_WRITE_RELAYS);
 
 /**
+ * Where a key's mute list is read from and written back to: the same set both
+ * ways, for the reason `identityRelays` gives. Its own write relays, since that
+ * is where its other clients put the list, then the relays this site reads.
+ */
+export const muteListRelays = async (me: string): Promise<string[]> =>
+  relaySet(await outboxRelays(me), DEFAULT_RELAYS).slice(0, MAX_WRITE_RELAYS);
+
+/**
  * Where a key announces itself: its profile and its relay list. The indexers
  * first, because those two are read from there and nowhere else, then the
  * relays this site looks for documents on.

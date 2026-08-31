@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
+import { startMuteSync } from "~/lib/mute-list";
 import { startOutbox } from "~/lib/outbox";
 import { aboutPath, atomPath, newSpecPath, rssPath } from "~/lib/paths";
 import { Identity } from "./identity";
@@ -84,8 +85,10 @@ export const Shell = ({
   search?: boolean;
   query?: string;
 }) => {
-  // What was signed and not yet taken by every relay is owed from every page.
+  // What was signed and not yet taken by every relay is owed from every page,
+  // and so is what was blocked and not yet signed.
   useEffect(startOutbox, []);
+  useEffect(startMuteSync, []);
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper text-ink">

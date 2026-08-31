@@ -23,6 +23,8 @@ export type Blocked = {
   owed: readonly Owed[];
   /** The connected key's signed list has been read this session, so the sets include it. */
   published: boolean;
+  /** That list also holds encrypted items, which this site keeps as they are and cannot show. */
+  hasPrivate: boolean;
 };
 
 const EMPTY: Stored = { v: 1, p: [], e: [], a: [], owed: [] };
@@ -33,6 +35,7 @@ export const NO_BLOCKS: Blocked = Object.freeze({
   coordinates: new Set<string>(),
   owed: [],
   published: false,
+  hasPrivate: false,
 });
 
 const HEX_64 = /^[0-9a-f]{64}$/;
@@ -76,6 +79,7 @@ const store = (): Storage | undefined =>
 
 let held: Stored | null = null;
 let published = false;
+let hasPrivate = false;
 let snapshot: Blocked = NO_BLOCKS;
 
 const listeners = new Set<() => void>();
@@ -100,6 +104,7 @@ const asSnapshot = (stored: Stored): Blocked => ({
   coordinates: new Set(stored.a),
   owed: stored.owed,
   published,
+  hasPrivate,
 });
 
 /** Kept in memory whether or not the disk took it: storage is an accelerator, never a dependency. */
@@ -201,6 +206,7 @@ export const applyLive = (live: {
   pubkeys: string[];
   eventIds: string[];
   coordinates: string[];
+  hasPrivate?: boolean;
 }): void => {
   const current = read();
   const removing = (type: MuteType, value: string) =>
@@ -213,6 +219,7 @@ export const applyLive = (live: {
   ];
 
   published = true;
+  hasPrivate = live.hasPrivate === true;
   write({
     ...current,
     p: merge("p", current.p, live.pubkeys),
@@ -254,12 +261,14 @@ export const requeueAll = (): void => {
 /** A different key connected, or none: whatever list was read belonged to the last one. */
 export const markUnpublished = (): void => {
   published = false;
+  hasPrivate = false;
   write(read());
 };
 
 export const clearBlocked = (): void => {
   held = null;
   published = false;
+  hasPrivate = false;
   snapshot = NO_BLOCKS;
   try {
     store()?.removeItem(BLOCKED_KEY);

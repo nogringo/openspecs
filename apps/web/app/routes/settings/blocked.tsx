@@ -1,5 +1,7 @@
+import { useOutletContext } from "react-router";
 import { BlockedList } from "~/components/settings/blocked-list";
 import { PAGE_HEADERS } from "~/lib/http";
+import type { Own } from "../settings";
 import type { Route } from "./+types/blocked";
 
 export function meta(_: Route.MetaArgs) {
@@ -17,5 +19,6 @@ export function headers(_: Route.HeadersArgs) {
  * needs neither a key nor an open one to be read.
  */
 export default function BlockedSettings() {
-  return <BlockedList />;
+  const { me } = useOutletContext<Own>();
+  return <BlockedList me={me} />;
 }

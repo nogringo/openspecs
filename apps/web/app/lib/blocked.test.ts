@@ -156,9 +156,12 @@ describe("the live list", () => {
   });
 
   it("is forgotten as published when the key changes", () => {
-    applyLive({ pubkeys: [ALICE], eventIds: [], coordinates: [] });
+    applyLive({ pubkeys: [ALICE], eventIds: [], coordinates: [], hasPrivate: true });
+    expect(blockedState().hasPrivate).toBe(true);
+
     markUnpublished();
     expect(blockedState().published).toBe(false);
+    expect(blockedState().hasPrivate).toBe(false);
     expect(blockedState().pubkeys.has(ALICE)).toBe(true);
   });
 });

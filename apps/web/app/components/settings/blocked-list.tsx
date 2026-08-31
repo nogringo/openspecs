@@ -2,8 +2,9 @@ import { authorPath, parseCoordinate, specPath, toNpub } from "@openspecs/nostr"
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
-import { type MuteTarget, unblock, useBlocked } from "~/lib/blocked";
+import { type Blocked, type MuteTarget, requeueAll, unblock, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
+import { syncMuteList } from "~/lib/mute-list";
 import { authorName, shortNpub } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 
@@ -16,7 +17,24 @@ const LINK = "min-w-0 truncate font-mono text-xs hover:underline";
 const REMOVE =
   "shrink-0 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:text-signal-closed";
 
+const ACTION =
+  "rounded-sm border border-rule px-3 py-1.5 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink";
+
 const shorten = (id: string): string => `${id.slice(0, 10)}...${id.slice(-4)}`;
+
+/** Where the list stands between this device and the relays, in one sentence. */
+const standing = (blocked: Blocked, me: string | null): string => {
+  if (me === null) {
+    return "Kept on this device. Connect a key and it is published as your mute list, so your other clients follow it.";
+  }
+  const owed = blocked.owed.length;
+  if (owed > 0) {
+    return `${owed === 1 ? "1 change is" : `${owed} changes are`} not published yet. ${owed === 1 ? "It goes" : "They go"} out once your relays answer.`;
+  }
+  return blocked.published
+    ? "Published as your mute list. Your other clients read the same one."
+    : "Reading your mute list from your relays.";
+};
 
 const Rows = ({
   title,
@@ -50,7 +68,7 @@ const Row = ({ target, children }: { target: MuteTarget; children: React.ReactNo
  * its id and not the document it hangs from, and a relay round trip to draw a
  * row whose only control is Unblock is not worth the row.
  */
-export const BlockedList = () => {
+export const BlockedList = ({ me }: { me: string | null }) => {
   const blocked = useBlocked();
   const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
 
@@ -78,7 +96,25 @@ export const BlockedList = () => {
           What you block is hidden from you on this site. Nobody is told, and nothing is hidden from
           anyone else.
         </p>
-        <p className={NOTE}>Kept on this device.</p>
+        <p className={NOTE}>{standing(blocked, me)}</p>
+        {blocked.hasPrivate && (
+          <p className={NOTE}>
+            Your list also holds private items this site cannot read. They are kept as they are.
+          </p>
+        )}
+        {/* The way back after a signer said no: everything here, offered again. */}
+        {me !== null && !empty && (
+          <button
+            type="button"
+            className={ACTION}
+            onClick={() => {
+              requeueAll();
+              void syncMuteList();
+            }}
+          >
+            Publish now
+          </button>
+        )}
       </section>
 
       {empty && <p className={NOTE}>Nothing blocked.</p>}

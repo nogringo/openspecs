@@ -23,6 +23,7 @@ import {
   identityRelays,
   MAX_WRITE_RELAYS,
   MAX_ZAP_RELAYS,
+  muteListRelays,
   newKeyRelays,
   PUBLIC_RELAYS,
   relayListRelays,
@@ -50,6 +51,17 @@ beforeEach(() => {
 });
 
 afterEach(() => vi.restoreAllMocks());
+
+describe("muteListRelays", () => {
+  it("is my own write relays and then the ones this site reads", async () => {
+    expect(await muteListRelays(ME)).toEqual(["wss://mine.example", ...nostr.DEFAULT_RELAYS]);
+  });
+
+  it("falls back to the relays this site reads for a key with no list", async () => {
+    nostr.writeRelaysOf.mockResolvedValue([]);
+    expect(await muteListRelays(ME)).toEqual(nostr.DEFAULT_RELAYS);
+  });
+});
 
 describe("reportRelays", () => {
   it("starts with mine and the reported key's own, then reaches everywhere else", async () => {
