@@ -95,12 +95,12 @@ export const ReportForm = ({
       <>
         <p className={NOTE}>
           {nameless
-            ? "Sent from a key made for this and thrown away. Nobody can tie it to you, and most relays give such a report little weight."
-            : "A report is a signed public event. Anyone can read it, and it names you as the reporter."}
+            ? "Sent without your name. Nobody can tie it to you, and it carries less weight for it."
+            : "A report is public, and it carries your name."}
         </p>
         <p className={NOTE}>
-          It goes to every relay this page knows about, so the people who run them see it. This site
-          hides nothing on the strength of a report; blocking is what does that, for you alone.
+          It goes to the people who run the relays. This site hides nothing on the strength of a
+          report: blocking is what does that, for you alone.
         </p>
 
         <fieldset className="space-y-1.5">
@@ -123,8 +123,8 @@ export const ReportForm = ({
           value={words}
           onChange={(event) => setWords(event.target.value)}
           rows={3}
-          placeholder="Anything else the relays should know. Optional."
-          aria-label="Anything else the relays should know"
+          placeholder="Anything else worth saying. Optional."
+          aria-label="Anything else worth saying"
           className={`${FIELD} font-serif text-[0.9375rem] leading-relaxed`}
         />
 

@@ -25,15 +25,15 @@ const shorten = (id: string): string => `${id.slice(0, 10)}...${id.slice(-4)}`;
 /** Where the list stands between this device and the relays, in one sentence. */
 const standing = (blocked: Blocked, me: string | null): string => {
   if (me === null) {
-    return "Kept on this device. Connect a key and it is published as your mute list, so your other clients follow it.";
+    return "Kept on this device. Connect a key and your other apps follow it too.";
   }
   const owed = blocked.owed.length;
   if (owed > 0) {
     return `${owed === 1 ? "1 change is" : `${owed} changes are`} not published yet. ${owed === 1 ? "It goes" : "They go"} out once your relays answer.`;
   }
   return blocked.published
-    ? "Published as your mute list. Your other clients read the same one."
-    : "Reading your mute list from your relays.";
+    ? "Shared with your other apps."
+    : "Reading what you already blocked elsewhere.";
 };
 
 const Rows = ({
@@ -92,15 +92,10 @@ export const BlockedList = ({ me }: { me: string | null }) => {
   return (
     <div className="space-y-12">
       <section className="space-y-3">
-        <p className={NOTE}>
-          What you block is hidden from you on this site. Nobody is told, and nothing is hidden from
-          anyone else.
-        </p>
+        <p className={NOTE}>What you block is hidden from you on this site. Nobody is told.</p>
         <p className={NOTE}>{standing(blocked, me)}</p>
         {blocked.hasPrivate && (
-          <p className={NOTE}>
-            Your list also holds private items this site cannot read. They are kept as they are.
-          </p>
+          <p className={NOTE}>Part of your list is private, and this site cannot read that part.</p>
         )}
         {/* The way back after a signer said no: everything here, offered again. */}
         {me !== null && !empty && (
