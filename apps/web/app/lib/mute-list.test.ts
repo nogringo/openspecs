@@ -249,16 +249,37 @@ describe("what a refused signature does", () => {
     expect(blockedState().owed).toEqual([]);
   });
 
-  it("drops the debt when the reader said no, and keeps the blocks on this device", async () => {
+  it("keeps the debt when the reader said no, and the blocks with it", async () => {
     mocks.signDraft.mockRejectedValueOnce(new Error("user rejected"));
     block({ type: "p", value: ALICE });
     connect(ME);
     startMuteSync();
     await flush();
 
-    expect(blockedState().owed).toEqual([]);
+    expect(blockedState().owed).toHaveLength(1);
+    expect(blockedState().refused).toBe(true);
     expect(blockedState().pubkeys.has(ALICE)).toBe(true);
     expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("does not ask again on its own, and asks once the reader blocks something else", async () => {
+    mocks.signDraft.mockRejectedValueOnce(new Error("user rejected"));
+    block({ type: "p", value: ALICE });
+    connect(ME);
+    startMuteSync();
+    await flush();
+    expect(mocks.signDraft).toHaveBeenCalledTimes(1);
+
+    await syncMuteList();
+    await flush();
+    expect(mocks.signDraft).toHaveBeenCalledTimes(1);
+
+    block({ type: "p", value: BOB });
+    await flush();
+    expect(tagsSigned().at(-1)).toEqual([
+      ["p", ALICE],
+      ["p", BOB],
+    ]);
   });
 });
 

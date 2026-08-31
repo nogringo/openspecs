@@ -2,9 +2,9 @@ import type { NostrEvent } from "@openspecs/nostr";
 import {
   applyLive,
   blockedState,
-  dropOwed,
   markUnpublished,
   type Owed,
+  pauseOwed,
   settleOwed,
   subscribeBlocked,
 } from "./blocked";
@@ -78,8 +78,8 @@ const round = async (me: string): Promise<void> => {
   const live = newer(read.event, lastSigned);
   applyLive(nostr.parseMuteList(live) ?? NOTHING);
 
-  const owed = blockedState().owed;
-  if (owed.length === 0) return;
+  const { owed, refused } = blockedState();
+  if (refused || owed.length === 0) return;
 
   const strip = ({ type, value }: Owed) => ({ type, value });
   const draft = nostr.editMuteList(live, {
@@ -102,10 +102,10 @@ const round = async (me: string): Promise<void> => {
     });
   } catch (reason) {
     // A key still under its passphrase signs later. A reader who said no in
-    // their extension is not asked again on every page: the blocks stay on
-    // this device, and the settings page offers to publish them.
+    // their extension is not asked again on every page: the debt waits until
+    // they block something else, or ask for it on the settings page.
     if (reason instanceof SessionLocked || reason instanceof SessionMissing) return;
-    dropOwed();
+    pauseOwed();
     return;
   }
   if (sessionState().pubkey !== me) return;

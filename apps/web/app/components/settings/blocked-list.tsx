@@ -2,7 +2,7 @@ import { authorPath, parseCoordinate, specPath, toNpub } from "@openspecs/nostr"
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
-import { type Blocked, type MuteTarget, requeueAll, unblock, useBlocked } from "~/lib/blocked";
+import { type Blocked, type MuteTarget, resumeOwed, unblock, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
 import { syncMuteList } from "~/lib/mute-list";
 import { authorName, shortNpub } from "~/lib/profile";
@@ -27,10 +27,8 @@ const standing = (blocked: Blocked, me: string | null): string => {
   if (me === null) {
     return "Kept on this device. Connect a key and your other apps follow it too.";
   }
-  const owed = blocked.owed.length;
-  if (owed > 0) {
-    return `${owed === 1 ? "1 change is" : `${owed} changes are`} not published yet. ${owed === 1 ? "It goes" : "They go"} out once your relays answer.`;
-  }
+  if (blocked.refused) return "Kept on this device. You turned down the signature.";
+  if (blocked.owed.length > 0) return "Sharing this with your other apps.";
   return blocked.published
     ? "Shared with your other apps."
     : "Reading what you already blocked elsewhere.";
@@ -97,17 +95,17 @@ export const BlockedList = ({ me }: { me: string | null }) => {
         {blocked.hasPrivate && (
           <p className={NOTE}>Part of your list is private, and this site cannot read that part.</p>
         )}
-        {/* The way back after a signer said no: everything here, offered again. */}
-        {me !== null && !empty && (
+        {/* The way back after a signer said no. Nothing else brings this up. */}
+        {blocked.refused && (
           <button
             type="button"
             className={ACTION}
             onClick={() => {
-              requeueAll();
+              resumeOwed();
               void syncMuteList();
             }}
           >
-            Publish now
+            Try again
           </button>
         )}
       </section>

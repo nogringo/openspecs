@@ -4,13 +4,13 @@ import {
   block,
   blockedState,
   clearBlocked,
-  dropOwed,
   hidesComment,
   hidesSpec,
   isBlocked,
   markUnpublished,
   parseBlocked,
-  requeueAll,
+  pauseOwed,
+  resumeOwed,
   settleOwed,
   subscribeBlocked,
   unblock,
@@ -174,27 +174,30 @@ describe("the debt", () => {
     expect(blockedState().owed).toEqual([{ op: "add", type: "p", value: BOB }]);
   });
 
-  it("is dropped when the signer refuses, and the blocks stay", () => {
+  it("is kept when the signer refuses, and the blocks stay", () => {
     block({ type: "p", value: ALICE });
-    dropOwed();
-    expect(blockedState().owed).toEqual([]);
+    pauseOwed();
+    expect(blockedState().owed).toEqual([{ op: "add", type: "p", value: ALICE }]);
+    expect(blockedState().refused).toBe(true);
     expect(blockedState().pubkeys.has(ALICE)).toBe(true);
   });
 
-  it("can be owed again in full, keeping a removal in flight", () => {
+  it("waits, after a refusal, for the reader to ask again", () => {
     applyLive({ pubkeys: [BOB], eventIds: [], coordinates: [] });
-    unblock({ type: "p", value: BOB });
     block({ type: "p", value: ALICE });
+    pauseOwed();
+
+    resumeOwed();
+    expect(blockedState().refused).toBe(false);
+    expect(blockedState().owed).toEqual([{ op: "add", type: "p", value: ALICE }]);
+  });
+
+  it("takes another block as the reader asking again", () => {
+    block({ type: "p", value: ALICE });
+    pauseOwed();
+
     block({ type: "a", value: COORDINATE });
-    dropOwed();
-
-    requeueAll();
-    expect(blockedState().owed).toEqual([
-      { op: "add", type: "p", value: ALICE },
-      { op: "add", type: "a", value: COORDINATE },
-    ]);
-
-    unblock({ type: "p", value: BOB });
+    expect(blockedState().refused).toBe(false);
     expect(blockedState().owed).toEqual([
       { op: "add", type: "p", value: ALICE },
       { op: "add", type: "a", value: COORDINATE },
@@ -215,6 +218,7 @@ describe("the record on disk", () => {
         { op: "add", type: "p", value: ALICE },
         { op: "add", type: "e", value: NOTE },
       ],
+      refused: false,
     });
   });
 

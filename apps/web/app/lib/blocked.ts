@@ -13,7 +13,7 @@ export type MuteTarget = { type: MuteType; value: string };
 export type Owed = MuteTarget & { op: "add" | "remove" };
 
 /** On disk. The three lists are what is hidden; `owed` is what the relays have not been told. */
-type Stored = { v: 1; p: string[]; e: string[]; a: string[]; owed: Owed[] };
+type Stored = { v: 1; p: string[]; e: string[]; a: string[]; owed: Owed[]; refused: boolean };
 
 /** In memory, what every consumer reads. */
 export type Blocked = {
@@ -25,9 +25,11 @@ export type Blocked = {
   published: boolean;
   /** That list also holds encrypted items, which this site keeps as they are and cannot show. */
   hasPrivate: boolean;
+  /** The reader turned down the signature, so nothing is signed until they ask again. */
+  refused: boolean;
 };
 
-const EMPTY: Stored = { v: 1, p: [], e: [], a: [], owed: [] };
+const EMPTY: Stored = { v: 1, p: [], e: [], a: [], owed: [], refused: false };
 
 export const NO_BLOCKS: Blocked = Object.freeze({
   pubkeys: new Set<string>(),
@@ -36,6 +38,7 @@ export const NO_BLOCKS: Blocked = Object.freeze({
   owed: [],
   published: false,
   hasPrivate: false,
+  refused: false,
 });
 
 const HEX_64 = /^[0-9a-f]{64}$/;
@@ -71,7 +74,14 @@ export const parseBlocked = (input: unknown): Stored | null => {
     }
   }
 
-  return { v: BLOCKED_VERSION, p: list("p"), e: list("e"), a: list("a"), owed };
+  return {
+    v: BLOCKED_VERSION,
+    p: list("p"),
+    e: list("e"),
+    a: list("a"),
+    owed,
+    refused: record.refused === true,
+  };
 };
 
 const store = (): Storage | undefined =>
@@ -105,6 +115,7 @@ const asSnapshot = (stored: Stored): Blocked => ({
   owed: stored.owed,
   published,
   hasPrivate,
+  refused: stored.refused,
 });
 
 /** Kept in memory whether or not the disk took it: storage is an accelerator, never a dependency. */
@@ -152,6 +163,8 @@ const same = (a: MuteTarget, b: MuteTarget): boolean => a.type === b.type && a.v
  * The sets say what is hidden; `owed` says how that differs from the last list
  * the relays were given. A click that undoes an unsent one cancels the debt
  * rather than adding a second entry, so five changes of mind owe nothing.
+ *
+ * A click is also the reader asking for their list again, so it lifts a refusal.
  */
 const change = (target: MuteTarget, op: "add" | "remove"): void => {
   if (!valid(target.type, target.value)) return;
@@ -171,6 +184,7 @@ const change = (target: MuteTarget, op: "add" | "remove"): void => {
         ? [...current[target.type], target.value]
         : current[target.type].filter((value) => value !== target.value),
     owed,
+    refused: false,
   });
 };
 
@@ -239,30 +253,21 @@ export const settleOwed = (done: readonly Owed[]): void => {
   });
 };
 
-/** The signer refused. The blocks stay on this device; the debt is forgotten. */
-export const dropOwed = (): void => write({ ...read(), owed: [] });
+/**
+ * The signer refused. The blocks stay on this device and the debt stays owed,
+ * but nothing is signed until the reader asks, by blocking something else or by
+ * saying so on the settings page. Otherwise every page load asks them again.
+ */
+export const pauseOwed = (): void => write({ ...read(), refused: true });
 
-/** Everything here, owed again as additions. What "Publish now" does. */
-export const requeueAll = (): void => {
-  const current = read();
-  const adds = (type: MuteType) =>
-    current[type].map((value) => ({ op: "add" as const, type, value }));
-  write({
-    ...current,
-    owed: [
-      ...current.owed.filter((entry) => entry.op === "remove"),
-      ...adds("p"),
-      ...adds("e"),
-      ...adds("a"),
-    ],
-  });
-};
+/** The reader asked for it again. */
+export const resumeOwed = (): void => write({ ...read(), refused: false });
 
 /** A different key connected, or none: whatever list was read belonged to the last one. */
 export const markUnpublished = (): void => {
   published = false;
   hasPrivate = false;
-  write(read());
+  write({ ...read(), refused: false });
 };
 
 export const clearBlocked = (): void => {
