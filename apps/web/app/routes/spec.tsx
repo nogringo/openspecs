@@ -12,7 +12,6 @@ import { data, Link, redirect } from "react-router";
 import { AnnotatedDoc } from "~/components/annotated-doc";
 import { AuthorAvatar } from "~/components/author-avatar";
 import { CHROME } from "~/components/chrome";
-import { CopyButton } from "~/components/copy-button";
 import { Discussion } from "~/components/discussion/discussion";
 import { LikeButton } from "~/components/discussion/like-button";
 import { EditLink } from "~/components/editor/edit-link";
@@ -20,7 +19,6 @@ import { Withdraw } from "~/components/editor/withdraw";
 import { ErrorPage } from "~/components/error-page";
 import { BlockedNotice } from "~/components/moderation/blocked-notice";
 import { More } from "~/components/moderation/more";
-import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
 import { VARIANTS_ID, Variants } from "~/components/variants";
@@ -326,8 +324,8 @@ const Masthead = ({
 
     <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
       <LikeButton coordinate={toCoordinate(spec)} specEventId={spec.eventId} pubkey={spec.pubkey} />
-      {/* At the head with the reaction, because those two are the things done to
-          the document. What follows takes a copy of it somewhere else.
+      {/* Beside the reaction, because those two are what a reader does with the
+          document itself. Everything else it has to offer is one word further on.
 
           Drawn on the server for everybody, with no session gating: the page it
           leads to offers the ways in, and a control appearing a tick after paint
@@ -340,18 +338,12 @@ const Masthead = ({
       >
         Fork
       </Link>
-      <CopyButton value={canonical} label="Copy link" title={canonical} />
-      <CopyButton
-        value={spec.naddr}
-        label="Copy naddr"
-        title="The document's Nostr address, for any client"
-      />
-      <CopyButton
-        value={() => fetch(eventPath(spec.npub, spec.identifier)).then((event) => event.text())}
-        label="Copy event"
-        title="The signed event, exactly as the relays serve it"
-      />
-      <Rebroadcast eventUrl={eventPath(spec.npub, spec.identifier)} relays={relays} />
+      {/* Before the menu, though both arrive a tick after paint and push it
+          along when they do. A named action sitting after a catch-all reads as
+          something that fell out of it, and that misreading is on the page for
+          as long as an author is looking at their own document. */}
+      <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
+      <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
       <More
         target={{
           kind: "document",
@@ -359,10 +351,10 @@ const Masthead = ({
           id: spec.eventId,
           coordinate: toCoordinate(spec),
           identifier: spec.identifier,
+          canonical,
+          relays,
         }}
       />
-      <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
-      <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
     </div>
   </header>
 );

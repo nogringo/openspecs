@@ -9,7 +9,16 @@ type State = "idle" | "sending" | "done" | "failed";
  * every relay checks that signature itself. So this asks for no account, keeps
  * no session, and works the same in a private window.
  */
-export const Rebroadcast = ({ eventUrl, relays }: { eventUrl: string; relays: string[] }) => {
+export const Rebroadcast = ({
+  eventUrl,
+  relays,
+  className = "rounded-sm border border-rule px-2 py-1 text-muted hover:border-muted hover:text-ink disabled:hover:border-rule disabled:hover:text-muted",
+}: {
+  eventUrl: string;
+  relays: string[];
+  /** The face it wears, so the same button reads as a row inside a menu. */
+  className?: string;
+}) => {
   const [state, setState] = useState<State>("idle");
   const [results, setResults] = useState<RelayResult[]>([]);
 
@@ -35,7 +44,7 @@ export const Rebroadcast = ({ eventUrl, relays }: { eventUrl: string; relays: st
         onClick={send}
         disabled={state === "sending"}
         title={`Publish this event again to ${relays.length} relays`}
-        className="rounded-sm border border-rule px-2 py-1 text-muted hover:border-muted hover:text-ink disabled:hover:border-rule disabled:hover:text-muted"
+        className={className}
       >
         {state === "idle" ? "Rebroadcast" : state === "sending" ? "Sending" : "Rebroadcast again"}
       </button>
