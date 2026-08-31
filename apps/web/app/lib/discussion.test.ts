@@ -12,6 +12,7 @@ vi.mock("@openspecs/nostr", async (importOriginal) => ({
 
 import { buildComment, buildReaction, type NostrEvent, SPEC_KIND } from "@openspecs/nostr";
 import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
+import { block, clearBlocked } from "./blocked";
 import {
   clearDiscussion,
   discussionState,
@@ -52,9 +53,10 @@ let main: Channel;
 let references: Channel[];
 
 beforeEach(() => {
-  vi.stubGlobal("window", {});
+  vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
   vi.useFakeTimers();
   clearDiscussion();
+  clearBlocked();
   references = [];
 
   nostr.subscribeDiscussion.mockImplementation((_pointer, onEvent, options) => {
@@ -255,6 +257,33 @@ describe("what it counts", () => {
     await vi.advanceTimersByTimeAsync(600);
 
     expect(discussionState().document.reactions[0]).toMatchObject({ symbol: "+", count: 1 });
+  });
+
+  it("takes a blocked key's reaction out of the tally, and keeps their comment in the record", async () => {
+    startDiscussion(POINTER);
+    main.send(
+      finalizeEvent(
+        {
+          ...buildReaction({
+            id: SPEC_EVENT_ID,
+            pubkey: author,
+            kind: SPEC_KIND,
+            coordinate: ROOT.coordinate,
+          }),
+          created_at: 10,
+        },
+        readerKey,
+      ),
+    );
+    main.send(comment("still here, folded", 11));
+    main.eose();
+    await vi.advanceTimersByTimeAsync(600);
+
+    block({ type: "p", value: getPublicKey(readerKey) });
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(discussionState().document.reactions).toEqual([]);
+    expect(discussionState().count).toBe(1);
   });
 
   it("keeps a reply under the comment it answers", async () => {

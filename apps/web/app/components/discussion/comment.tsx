@@ -4,6 +4,9 @@ import { authorPath, COMMENT_KIND, toNpub } from "@openspecs/nostr";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
+import { CHROME } from "~/components/chrome";
+import { More } from "~/components/moderation/more";
+import { hidesComment, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
 import { NO_RESPONSE, type Response } from "~/lib/discussion";
 import { mentionedKeys, mentionResolver } from "~/lib/mention";
@@ -78,6 +81,52 @@ export const CommentThread = ({
   const npub = toNpub(comment.pubkey);
   const author = authors[comment.pubkey] ?? null;
 
+  const blocked = useBlocked();
+  /** Opened by hand, for this visit: a block is not a lock. */
+  const [shownAnyway, setShownAnyway] = useState(false);
+
+  const replies = node.replies.length > 0 && (
+    <div className={depth < MAX_DEPTH ? SPINE : "mt-6 space-y-6"}>
+      {node.replies.map((reply) => (
+        <CommentThread
+          key={reply.comment.id}
+          node={reply}
+          authors={authors}
+          responses={responses}
+          root={root}
+          me={me}
+          depth={Math.min(depth + 1, MAX_DEPTH)}
+        />
+      ))}
+    </div>
+  );
+
+  // Collapsed to a line in its place rather than taken out, so what was said
+  // in answer keeps its thread. The blank on the left is where the mark of the
+  // key would be: the replies below stay in the column they had.
+  if (hidesComment(blocked, comment) && !shownAnyway) {
+    return (
+      <article id={comment.id} className="relative scroll-mt-24">
+        <div className="flex gap-3">
+          <span aria-hidden="true" className="w-6 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="flex flex-wrap items-center gap-3 font-mono text-xs text-muted">
+              <span>
+                {blocked.pubkeys.has(comment.pubkey)
+                  ? "From an account you blocked."
+                  : "A comment you blocked."}
+              </span>
+              <button type="button" onClick={() => setShownAnyway(true)} className={CHROME}>
+                Show
+              </button>
+            </p>
+            {replies}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   return (
     // Addressable, so a notification can land on the comment it is about rather
     // than on the conversation holding it. The margin is what keeps the header
@@ -127,6 +176,7 @@ export const CommentThread = ({
                 Reply
               </button>
             )}
+            <More target={{ kind: "comment", pubkey: comment.pubkey, id: comment.id }} />
           </div>
 
           {me !== null && replying && (
@@ -142,21 +192,7 @@ export const CommentThread = ({
             </div>
           )}
 
-          {node.replies.length > 0 && (
-            <div className={depth < MAX_DEPTH ? SPINE : "mt-6 space-y-6"}>
-              {node.replies.map((reply) => (
-                <CommentThread
-                  key={reply.comment.id}
-                  node={reply}
-                  authors={authors}
-                  responses={responses}
-                  root={root}
-                  me={me}
-                  depth={Math.min(depth + 1, MAX_DEPTH)}
-                />
-              ))}
-            </div>
-          )}
+          {replies}
         </div>
       </div>
     </article>

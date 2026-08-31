@@ -1,4 +1,4 @@
-import { generateSecretKey, getPublicKey } from "nostr-tools/pure";
+import { generateSecretKey, getPublicKey, verifyEvent } from "nostr-tools/pure";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const pool = vi.hoisted(() => ({ publish: vi.fn(), destroy: vi.fn() }));
@@ -13,7 +13,7 @@ const session = vi.hoisted(() => ({ signer: vi.fn(), sessionState: vi.fn() }));
 vi.mock("./session", () => session);
 
 import { setNamesClient } from "./client-tag";
-import { publishTo, signAndPublish, toResult } from "./publish";
+import { publishAnonymously, publishTo, signAndPublish, toResult } from "./publish";
 import { SessionMismatch, SessionMissing } from "./signer";
 import { keySigner } from "./signer-key";
 
@@ -134,6 +134,29 @@ describe("publishTo", () => {
     expect(results.find((result) => !result.accepted)?.message).toBe(
       "blocked: pubkey not admitted",
     );
+  });
+});
+
+describe("publishAnonymously", () => {
+  it("signs with a key made for the event, a different one each time, and never asks the session", async () => {
+    const first = await publishAnonymously(DRAFT, RELAYS);
+    const second = await publishAnonymously(DRAFT, Promise.resolve(RELAYS));
+
+    expect(verifyEvent(first.event)).toBe(true);
+    expect(first.event.pubkey).not.toBe(pubkey);
+    expect(first.event.pubkey).not.toBe(second.event.pubkey);
+    expect(session.signer).not.toHaveBeenCalled();
+    expect(first.accepted).toBe(2);
+  });
+
+  it("names the app only when this browser was asked to, like every other signature", async () => {
+    const tagged = { ...DRAFT, tags: [...DRAFT.tags, ["client", "Open Specs"]] };
+    const quiet = await publishAnonymously(tagged, RELAYS);
+    expect(quiet.event.tags.some((tag) => tag[0] === "client")).toBe(false);
+
+    setNamesClient(true);
+    const named = await publishAnonymously(tagged, RELAYS);
+    expect(named.event.tags.some((tag) => tag[0] === "client")).toBe(true);
   });
 });
 

@@ -1,12 +1,30 @@
 import {
+  authorRelays,
   DEFAULT_RELAYS,
   DISCUSSION_RELAYS,
   fetchRelayLists,
+  IMPORT_RELAYS,
   INDEXER_RELAYS,
   MAX_RELAYS_PER_AUTHOR,
   relaySet,
   writeRelaysOf,
 } from "@openspecs/nostr";
+
+/**
+ * Large, open to anyone's writes, and run by different operators. Where a
+ * rebroadcast goes beyond the relays this project reads, so that no single
+ * operator decides whether a document survives, and where a report goes, so
+ * that the operators who might act on one see it.
+ */
+export const PUBLIC_RELAYS = [
+  "wss://relay.damus.io",
+  "wss://nos.lol",
+  "wss://relay.primal.net",
+  "wss://nostr.mom",
+  "wss://offchain.pub",
+  "wss://relay.snort.social",
+  "wss://nostr-01.yakihonne.com",
+];
 
 /**
  * Relay hints found on the event being answered. Two, because a hint is a guess
@@ -43,6 +61,14 @@ export const outboxRelays = async (me: string): Promise<string[]> => {
  * rebroadcast button on its own page is for.
  */
 export const documentRelays = async (me: string): Promise<string[]> =>
+  relaySet(await outboxRelays(me), DEFAULT_RELAYS).slice(0, MAX_WRITE_RELAYS);
+
+/**
+ * Where a key's mute list is read from and written back to: the same set both
+ * ways, for the reason `identityRelays` gives. Its own write relays, since that
+ * is where its other clients put the list, then the relays this site reads.
+ */
+export const muteListRelays = async (me: string): Promise<string[]> =>
   relaySet(await outboxRelays(me), DEFAULT_RELAYS).slice(0, MAX_WRITE_RELAYS);
 
 /**
@@ -146,11 +172,10 @@ export type WriteTarget = {
  *    that is what decides whether nostrhub shows the comment;
  * 5. the relays this site reads, or the page that counts it cannot find it.
  *
- * `PUBLIC_RELAYS` is deliberately not here. It lives in `relays.server.ts` for
- * rebroadcasting a signed document, where no key is involved and every relay
- * checks the signature itself. Spraying a first-time key's reply across seven
- * large relays collects rate-limit refusals, and a row of red squares makes a
- * comment that worked look broken.
+ * `PUBLIC_RELAYS` is deliberately not here. Rebroadcasting a signed document
+ * involves no key, and a report goes to operators on purpose; spraying a
+ * first-time key's reply across seven large relays collects rate-limit
+ * refusals, and a row of red squares makes a comment that worked look broken.
  */
 export const writeRelays = async (me: string, target: WriteTarget): Promise<string[]> => {
   const [mine, theirs] = await Promise.all([
@@ -165,6 +190,39 @@ export const writeRelays = async (me: string, target: WriteTarget): Promise<stri
     DISCUSSION_RELAYS,
     DEFAULT_RELAYS,
   ).slice(0, MAX_WRITE_RELAYS);
+};
+
+/**
+ * Where a report goes: everywhere this page can name, in this order.
+ *
+ * 1. my own write relays, so my own clients see what I signed. None for a
+ *    report sent from a key made on the spot: it has no clients;
+ * 2. the reported key's own relays, read and write, since the operators who
+ *    carry that key are the ones a report is for;
+ * 3. the relays this kind of client reads, where the conversation is;
+ * 4. the relays this site reads, and the one it runs, which is where a report
+ *    nobody else weighs is still read;
+ * 5. the indexers, so a report about an account sits beside the account;
+ * 6. the large operators.
+ *
+ * The one write set with no cap. Every input is bounded at its source, so the
+ * worst honest case is about thirty, and a report exists to reach operators:
+ * cutting from the tail would drop exactly them.
+ */
+export const reportRelays = async (me: string | null, reported: string): Promise<string[]> => {
+  const [mine, theirs] = await Promise.all([
+    me === null ? [] : outboxRelays(me),
+    authorRelays(reported).catch(() => []),
+  ]);
+  return relaySet(
+    mine,
+    theirs,
+    DISCUSSION_RELAYS,
+    DEFAULT_RELAYS,
+    IMPORT_RELAYS,
+    INDEXER_RELAYS,
+    PUBLIC_RELAYS,
+  );
 };
 
 /**

@@ -5,6 +5,7 @@ import { Pagination } from "~/components/pagination";
 import { SearchResults } from "~/components/search-results";
 import { Shell } from "~/components/shell";
 import { SpecRow } from "~/components/spec-row";
+import { useShown } from "~/lib/blocked";
 import { parsePage, parseSearchQuery, parseSpecFilter } from "~/lib/filter";
 import { PAGE_HEADERS } from "~/lib/http";
 import { likeKey, useLikes } from "~/lib/likes";
@@ -151,7 +152,8 @@ const Chip = ({ to, active, children }: { to: string; active: boolean; children:
 );
 
 export default function Specs({ loaderData }: Route.ComponentProps) {
-  const { specs, authors, topics, topic, kind, query, filtered, page, pages } = loaderData;
+  const { authors, topics, topic, kind, query, filtered, page, pages } = loaderData;
+  const specs = useShown(loaderData.specs);
   // Under a search the rows on screen are the results', which ask for their own.
   const likes = useLikes(query === null ? specs : NO_ROWS);
 

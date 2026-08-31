@@ -7,6 +7,7 @@ import {
   toCoordinate,
   toNpub,
 } from "@openspecs/nostr";
+import { useState } from "react";
 import { data, Link, redirect } from "react-router";
 import { AnnotatedDoc } from "~/components/annotated-doc";
 import { AuthorAvatar } from "~/components/author-avatar";
@@ -16,10 +17,13 @@ import { LikeButton } from "~/components/discussion/like-button";
 import { EditLink } from "~/components/editor/edit-link";
 import { Withdraw } from "~/components/editor/withdraw";
 import { ErrorPage } from "~/components/error-page";
+import { BlockedNotice } from "~/components/moderation/blocked-notice";
+import { More } from "~/components/moderation/more";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
 import { VARIANTS_ID, Variants } from "~/components/variants";
+import { hidesSpec, unblock, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { useLiveRevision } from "~/lib/live-revision";
@@ -27,7 +31,7 @@ import { publicOrigin } from "~/lib/origin.server";
 import { DISCUSSION_ID, eventPath, oembedPath, ogImagePath } from "~/lib/paths";
 import type { LinkPreview } from "~/lib/preview";
 import { loadLinkPreviews } from "~/lib/preview.server";
-import type { Author } from "~/lib/profile";
+import { type Author, shortNpub } from "~/lib/profile";
 import { loadAuthor } from "~/lib/profile.server";
 import { discussionRelays, rebroadcastRelays } from "~/lib/relays.server";
 import type { SpecPage } from "~/lib/spec-page";
@@ -310,6 +314,15 @@ const Masthead = ({
         title="The signed event, exactly as the relays serve it"
       />
       <Rebroadcast eventUrl={eventPath(spec.npub, spec.identifier)} relays={relays} />
+      <More
+        target={{
+          kind: "document",
+          pubkey: spec.pubkey,
+          id: spec.eventId,
+          coordinate: toCoordinate(spec),
+          identifier: spec.identifier,
+        }}
+      />
       <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
       <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
     </div>
@@ -392,11 +405,41 @@ const Article = ({
 }) => {
   const { shown, fresher, show } = useLiveRevision(served);
   // On the shown revision, not the served one: the marks sit on the text on screen.
-  const { variants, spots, standings } = useVariants(shown);
+  const { variants: every, spots, standings } = useVariants(shown);
+
+  const blocked = useBlocked();
+  const [shownAnyway, setShownAnyway] = useState(false);
+  const variants = every.filter(
+    (variant) => !hidesSpec(blocked, { pubkey: variant.pubkey, identifier: shown.identifier }),
+  );
 
   // A preview was fetched for the links the served revision cited. One that no
   // longer appears in the document has no business under it.
   const cited = previews.filter((preview) => shown.links.includes(preview.url));
+
+  // The title goes with the rest: it is the author's text too. What stays is
+  // the address, which is the reader's own way of knowing where they are.
+  const byAuthor = blocked.pubkeys.has(served.pubkey);
+  const byDocument = blocked.coordinates.has(toCoordinate(served));
+  if ((byAuthor || byDocument) && !shownAnyway) {
+    return (
+      <article className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
+        <BlockedNotice
+          line={
+            byAuthor
+              ? "You blocked the account that signed this document."
+              : "You blocked this document."
+          }
+          detail={`${shortNpub(served.npub)} / ${served.identifier}`}
+          onUnblock={() => {
+            if (byAuthor) unblock({ type: "p", value: served.pubkey });
+            if (byDocument) unblock({ type: "a", value: toCoordinate(served) });
+          }}
+          onShow={() => setShownAnyway(true)}
+        />
+      </article>
+    );
+  }
 
   return (
     <article className="mx-auto max-w-5xl px-6 py-12 sm:py-16">

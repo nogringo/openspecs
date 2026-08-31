@@ -8,6 +8,7 @@ export default [
     index("routes/settings/profile.tsx"),
     route("relays", "routes/settings/relays.tsx"),
     route("browser", "routes/settings/browser.tsx"),
+    route("blocked", "routes/settings/blocked.tsx"),
   ]),
   route("connect", "routes/connect.tsx"),
   route("notifications", "routes/notifications.tsx"),

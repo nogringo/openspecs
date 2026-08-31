@@ -15,6 +15,7 @@ import {
   threadComments,
   totalSats,
 } from "@openspecs/nostr";
+import { blockedState, subscribeBlocked } from "./blocked";
 
 export type DiscussionStatus = "idle" | "loading" | "ready";
 
@@ -82,6 +83,7 @@ let events = new Map<string, NostrEvent>();
 let asked = new Set<string>();
 let subscriptions: DiscussionSubscription[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
+let unwatch: (() => void) | null = null;
 
 const listeners = new Set<() => void>();
 
@@ -147,10 +149,20 @@ const recompute = (): Recomputed => {
   // Sorted twice, because a reply naming no document is only admitted once the
   // comments that do name it are known, and the first pass is what finds them.
   const named = sortDiscussion(all, current.coordinate, scope);
-  const discussion = sortDiscussion(all, current.coordinate, {
+  const sorted = sortDiscussion(all, current.coordinate, {
     ...scope,
     threadIds: new Set(named.comments.map((comment) => comment.id)),
   });
+
+  // A blocked key's comments stay in the record, collapsed where they are drawn
+  // so the replies under them keep their place. Their reactions and zaps have
+  // no place to keep, so they leave the tallies here.
+  const hidden = blockedState().pubkeys;
+  const discussion = {
+    ...sorted,
+    reactions: sorted.reactions.filter((reaction) => !hidden.has(reaction.pubkey)),
+    zaps: sorted.zaps.filter((zap) => zap.zapper === null || !hidden.has(zap.zapper)),
+  };
 
   paid = new Set(discussion.zaps.map((zap) => zap.bolt11.trim().toLowerCase()));
 
@@ -292,6 +304,7 @@ const close = (): void => {
  */
 export const startDiscussion = (next: DiscussionPointer): void => {
   if (typeof window === "undefined") return;
+  unwatch ??= subscribeBlocked(publishSoon);
   if (subscriptions.length > 0 && pointer?.coordinate === next.coordinate) return;
 
   close();
@@ -350,6 +363,8 @@ export const stopDiscussion = (): void => close();
 /** Test seam, and what a reader leaving the document behind eventually calls. */
 export const clearDiscussion = (): void => {
   close();
+  unwatch?.();
+  unwatch = null;
   events = new Map();
   asked = new Set();
   paid = new Set();

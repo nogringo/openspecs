@@ -133,6 +133,26 @@ export {
   type WalletInfo,
 } from "./nip47";
 export {
+  editMuteList,
+  fetchMuteList,
+  MUTE_LIST_KIND,
+  type MuteChange,
+  type MuteList,
+  type MuteListRead,
+  type MuteTarget,
+  type MuteType,
+  parseMuteList,
+} from "./nip51";
+export {
+  buildReport,
+  parseReport,
+  REPORT_KIND,
+  REPORT_TYPES,
+  type Report,
+  type ReportTarget,
+  type ReportType,
+} from "./nip56";
+export {
   buildZapRequest,
   parseZapReceipt,
   parseZapRequest,

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { useSearchParams } from "react-router";
+import { hidesSpec, useBlocked } from "~/lib/blocked";
 import { corpusState, serverCorpusState, startCorpus, subscribeCorpus } from "~/lib/corpus";
 import { parsePage } from "~/lib/filter";
 import { likeKey, useLikes } from "~/lib/likes";
@@ -39,14 +40,18 @@ export const SearchResults = ({
   // only the page changed, so its idea of which page this is would be stale.
   const [params] = useSearchParams();
 
+  // Filtered here rather than out of the corpus: what is on disk stays whole,
+  // so an unblock shows the rows again without reading the relays.
+  const blocked = useBlocked();
   const scoped = useMemo(
     () =>
       docs.filter(
         (doc) =>
           (topic === null || doc.topics.includes(topic)) &&
-          (kind === null || doc.kinds.some((ref) => ref.kind === kind)),
+          (kind === null || doc.kinds.some((ref) => ref.kind === kind)) &&
+          !hidesSpec(blocked, doc),
       ),
-    [docs, topic, kind],
+    [docs, topic, kind, blocked],
   );
   const hits = useMemo(() => searchDocs(scoped, query), [scoped, query]);
   const terms = useMemo(() => searchTerms(query), [query]);

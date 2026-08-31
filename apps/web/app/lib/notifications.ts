@@ -1,5 +1,6 @@
 import type { NostrEvent, Notice, Spec, Subscription } from "@openspecs/nostr";
 import { alertPermission, alertsWanted, clearAlerts, showAlert } from "./alerts";
+import { blockedState, subscribeBlocked } from "./blocked";
 import { alertLine, noticePath } from "./notice-copy";
 import { authorName } from "./profile";
 import { authorsState } from "./profiles";
@@ -64,6 +65,7 @@ let weighed = new Set<string>();
 let alertsFrom = 0;
 let subscriptions: Subscription[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
+let unwatch: (() => void) | null = null;
 
 /**
  * The relay client, once it has been fetched. Asked for rather than imported,
@@ -93,7 +95,11 @@ const notify = (): void => {
 const recompute = (): NoticesState => {
   if (me === null || nostr === null) return NO_NOTICES;
   const mark = seenAt(me) ?? 0;
-  const notices = nostr.sortNotices([...events.values()], { me, copies: [...copies.values()] });
+  const notices = nostr.sortNotices([...events.values()], {
+    me,
+    copies: [...copies.values()],
+    muted: blockedState(),
+  });
 
   return {
     me,
@@ -285,6 +291,7 @@ const open = async (pubkey: string): Promise<void> => {
  */
 export const startNotices = (pubkey: string): void => {
   if (typeof window === "undefined") return;
+  unwatch ??= subscribeBlocked(publishSoon);
   if (subscriptions.length > 0 && me === pubkey) return;
 
   close();
@@ -330,6 +337,8 @@ export const markNoticesSeen = (): void => {
 /** Signing out. The mark stays where it is: it belongs to the key, not the session. */
 export const clearNotices = (): void => {
   close();
+  unwatch?.();
+  unwatch = null;
   events = new Map();
   copies = new Map();
   names = new Set();
