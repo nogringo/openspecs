@@ -11,6 +11,7 @@ import { useState } from "react";
 import { data, Link, redirect } from "react-router";
 import { AnnotatedDoc } from "~/components/annotated-doc";
 import { AuthorAvatar } from "~/components/author-avatar";
+import { CHROME } from "~/components/chrome";
 import { CopyButton } from "~/components/copy-button";
 import { Discussion } from "~/components/discussion/discussion";
 import { LikeButton } from "~/components/discussion/like-button";
@@ -28,7 +29,7 @@ import { keyTextColor } from "~/lib/color";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { useLiveRevision } from "~/lib/live-revision";
 import { publicOrigin } from "~/lib/origin.server";
-import { DISCUSSION_ID, eventPath, oembedPath, ogImagePath } from "~/lib/paths";
+import { DISCUSSION_ID, eventPath, oembedPath, ogImagePath, specForkPath } from "~/lib/paths";
 import type { LinkPreview } from "~/lib/preview";
 import { loadLinkPreviews } from "~/lib/preview.server";
 import { type Author, shortNpub } from "~/lib/profile";
@@ -346,6 +347,17 @@ const Masthead = ({
           identifier: spec.identifier,
         }}
       />
+      {/* Drawn on the server for everybody, with no session gating: the page it
+          leads to offers the ways in, and a control appearing a tick after paint
+          for the already connected would hide this from the readers most likely
+          to have never signed anything. */}
+      <Link
+        to={specForkPath(spec.npub, spec.identifier)}
+        title="Write your own from this one"
+        className={CHROME}
+      >
+        Fork
+      </Link>
       <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
       <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
     </div>

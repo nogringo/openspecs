@@ -129,3 +129,12 @@ export const blockedSettingsPath = (): string => "/settings/blocked";
  */
 export const specEditPath = (npub: string, identifier: string): string =>
   `/spec/${npub}/${encodeURIComponent(identifier)}/edit`;
+
+/**
+ * Writing somebody else's document again under your own key. It hangs off the
+ * document it starts from, like the edit above it and the comparison beside it,
+ * because that is the thing being acted on: the document it makes has no address
+ * until its author picks one.
+ */
+export const specForkPath = (npub: string, identifier: string): string =>
+  `/spec/${npub}/${encodeURIComponent(identifier)}/fork`;

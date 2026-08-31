@@ -19,6 +19,7 @@ export default [
   route("atom.xml", "routes/atom.ts"),
   route("spec/:author/:identifier", "routes/spec.tsx"),
   route("spec/:author/:identifier/edit", "routes/spec-edit.tsx"),
+  route("spec/:author/:identifier/fork", "routes/spec-fork.tsx"),
   route("spec/:author/:identifier/diff/:other", "routes/spec-diff.tsx"),
   route("spec/:author/:identifier/event.json", "routes/event.ts"),
   route("og/:author/:identifier", "routes/og.ts"),

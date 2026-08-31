@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { connectPath, returnTo } from "./paths";
+import { connectPath, returnTo, specForkPath } from "./paths";
+
+describe("specForkPath", () => {
+  it("hangs off the document a fork starts from", () => {
+    expect(specForkPath("npub1abc", "nip-07")).toBe("/spec/npub1abc/nip-07/fork");
+  });
+
+  it("encodes an address that would otherwise read as a path", () => {
+    expect(specForkPath("npub1abc", "a b/c")).toBe("/spec/npub1abc/a%20b%2Fc/fork");
+  });
+});
 
 describe("connectPath", () => {
   it("is the bare address when nothing sent anybody there", () => {
