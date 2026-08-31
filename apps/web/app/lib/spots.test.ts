@@ -1,6 +1,6 @@
 import { parseSpec, SPEC_KIND, toNpub } from "@openspecs/nostr";
 import { describe, expect, it } from "vitest";
-import { compareCopies, type SpotBase } from "./spots";
+import { compareCopies, type SpotBase, standingKey } from "./spots";
 
 const BASE_KEY = "1336a17e161d0e8af2b68ee95ad2a479fc38bef96a17d6127ea02a40d28dd97e";
 const OTHER = "2446a17e161d0e8af2b68ee95ad2a479fc38bef96a17d6127ea02a40d28dd97e";
@@ -57,7 +57,9 @@ describe("compareCopies", () => {
     const other = specOf(OTHER, "Entirely different words about an unrelated idea altogether.");
     const { spots, standings } = compareCopies(base, [other]);
     expect(spots).toEqual([]);
-    expect(standings[OTHER]).toEqual({ kind: "independent" });
+    expect(standings[standingKey({ pubkey: OTHER, identifier: "nip-00" })]).toEqual({
+      kind: "independent",
+    });
   });
 
   it("marks blocks added before everything at element minus one", () => {
@@ -89,7 +91,10 @@ describe("compareCopies", () => {
   it("tells a copy's standing: how many passages it changes", () => {
     const other = specOf(OTHER, CONTENT.replace("Two says", "Two now says"));
     const { standings } = compareCopies(base, [other]);
-    expect(standings[OTHER]).toEqual({ kind: "kin", places: 1 });
+    expect(standings[standingKey({ pubkey: OTHER, identifier: "nip-00" })]).toEqual({
+      kind: "kin",
+      places: 1,
+    });
   });
 
   it("tells a copy reading the same, even when only a link target differs", () => {
@@ -97,6 +102,8 @@ describe("compareCopies", () => {
     const other = specOf(OTHER, linked.replace("./a.md", "./b.md"));
     const { spots, standings } = compareCopies({ ...base, content: linked }, [other]);
     expect(spots).toEqual([]);
-    expect(standings[OTHER]).toEqual({ kind: "same" });
+    expect(standings[standingKey({ pubkey: OTHER, identifier: "nip-00" })]).toEqual({
+      kind: "same",
+    });
   });
 });

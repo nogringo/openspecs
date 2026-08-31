@@ -20,7 +20,12 @@ export default [
   route("spec/:author/:identifier", "routes/spec.tsx"),
   route("spec/:author/:identifier/edit", "routes/spec-edit.tsx"),
   route("spec/:author/:identifier/fork", "routes/spec-fork.tsx"),
-  route("spec/:author/:identifier/diff/:other", "routes/spec-diff.tsx"),
+  route("spec/:author/:identifier/diff/:other", "routes/spec-diff.tsx", {
+    id: "spec-diff",
+  }),
+  route("spec/:author/:identifier/diff/:other/:otherIdentifier", "routes/spec-diff.tsx", {
+    id: "spec-diff-renamed",
+  }),
   route("spec/:author/:identifier/event.json", "routes/event.ts"),
   route("og/:author/:identifier", "routes/og.ts"),
   route("og/:author", "routes/og-author.ts"),

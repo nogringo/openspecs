@@ -18,6 +18,13 @@ export type SpotEntry = {
   diffHref: string;
 };
 
+/**
+ * One key may hold two copies of a document, one at this name and one it renamed,
+ * so a standing is filed under both halves of the address rather than the key.
+ */
+export const standingKey = (of: { pubkey: string; identifier: string }): string =>
+  `${of.pubkey}:${of.identifier}`;
+
 /** One place in the document where other keys' copies differ, however many do. */
 export type Spot = {
   /**
@@ -60,7 +67,7 @@ export type Standing = { kind: "kin"; places: number } | { kind: "same" } | { ki
 
 export type CopiesComparison = {
   spots: Spot[];
-  /** By the copy's pubkey. A copy whose comparison never ran has no standing. */
+  /** By `standingKey`. A copy whose comparison never ran has no standing. */
   standings: Record<string, Standing>;
 };
 
@@ -80,11 +87,12 @@ export const compareCopies = (base: SpotBase, others: Spec[]): CopiesComparison 
     const comparison = compareMarkdown(base.content, other.content, {
       mention: mentionResolver({}),
     });
+    const key = standingKey(other);
     if (comparison.similarity < KINSHIP_FLOOR) {
-      standings[other.pubkey] = { kind: "independent" };
+      standings[key] = { kind: "independent" };
       continue;
     }
-    standings[other.pubkey] =
+    standings[key] =
       comparison.changes.length === 0
         ? { kind: "same" }
         : { kind: "kin", places: comparison.changes.length };
@@ -98,7 +106,7 @@ export const compareCopies = (base: SpotBase, others: Spec[]): CopiesComparison 
         pubkey: other.pubkey,
         npub,
         html: change.html,
-        diffHref: diffPath(base.npub, base.identifier, npub),
+        diffHref: diffPath(base.npub, base.identifier, npub, other.identifier),
       });
       spots.set(element, spot);
     }
