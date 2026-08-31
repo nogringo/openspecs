@@ -326,6 +326,20 @@ const Masthead = ({
 
     <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
       <LikeButton coordinate={toCoordinate(spec)} specEventId={spec.eventId} pubkey={spec.pubkey} />
+      {/* At the head with the reaction, because those two are the things done to
+          the document. What follows takes a copy of it somewhere else.
+
+          Drawn on the server for everybody, with no session gating: the page it
+          leads to offers the ways in, and a control appearing a tick after paint
+          for the already connected would hide this from the readers most likely
+          to have never signed anything. */}
+      <Link
+        to={specForkPath(spec.npub, spec.identifier)}
+        title="Write your own from this one"
+        className={CHROME}
+      >
+        Fork
+      </Link>
       <CopyButton value={canonical} label="Copy link" title={canonical} />
       <CopyButton
         value={spec.naddr}
@@ -347,17 +361,6 @@ const Masthead = ({
           identifier: spec.identifier,
         }}
       />
-      {/* Drawn on the server for everybody, with no session gating: the page it
-          leads to offers the ways in, and a control appearing a tick after paint
-          for the already connected would hide this from the readers most likely
-          to have never signed anything. */}
-      <Link
-        to={specForkPath(spec.npub, spec.identifier)}
-        title="Write your own from this one"
-        className={CHROME}
-      >
-        Fork
-      </Link>
       <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
       <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
     </div>
