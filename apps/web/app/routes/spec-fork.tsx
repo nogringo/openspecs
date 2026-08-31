@@ -1,13 +1,11 @@
 import { fetchSpecEvent, type NostrEvent, parsePubkey, toNpub } from "@openspecs/nostr";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { Link } from "react-router";
 import { SpecEditor } from "~/components/editor/spec-editor";
 import { MakeKey } from "~/components/make-key";
 import { Shell } from "~/components/shell";
 import { SignInDialog } from "~/components/sign-in-dialog";
 import { Unlock } from "~/components/unlock";
 import { PAGE_HEADERS } from "~/lib/http";
-import { specEditPath } from "~/lib/paths";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
 import type { Route } from "./+types/spec-fork";
 
@@ -19,8 +17,6 @@ const WRONG = "font-serif text-[0.9375rem] leading-relaxed text-signal-closed";
 
 const ACTION =
   "rounded-sm border border-rule px-3 py-1.5 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:border-muted hover:text-ink";
-
-const LINK = "underline decoration-rule underline-offset-2 hover:decoration-current";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -130,20 +126,11 @@ export default function SpecForkRoute({ params }: Route.ComponentProps) {
             <Unlock />
           </div>
         ) : (
-          <div className="mt-10 space-y-6">
-            {/* Said before the form rather than after the refusal: a copy of your
-                own document under its own name is the document, and the only
-                other feedback would be the taken address the editor reports. */}
-            {me === pubkey && (
-              <p className={NOTE}>
-                This document is already yours. A copy of it under the same name is the same
-                document, so leave the address alone only if you meant to{" "}
-                <Link to={specEditPath(toNpub(pubkey), identifier)} className={LINK}>
-                  revise it
-                </Link>{" "}
-                instead.
-              </p>
-            )}
+          /* Nothing said here about forking your own document. The editor asks the
+             relays what this key already publishes at that address the moment it
+             opens, and answers that and a collision with somebody else's name in
+             the same words, beside the address they are about. */
+          <div className="mt-10">
             <SpecEditor
               me={me}
               npub={toNpub(me)}

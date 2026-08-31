@@ -52,6 +52,9 @@ type State = "editing" | "sending" | "sent" | "failed";
 /** Long enough that a sentence is one write rather than forty. */
 const SAVE_AFTER_MS = 800;
 
+/** Long enough that typing an address is one question to the relays, not a dozen. */
+const ASK_AFTER_MS = 600;
+
 const SAYING: Record<SpecFault, string> = {
   "no-identifier": "A document needs an address to be found under.",
   "no-title": "A document needs a title. It is what every listing and link preview shows.",
@@ -188,6 +191,19 @@ export const SpecEditor = ({
   const [results, setResults] = useState<RelayResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [taken, setTaken] = useState<string | null>(null);
+  /**
+   * The last address found to already hold a document of the reader's own, asked
+   * of the relays as it is typed rather than when Publish is pressed. A fork
+   * arrives wearing the name it came from, so the collision is its ordinary case
+   * and not a slip, and an address is also the one field somebody changes to get
+   * out of trouble, which is no help if the trouble only shows at the end.
+   *
+   * Never a refusal by itself. The relays may be unreachable, in which case this
+   * stays quiet and the guard before the signer is what answers.
+   */
+  const [standing, setStanding] = useState<string | null>(null);
+  /** One question per address, however many times the editor comes back to it. */
+  const answered = useRef(new Map<string, boolean>());
   const [held, setHeld] = useState<StoredDraft | null>(null);
 
   const existing = live !== null;
@@ -216,6 +232,14 @@ export const SpecEditor = ({
   const changed = JSON.stringify(build(draft)) !== JSON.stringify(build(published));
 
   const faults = specFaults(draft);
+  const wanted = draft.identifier.trim();
+  /**
+   * Known, not guessed: only an address the relays actually answered about. The
+   * guard before the signer would refuse this publish anyway, so an enabled
+   * button here promises a round trip that ends where the sentence beside the
+   * address already says it ends.
+   */
+  const clashes = standing !== null && wanted === standing;
   const suggested = toIdentifier(draft.title);
   // What the document is already shown under when it carries no title tag.
   const heading = draft.title === "" ? firstHeading(draft.content) : null;
@@ -230,6 +254,32 @@ export const SpecEditor = ({
       stored !== null && JSON.stringify(stored.draft) !== JSON.stringify(published) ? stored : null,
     );
   }, [me, slot, published]);
+
+  useEffect(() => {
+    // A published address never moves, so there is nothing to ask about.
+    if (existing || wanted === "") return;
+
+    const known = answered.current.get(wanted);
+    if (known !== undefined) {
+      setStanding(known ? wanted : null);
+      return;
+    }
+
+    let live = true;
+    const timer = setTimeout(() => {
+      fetchSpec({ pubkey: me, identifier: wanted })
+        .then((found) => {
+          answered.current.set(wanted, found !== null);
+          if (live) setStanding(found === null ? null : wanted);
+        })
+        .catch(() => {});
+    }, ASK_AFTER_MS);
+
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [existing, me, wanted]);
 
   useEffect(() => {
     if (!changed) return;
@@ -365,6 +415,16 @@ export const SpecEditor = ({
           }}
         />
 
+        {clashes && (
+          <p className={WRONG}>
+            You already publish a document at that address.{" "}
+            <Link to={specEditPath(npub, standing)} className="underline underline-offset-2">
+              Edit that one
+            </Link>
+            , or change the address above.
+          </p>
+        )}
+
         {/* Where the published page puts it: under the title, above the
             document, at the measure the rest of the prose is read at. */}
         <div className="pt-2">
@@ -401,7 +461,7 @@ export const SpecEditor = ({
           <button
             type="submit"
             className={ACTION}
-            disabled={(!changed && !forking) || faults.length > 0 || state === "sending"}
+            disabled={(!changed && !forking) || clashes || faults.length > 0 || state === "sending"}
           >
             {state === "sending" ? "Publishing" : existing ? "Publish revision" : "Publish"}
           </button>
