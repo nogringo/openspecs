@@ -17,7 +17,13 @@ import { rememberSpec } from "~/lib/corpus";
 import { specEditPath } from "~/lib/paths";
 import { type RelayResult, signAndPublish } from "~/lib/publish";
 import { documentRelays } from "~/lib/relays";
-import { clearDraft, readDraft, type StoredDraft, writeDraft } from "~/lib/spec-draft-store";
+import {
+  clearDraft,
+  type DraftSlot,
+  readDraft,
+  type StoredDraft,
+  writeDraft,
+} from "~/lib/spec-draft-store";
 import {
   ACTION,
   DocumentField,
@@ -128,7 +134,8 @@ export const SpecEditor = ({
   // first save turns a new document into an existing one, and the half written
   // draft it replaces is the one under the address it did not have yet.
   const slot = useMemo(
-    () => (initial === null ? null : specDraftOf(initial).identifier),
+    (): DraftSlot =>
+      initial === null ? { of: "new" } : { of: "doc", identifier: specDraftOf(initial).identifier },
     [initial],
   );
 
