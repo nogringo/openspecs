@@ -87,69 +87,93 @@ describe("parseStoredDraft", () => {
 describe("readDraft and writeDraft", () => {
   it("hands back what was written", () => {
     const record = stored();
-    writeDraft(ME, "a-document", record);
-    expect(readDraft(ME, "a-document")).toEqual(record);
+    writeDraft(ME, { of: "doc", identifier: "a-document" }, record);
+    expect(readDraft(ME, { of: "doc", identifier: "a-document" })).toEqual(record);
   });
 
   it("keeps the slot for a document apart from the one for a new document", () => {
-    writeDraft(ME, null, stored({ title: "Unaddressed" }));
-    writeDraft(ME, "a-document", stored({ title: "Addressed" }));
+    writeDraft(ME, { of: "new" }, stored({ title: "Unaddressed" }));
+    writeDraft(ME, { of: "doc", identifier: "a-document" }, stored({ title: "Addressed" }));
 
-    expect(readDraft(ME, null)?.draft.title).toBe("Unaddressed");
-    expect(readDraft(ME, "a-document")?.draft.title).toBe("Addressed");
+    expect(readDraft(ME, { of: "new" })?.draft.title).toBe("Unaddressed");
+    expect(readDraft(ME, { of: "doc", identifier: "a-document" })?.draft.title).toBe("Addressed");
   });
 
-  /** The one collision two prefixes exist to prevent. */
-  it("keeps a document identified as `new` apart from a new document", () => {
-    writeDraft(ME, null, stored({ title: "Unaddressed" }));
-    writeDraft(ME, "new", stored({ title: "A document called new" }));
+  it("keeps a fork apart from both, so starting one eats neither", () => {
+    const origin = `30817:${OTHER}:a-document`;
+    writeDraft(ME, { of: "new" }, stored({ title: "Unaddressed" }));
+    writeDraft(ME, { of: "doc", identifier: "a-document" }, stored({ title: "Addressed" }));
+    writeDraft(ME, { of: "fork", origin }, stored({ title: "Forked" }));
 
-    expect(readDraft(ME, null)?.draft.title).toBe("Unaddressed");
-    expect(readDraft(ME, "new")?.draft.title).toBe("A document called new");
+    expect(readDraft(ME, { of: "new" })?.draft.title).toBe("Unaddressed");
+    expect(readDraft(ME, { of: "doc", identifier: "a-document" })?.draft.title).toBe("Addressed");
+    expect(readDraft(ME, { of: "fork", origin })?.draft.title).toBe("Forked");
+  });
+
+  it("gives every origin a fork slot of its own", () => {
+    writeDraft(ME, { of: "fork", origin: `30817:${OTHER}:one` }, stored({ title: "One" }));
+    writeDraft(ME, { of: "fork", origin: `30817:${OTHER}:two` }, stored({ title: "Two" }));
+
+    expect(readDraft(ME, { of: "fork", origin: `30817:${OTHER}:one` })?.draft.title).toBe("One");
+    expect(readDraft(ME, { of: "fork", origin: `30817:${OTHER}:two` })?.draft.title).toBe("Two");
+  });
+
+  /** The collision the separate prefixes exist to prevent. */
+  it("keeps a document identified as `new` apart from a new document", () => {
+    writeDraft(ME, { of: "new" }, stored({ title: "Unaddressed" }));
+    writeDraft(ME, { of: "doc", identifier: "new" }, stored({ title: "A document called new" }));
+
+    expect(readDraft(ME, { of: "new" })?.draft.title).toBe("Unaddressed");
+    expect(readDraft(ME, { of: "doc", identifier: "new" })?.draft.title).toBe(
+      "A document called new",
+    );
   });
 
   it("keeps one key's draft out of another's", () => {
-    writeDraft(ME, "a-document", stored({ title: "Mine" }));
-    expect(readDraft(OTHER, "a-document")).toBeNull();
+    writeDraft(ME, { of: "doc", identifier: "a-document" }, stored({ title: "Mine" }));
+    expect(readDraft(OTHER, { of: "doc", identifier: "a-document" })).toBeNull();
   });
 
   it("has nothing to offer where nothing was written", () => {
-    expect(readDraft(ME, "never-typed")).toBeNull();
+    expect(readDraft(ME, { of: "doc", identifier: "never-typed" })).toBeNull();
   });
 
   it("leaves a draft too large to store unsaved rather than throwing", () => {
     const huge = stored({ content: "x".repeat(MAX_DRAFT_BYTES + 1) });
-    expect(() => writeDraft(ME, "big", huge)).not.toThrow();
-    expect(readDraft(ME, "big")).toBeNull();
+    expect(() => writeDraft(ME, { of: "doc", identifier: "big" }, huge)).not.toThrow();
+    expect(readDraft(ME, { of: "doc", identifier: "big" })).toBeNull();
   });
 
   it("carries on where the browser refuses to store anything", () => {
     vi.stubGlobal("localStorage", fakeStorage(true));
-    expect(() => writeDraft(ME, "a-document", stored())).not.toThrow();
-    expect(readDraft(ME, "a-document")).toBeNull();
+    expect(() => writeDraft(ME, { of: "doc", identifier: "a-document" }, stored())).not.toThrow();
+    expect(readDraft(ME, { of: "doc", identifier: "a-document" })).toBeNull();
   });
 
   it("carries on where there is no storage at all", () => {
     vi.stubGlobal("localStorage", undefined);
-    expect(() => writeDraft(ME, "a-document", stored())).not.toThrow();
-    expect(readDraft(ME, "a-document")).toBeNull();
-    expect(() => clearDraft(ME, "a-document")).not.toThrow();
+    expect(() => writeDraft(ME, { of: "doc", identifier: "a-document" }, stored())).not.toThrow();
+    expect(readDraft(ME, { of: "doc", identifier: "a-document" })).toBeNull();
+    expect(() => clearDraft(ME, { of: "doc", identifier: "a-document" })).not.toThrow();
   });
 
   it("refuses to store a record it could not read back", () => {
-    writeDraft(ME, "a-document", { ...stored(), v: 2 } as unknown as StoredDraft);
-    expect(readDraft(ME, "a-document")).toBeNull();
+    writeDraft(ME, { of: "doc", identifier: "a-document" }, {
+      ...stored(),
+      v: 2,
+    } as unknown as StoredDraft);
+    expect(readDraft(ME, { of: "doc", identifier: "a-document" })).toBeNull();
   });
 });
 
 describe("clearDraft", () => {
   it("removes only the slot it was asked for", () => {
-    writeDraft(ME, null, stored({ title: "Unaddressed" }));
-    writeDraft(ME, "a-document", stored({ title: "Addressed" }));
+    writeDraft(ME, { of: "new" }, stored({ title: "Unaddressed" }));
+    writeDraft(ME, { of: "doc", identifier: "a-document" }, stored({ title: "Addressed" }));
 
-    clearDraft(ME, "a-document");
+    clearDraft(ME, { of: "doc", identifier: "a-document" });
 
-    expect(readDraft(ME, "a-document")).toBeNull();
-    expect(readDraft(ME, null)?.draft.title).toBe("Unaddressed");
+    expect(readDraft(ME, { of: "doc", identifier: "a-document" })).toBeNull();
+    expect(readDraft(ME, { of: "new" })?.draft.title).toBe("Unaddressed");
   });
 });

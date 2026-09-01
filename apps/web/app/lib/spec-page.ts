@@ -1,7 +1,57 @@
 import type { MarkdownHeading } from "@openspecs/markdown";
 import { renderMarkdown } from "@openspecs/markdown";
-import { type Spec, type SpecKindRef, toNaddr, toNpub } from "@openspecs/nostr";
+import {
+  parseCoordinate,
+  type Spec,
+  type SpecKindRef,
+  specPath,
+  toNaddr,
+  toNpub,
+} from "@openspecs/nostr";
 import { mentionResolver } from "./mention";
+
+/** One place a document says it was forked from, reduced to what the row drawing it needs. */
+export type ForkSource =
+  | { type: "spec"; npub: string; identifier: string; path: string }
+  | { type: "external"; url: string; host: string };
+
+/**
+ * Where a document says it came from, named by its address and never fetched.
+ * Reading the origin before this page could render would make the origin's
+ * availability a condition of the fork's page, which is the accelerator rule
+ * turned inside out. The address is what the tag actually says, and the link
+ * goes where the title is.
+ *
+ * A list, because a document may honestly say it came from two places. In
+ * practice there is one.
+ */
+const forkSourcesOf = (spec: Spec): ForkSource[] => {
+  const sources: ForkSource[] = [];
+  for (const fork of spec.forks) {
+    if (fork.type === "external") {
+      try {
+        const url = new URL(fork.url);
+        if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+        sources.push({ type: "external", url: fork.url, host: url.host.replace(/^www\./, "") });
+      } catch {
+        // A document is not worth less for carrying an address nobody can open.
+      }
+      continue;
+    }
+    const pointer = parseCoordinate(fork.coordinate);
+    if (pointer === null) continue;
+    // A marker naming the document it sits on draws a link back to the page you
+    // are already reading, so it says nothing worth a row.
+    if (pointer.pubkey === spec.pubkey && pointer.identifier === spec.identifier) continue;
+    sources.push({
+      type: "spec",
+      npub: toNpub(pointer.pubkey),
+      identifier: pointer.identifier,
+      path: specPath(pointer),
+    });
+  }
+  return sources;
+};
 
 export type SpecPage = {
   kind: number;
@@ -18,6 +68,8 @@ export type SpecPage = {
   kinds: SpecKindRef[];
   publishedAt: number;
   revisedAt: number;
+  /** Named for where it points: `forks` here would read as the documents that forked this one. */
+  forkedFrom: ForkSource[];
   isEmpty: boolean;
   html: string;
   headings: MarkdownHeading[];
@@ -61,6 +113,7 @@ export const toPage = (spec: Spec): SpecPage => {
     kinds: spec.kinds,
     publishedAt: spec.publishedAt,
     revisedAt: spec.createdAt,
+    forkedFrom: forkSourcesOf(spec),
     isEmpty: spec.isEmpty,
     html,
     headings,

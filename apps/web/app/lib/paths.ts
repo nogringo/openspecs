@@ -73,9 +73,26 @@ export const oembedPath = (canonical: string): string =>
 export const eventPath = (npub: string, identifier: string): string =>
   `/spec/${npub}/${encodeURIComponent(identifier)}/event.json`;
 
-/** What another key's document under the same name changes against this one. */
-export const diffPath = (npub: string, identifier: string, otherNpub: string): string =>
-  `/spec/${npub}/${encodeURIComponent(identifier)}/diff/${otherNpub}`;
+/**
+ * What another key's copy changes against this one.
+ *
+ * The other side's address is left off when it is the same, which is the common
+ * case and the shorter link. A copy that renamed itself carries its own name in
+ * the last segment: the two documents are still the same writing, and a
+ * comparison that could only be drawn between matching names would refuse
+ * exactly the copies that moved furthest.
+ */
+export const diffPath = (
+  npub: string,
+  identifier: string,
+  otherNpub: string,
+  otherIdentifier?: string,
+): string => {
+  const base = `/spec/${npub}/${encodeURIComponent(identifier)}/diff/${otherNpub}`;
+  return otherIdentifier === undefined || otherIdentifier === identifier
+    ? base
+    : `${base}/${encodeURIComponent(otherIdentifier)}`;
+};
 
 /** What this site does with a document, for somebody who just met the word relay. */
 export const aboutPath = (): string => "/about";
@@ -129,3 +146,12 @@ export const blockedSettingsPath = (): string => "/settings/blocked";
  */
 export const specEditPath = (npub: string, identifier: string): string =>
   `/spec/${npub}/${encodeURIComponent(identifier)}/edit`;
+
+/**
+ * Writing somebody else's document again under your own key. It hangs off the
+ * document it starts from, like the edit above it and the comparison beside it,
+ * because that is the thing being acted on: the document it makes has no address
+ * until its author picks one.
+ */
+export const specForkPath = (npub: string, identifier: string): string =>
+  `/spec/${npub}/${encodeURIComponent(identifier)}/fork`;

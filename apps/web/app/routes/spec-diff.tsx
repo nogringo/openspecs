@@ -20,17 +20,23 @@ export async function loader({ params }: Route.LoaderArgs) {
     throw data({ missing: "address" }, { status: 404, headers: NOT_FOUND_HEADERS });
   }
 
-  // A document diffed against itself is the document, which has its own page.
-  if (pubkey === otherPubkey) throw redirect(specPath({ pubkey, identifier: params.identifier }));
+  // Left off where the other side kept this document's name, which is the common
+  // case and what every link built before renaming was possible still says.
+  const otherIdentifier = params.otherIdentifier ?? params.identifier;
 
-  const path = diffPath(toNpub(pubkey), params.identifier, toNpub(otherPubkey));
+  // A document diffed against itself is the document, which has its own page.
+  if (pubkey === otherPubkey && otherIdentifier === params.identifier) {
+    throw redirect(specPath({ pubkey, identifier: params.identifier }));
+  }
+
+  const path = diffPath(toNpub(pubkey), params.identifier, toNpub(otherPubkey), otherIdentifier);
   if (params.author !== toNpub(pubkey) || params.other !== toNpub(otherPubkey)) {
     throw redirect(path, 301);
   }
 
   const [base, other] = await Promise.all([
     loadSpec(pubkey, params.identifier),
-    loadSpec(otherPubkey, params.identifier),
+    loadSpec(otherPubkey, otherIdentifier),
   ]);
   if (base === null || other === null) {
     throw data({ missing: "document" }, { status: 404, headers: NOT_FOUND_HEADERS });
@@ -133,7 +139,7 @@ export default function SpecDiff({ loaderData }: Route.ComponentProps) {
             )}
             <span className="text-muted">sharing {shared}% of their words</span>
             <Link
-              to={diffPath(other.npub, other.identifier, base.npub)}
+              to={diffPath(other.npub, other.identifier, base.npub, base.identifier)}
               className="text-muted underline decoration-rule underline-offset-2 hover:text-ink hover:decoration-current"
             >
               Swap sides

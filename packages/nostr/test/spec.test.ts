@@ -7,6 +7,7 @@ import {
   buildSpec,
   buildSpecDeletion,
   editSpec,
+  forkSpec,
   parseSpec,
   type Spec,
   type SpecDraft,
@@ -469,6 +470,72 @@ describe("buildSpec", () => {
     expect(named(buildSpec(draftOf({ identifier: "untitled" })), "alt")).toEqual([
       ["alt", "A specification: untitled"],
     ]);
+  });
+});
+
+describe("forkSpec", () => {
+  const originKey = getPublicKey(generateSecretKey());
+  const origin = { pubkey: originKey, identifier: "nip-01" };
+  const copy = draftOf({ identifier: "nip-01", title: "NIP-01" });
+
+  it("writes the marker, empty relay slot included", () => {
+    expect(named(forkSpec(origin, author, copy), "a")).toEqual([
+      ["a", `${SPEC_KIND}:${originKey}:nip-01`, "", "fork"],
+    ]);
+  });
+
+  it("writes a relay hint when it is given one", () => {
+    const draft = forkSpec({ ...origin, relay: " wss://relay.example  " }, author, copy);
+    expect(named(draft, "a")).toEqual([
+      ["a", `${SPEC_KIND}:${originKey}:nip-01`, "wss://relay.example", "fork"],
+    ]);
+  });
+
+  it("says where it came from once it has been through the parser again", () => {
+    expect(parseSpec(sign(forkSpec(origin, author, copy)))?.forks).toEqual([
+      { type: "spec", coordinate: `${SPEC_KIND}:${originKey}:nip-01`, relay: null },
+    ]);
+  });
+
+  it("carries nothing of the origin's own event", () => {
+    const live = specEvent([
+      ["d", "nip-01"],
+      ["title", "NIP-01"],
+      ["published_at", "1600000000"],
+      ["icon", "https://example.com/i.png"],
+    ]);
+    const draft = forkSpec(origin, author, specDraftOf(live));
+    expect(named(draft, "published_at")).toEqual([]);
+    expect(named(draft, "icon")).toEqual([]);
+  });
+
+  it("does not point at the document it is building", () => {
+    expect(named(forkSpec({ pubkey: author, identifier: "nip-01" }, author, copy), "a")).toEqual(
+      [],
+    );
+  });
+
+  it("points at the origin again once the fork moves to a name of its own", () => {
+    const forked = forkSpec({ pubkey: author, identifier: "nip-01" }, author, copy);
+    expect(named(forked, "a")).toEqual([]);
+    const renamed = forkSpec(
+      { pubkey: author, identifier: "nip-01" },
+      author,
+      draftOf({ identifier: "nip-01-mine", title: "NIP-01" }),
+    );
+    expect(named(renamed, "a")).toEqual([["a", `${SPEC_KIND}:${author}:nip-01`, "", "fork"]]);
+  });
+
+  it("keeps the marker through a later revision that renames the fork", () => {
+    const live = sign(forkSpec(origin, author, copy));
+    const renamed = editSpec(live, { ...specDraftOf(live), identifier: "nip-01-mine" });
+    expect(named(renamed, "a")).toEqual([["a", `${SPEC_KIND}:${originKey}:nip-01`, "", "fork"]]);
+    expect(named(renamed, "d")).toEqual([["d", "nip-01-mine"]]);
+  });
+
+  it("writes the marker where an edit would carry it, before the alt", () => {
+    const names = forkSpec(origin, author, copy).tags.map((tag) => tag[0]);
+    expect(names).toEqual(["d", "title", "a", "alt", "client"]);
   });
 });
 

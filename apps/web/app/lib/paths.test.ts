@@ -1,5 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { connectPath, returnTo } from "./paths";
+import { connectPath, diffPath, returnTo, specForkPath } from "./paths";
+
+describe("diffPath", () => {
+  it("says nothing about the other side's address where it is the same", () => {
+    expect(diffPath("npub1abc", "nip-07", "npub1def")).toBe("/spec/npub1abc/nip-07/diff/npub1def");
+    expect(diffPath("npub1abc", "nip-07", "npub1def", "nip-07")).toBe(
+      "/spec/npub1abc/nip-07/diff/npub1def",
+    );
+  });
+
+  it("carries the address of a copy that renamed itself", () => {
+    expect(diffPath("npub1abc", "nip-07", "npub1def", "nip-07 mine")).toBe(
+      "/spec/npub1abc/nip-07/diff/npub1def/nip-07%20mine",
+    );
+  });
+});
+
+describe("specForkPath", () => {
+  it("hangs off the document a fork starts from", () => {
+    expect(specForkPath("npub1abc", "nip-07")).toBe("/spec/npub1abc/nip-07/fork");
+  });
+
+  it("encodes an address that would otherwise read as a path", () => {
+    expect(specForkPath("npub1abc", "a b/c")).toBe("/spec/npub1abc/a%20b%2Fc/fork");
+  });
+});
 
 describe("connectPath", () => {
   it("is the bare address when nothing sent anybody there", () => {

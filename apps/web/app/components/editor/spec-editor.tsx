@@ -1,23 +1,37 @@
 import {
+  type EventDraft,
   editSpec,
+  type ForkOrigin,
   fetchSpec,
   firstHeading,
+  forkSpec,
   type NostrEvent,
   type SpecDraft,
   type SpecFault,
   specDraftOf,
   specFaults,
   specPath,
+  tagValue,
+  toCoordinate,
   toIdentifier,
+  toNpub,
 } from "@openspecs/nostr";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { RelayReport } from "~/components/relay-results";
 import { rememberSpec } from "~/lib/corpus";
 import { specEditPath } from "~/lib/paths";
+import { authorName } from "~/lib/profile";
+import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import { type RelayResult, signAndPublish } from "~/lib/publish";
 import { documentRelays } from "~/lib/relays";
-import { clearDraft, readDraft, type StoredDraft, writeDraft } from "~/lib/spec-draft-store";
+import {
+  clearDraft,
+  type DraftSlot,
+  readDraft,
+  type StoredDraft,
+  writeDraft,
+} from "~/lib/spec-draft-store";
 import {
   ACTION,
   DocumentField,
@@ -37,6 +51,9 @@ type State = "editing" | "sending" | "sent" | "failed";
 
 /** Long enough that a sentence is one write rather than forty. */
 const SAVE_AFTER_MS = 800;
+
+/** Long enough that typing an address is one question to the relays, not a dozen. */
+const ASK_AFTER_MS = 600;
 
 const SAYING: Record<SpecFault, string> = {
   "no-identifier": "A document needs an address to be found under.",
@@ -93,6 +110,35 @@ const Held = ({
 );
 
 /**
+ * Whose document this one is starting from, and nothing else. The form below is
+ * already full of somebody else's writing, so the one thing it does not show is
+ * whose. That a document signed by one key does not change another's needs no
+ * saying, and the tag recording it is not the reader's business.
+ */
+const ForkedFrom = ({ origin }: { origin: NostrEvent }) => {
+  const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
+  const npub = toNpub(origin.pubkey);
+  const identifier = tagValue(origin, "d");
+
+  useEffect(() => {
+    wantAuthors([origin.pubkey]);
+  }, [origin.pubkey]);
+
+  return (
+    <p className={NOTE}>
+      Starting from{" "}
+      <Link
+        to={specPath({ pubkey: origin.pubkey, identifier })}
+        className="underline decoration-rule underline-offset-2 hover:decoration-current"
+      >
+        {tagValue(origin, "title") || identifier}
+      </Link>{" "}
+      by {authorName(authors[origin.pubkey] ?? null, npub)}.
+    </p>
+  );
+};
+
+/**
  * A document replaces the whole of its previous revision, so what is on screen
  * has to be what was published: the fields start filled from the live event, and
  * `editSpec` hands back every tag nothing here draws untouched.
@@ -105,42 +151,95 @@ export const SpecEditor = ({
   me,
   npub,
   live: initial,
+  fork = null,
 }: {
   me: string;
   npub: string;
   /** The revision being edited, or null for a document nobody has published. */
   live: NostrEvent | null;
+  /** The document this one starts from, for a fork nobody has published yet. */
+  fork?: { origin: NostrEvent; relay: string | null } | null;
 }) => {
   const [live, setLive] = useState(initial);
-  const published = useMemo(() => specDraftOf(live), [live]);
+  // Read off `live` and never off the prop: publishing the fork makes it a
+  // document of its own, and every save after that is an ordinary revision.
+  const forking = live === null && fork !== null;
+  const origin = useMemo(
+    (): ForkOrigin | null =>
+      fork === null
+        ? null
+        : {
+            pubkey: fork.origin.pubkey,
+            // Read off the event rather than off the route, so the marker names
+            // what was actually signed.
+            identifier: tagValue(fork.origin, "d"),
+            relay: fork.relay,
+          },
+    [fork],
+  );
+  const published = useMemo(
+    () => (live === null && fork !== null ? specDraftOf(fork.origin) : specDraftOf(live)),
+    [live, fork],
+  );
   const [draft, setDraft] = useState<SpecDraft>(published);
-  // Only until somebody types one of their own. A published address never moves.
-  const [deriving, setDeriving] = useState(initial === null);
+  // Only until somebody types one of their own. A published address never moves,
+  // and neither does a fork's, which keeps the name it was forked from until its
+  // author decides otherwise.
+  const [deriving, setDeriving] = useState(initial === null && fork === null);
   const [state, setState] = useState<State>("editing");
   const [relays, setRelays] = useState<string[]>([]);
   const [results, setResults] = useState<RelayResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [taken, setTaken] = useState<string | null>(null);
+  /**
+   * The last address found to already hold a document of the reader's own, asked
+   * of the relays as it is typed rather than when Publish is pressed. A fork
+   * arrives wearing the name it came from, so the collision is its ordinary case
+   * and not a slip, and an address is also the one field somebody changes to get
+   * out of trouble, which is no help if the trouble only shows at the end.
+   *
+   * Never a refusal by itself. The relays may be unreachable, in which case this
+   * stays quiet and the guard before the signer is what answers.
+   */
+  const [standing, setStanding] = useState<string | null>(null);
+  /** One question per address, however many times the editor comes back to it. */
+  const answered = useRef(new Map<string, boolean>());
   const [held, setHeld] = useState<StoredDraft | null>(null);
 
   const existing = live !== null;
   // The slot a draft is kept in, fixed for as long as this editor is open: a
   // first save turns a new document into an existing one, and the half written
   // draft it replaces is the one under the address it did not have yet.
-  const slot = useMemo(
-    () => (initial === null ? null : specDraftOf(initial).identifier),
-    [initial],
-  );
+  const slot = useMemo((): DraftSlot => {
+    if (initial !== null) return { of: "doc", identifier: specDraftOf(initial).identifier };
+    if (origin !== null) return { of: "fork", origin: toCoordinate(origin) };
+    return { of: "new" };
+  }, [initial, origin]);
+
+  /**
+   * The event this form would sign. A fork is built from the draft alone, never
+   * from the document it came from: see `forkSpec`. Only the first one is, and
+   * after it every revision is an ordinary edit that carries the marker through.
+   */
+  const build = (fields: SpecDraft): EventDraft =>
+    origin !== null && !existing ? forkSpec(origin, me, fields) : editSpec(live, fields);
 
   /**
    * Whether saving would say anything different, asked of the event rather than
    * of the form. A blank kind row, a repeated topic and a trailing space all
    * change the draft and none of them changes the document.
    */
-  const changed =
-    JSON.stringify(editSpec(live, draft)) !== JSON.stringify(editSpec(live, published));
+  const changed = JSON.stringify(build(draft)) !== JSON.stringify(build(published));
 
   const faults = specFaults(draft);
+  const wanted = draft.identifier.trim();
+  /**
+   * Known, not guessed: only an address the relays actually answered about. The
+   * guard before the signer would refuse this publish anyway, so an enabled
+   * button here promises a round trip that ends where the sentence beside the
+   * address already says it ends.
+   */
+  const clashes = standing !== null && wanted === standing;
   const suggested = toIdentifier(draft.title);
   // What the document is already shown under when it carries no title tag.
   const heading = draft.title === "" ? firstHeading(draft.content) : null;
@@ -155,6 +254,32 @@ export const SpecEditor = ({
       stored !== null && JSON.stringify(stored.draft) !== JSON.stringify(published) ? stored : null,
     );
   }, [me, slot, published]);
+
+  useEffect(() => {
+    // A published address never moves, so there is nothing to ask about.
+    if (existing || wanted === "") return;
+
+    const known = answered.current.get(wanted);
+    if (known !== undefined) {
+      setStanding(known ? wanted : null);
+      return;
+    }
+
+    let live = true;
+    const timer = setTimeout(() => {
+      fetchSpec({ pubkey: me, identifier: wanted })
+        .then((found) => {
+          answered.current.set(wanted, found !== null);
+          if (live) setStanding(found === null ? null : wanted);
+        })
+        .catch(() => {});
+    }, ASK_AFTER_MS);
+
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [existing, me, wanted]);
 
   useEffect(() => {
     if (!changed) return;
@@ -212,7 +337,7 @@ export const SpecEditor = ({
       const targets = documentRelays(me);
       targets.then(setRelays).catch(() => {});
 
-      const report = await signAndPublish(editSpec(live, draft), targets, (result) =>
+      const report = await signAndPublish(build(draft), targets, (result) =>
         setResults((answered) => [...answered, result]),
       );
 
@@ -246,6 +371,8 @@ export const SpecEditor = ({
      */
     <form className="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-12" onSubmit={save}>
       <div className="max-w-[40rem] space-y-4">
+        {forking && fork !== null && <ForkedFrom origin={fork.origin} />}
+
         {held !== null && (
           <Held
             held={held}
@@ -288,6 +415,16 @@ export const SpecEditor = ({
           }}
         />
 
+        {clashes && (
+          <p className={WRONG}>
+            You already publish a document at that address.{" "}
+            <Link to={specEditPath(npub, standing)} className="underline underline-offset-2">
+              Edit that one
+            </Link>
+            , or change the address above.
+          </p>
+        )}
+
         {/* Where the published page puts it: under the title, above the
             document, at the measure the rest of the prose is read at. */}
         <div className="pt-2">
@@ -317,16 +454,26 @@ export const SpecEditor = ({
           those pixels back and the padding puts the fields where they were. */}
       <aside className="mt-16 space-y-8 border-t border-rule pt-8 lg:-mx-1.5 lg:mt-0 lg:self-start lg:border-t-0 lg:px-1.5 lg:pt-0 lg:sticky lg:top-10 lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto">
         <div className="space-y-3">
+          {/* A fork that changes nothing is still a real thing to publish: a copy
+              under your own key, which is what a mirror is. Everywhere else an
+              untouched form has nothing to send, and a blank one is refused by
+              its faults rather than by this. */}
           <button
             type="submit"
             className={ACTION}
-            disabled={!changed || faults.length > 0 || state === "sending"}
+            disabled={(!changed && !forking) || clashes || faults.length > 0 || state === "sending"}
           >
             {state === "sending" ? "Publishing" : existing ? "Publish revision" : "Publish"}
           </button>
 
           {!changed && state !== "sent" && (
-            <p className={NOTE}>{existing ? "Nothing to save yet." : "Nothing written yet."}</p>
+            <p className={NOTE}>
+              {forking
+                ? "Unchanged from the document you forked. Publishing it puts a copy of it under your key."
+                : existing
+                  ? "Nothing to save yet."
+                  : "Nothing written yet."}
+            </p>
           )}
           {state === "sent" && !changed && <p className={NOTE}>Published.</p>}
 
@@ -366,7 +513,9 @@ export const SpecEditor = ({
 
           {taken !== null && (
             <p className={WRONG}>
-              A document of yours is already published at that address.{" "}
+              {forking
+                ? "A fork keeps the name it was forked from, and this key already publishes a document under that name. "
+                : "A document of yours is already published at that address. "}
               <Link to={specEditPath(npub, taken)} className="underline underline-offset-2">
                 Edit that one
               </Link>

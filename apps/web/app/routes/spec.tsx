@@ -11,7 +11,8 @@ import { useState } from "react";
 import { data, Link, redirect } from "react-router";
 import { AnnotatedDoc } from "~/components/annotated-doc";
 import { AuthorAvatar } from "~/components/author-avatar";
-import { CopyButton } from "~/components/copy-button";
+import { CHROME } from "~/components/chrome";
+import { COPIES_ID, Copies } from "~/components/copies";
 import { Discussion } from "~/components/discussion/discussion";
 import { LikeButton } from "~/components/discussion/like-button";
 import { EditLink } from "~/components/editor/edit-link";
@@ -19,16 +20,15 @@ import { Withdraw } from "~/components/editor/withdraw";
 import { ErrorPage } from "~/components/error-page";
 import { BlockedNotice } from "~/components/moderation/blocked-notice";
 import { More } from "~/components/moderation/more";
-import { Rebroadcast } from "~/components/rebroadcast";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
-import { VARIANTS_ID, Variants } from "~/components/variants";
 import { hidesSpec, unblock, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
+import { useCopies } from "~/lib/copies";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { useLiveRevision } from "~/lib/live-revision";
 import { publicOrigin } from "~/lib/origin.server";
-import { DISCUSSION_ID, eventPath, oembedPath, ogImagePath } from "~/lib/paths";
+import { DISCUSSION_ID, eventPath, oembedPath, ogImagePath, specForkPath } from "~/lib/paths";
 import type { LinkPreview } from "~/lib/preview";
 import { loadLinkPreviews } from "~/lib/preview.server";
 import { type Author, shortNpub } from "~/lib/profile";
@@ -36,7 +36,6 @@ import { loadAuthor } from "~/lib/profile.server";
 import { discussionRelays, rebroadcastRelays } from "~/lib/relays.server";
 import type { SpecPage } from "~/lib/spec-page";
 import { loadSpec } from "~/lib/specs.server";
-import { useVariants } from "~/lib/variants";
 import type { Route } from "./+types/spec";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -167,13 +166,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 );
 
-const Contents = ({
-  headings,
-  variantCount,
-}: {
-  headings: MarkdownHeading[];
-  variantCount: number;
-}) => (
+const Contents = ({ headings, copyCount }: { headings: MarkdownHeading[]; copyCount: number }) => (
   <nav
     aria-label="Contents"
     /* The negative margin and the padding are one pair: scrolling this rail
@@ -201,9 +194,9 @@ const Contents = ({
       {/* Part of the page rather than an appendix to it: what was said about a
           specification is one of the things a reader comes here to find. */}
       <li className="mt-4 border-t border-rule pt-3">
-        {variantCount > 0 && (
-          <a href={`#${VARIANTS_ID}`} className="mb-2 block text-muted hover:text-ink">
-            Under this name
+        {copyCount > 0 && (
+          <a href={`#${COPIES_ID}`} className="mb-2 block text-muted hover:text-ink">
+            Other copies
           </a>
         )}
         <a href={`#${DISCUSSION_ID}`} className="text-muted hover:text-ink">
@@ -219,14 +212,14 @@ const Masthead = ({
   author,
   canonical,
   relays,
-  variantCount,
+  copyCount,
   spotCount,
 }: {
   spec: SpecPage;
   author: Author | null;
   canonical: string;
   relays: string[];
-  variantCount: number;
+  copyCount: number;
   spotCount: number;
 }) => (
   <header>
@@ -234,13 +227,13 @@ const Masthead = ({
       {spec.kind}:{spec.identifier}
       {/* Growing sideways rather than down: this arrives after the page is on
           screen, and text under the reader's eye must not move for it. */}
-      {variantCount > 0 && (
+      {copyCount > 0 && (
         <a
-          href={`#${VARIANTS_ID}`}
-          title={`Other documents published as ${spec.identifier}`}
+          href={`#${COPIES_ID}`}
+          title="Other keys have written this document too"
           className="ml-3 underline decoration-rule underline-offset-2 hover:text-ink hover:decoration-current"
         >
-          also under {variantCount} other {variantCount === 1 ? "key" : "keys"}
+          {copyCount} other {copyCount === 1 ? "copy" : "copies"}
           {spotCount > 0 &&
             `, differing in ${spotCount} ${spotCount === 1 ? "place" : "places"} below`}
         </a>
@@ -284,6 +277,29 @@ const Masthead = ({
               {shorten(spec.npub, 10, 6)}
             </Link>
           </Field>
+          {spec.forkedFrom.map((source) => (
+            <Field key={source.type === "spec" ? source.path : source.url} label="forked from">
+              {source.type === "spec" ? (
+                <>
+                  <Link
+                    to={source.path}
+                    className="underline decoration-rule underline-offset-2 hover:decoration-current"
+                  >
+                    {source.identifier}
+                  </Link>{" "}
+                  <span className="text-muted">{shorten(source.npub, 10, 6)}</span>
+                </>
+              ) : (
+                <a
+                  href={source.url}
+                  rel="nofollow noopener noreferrer"
+                  className="underline decoration-rule underline-offset-2 hover:decoration-current"
+                >
+                  {source.host}
+                </a>
+              )}
+            </Field>
+          ))}
           <Field label="published">{asDate(spec.publishedAt)}</Field>
           {spec.revisedAt > spec.publishedAt && (
             <Field label="revised">{asDate(spec.revisedAt)}</Field>
@@ -302,18 +318,26 @@ const Masthead = ({
 
     <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
       <LikeButton coordinate={toCoordinate(spec)} specEventId={spec.eventId} pubkey={spec.pubkey} />
-      <CopyButton value={canonical} label="Copy link" title={canonical} />
-      <CopyButton
-        value={spec.naddr}
-        label="Copy naddr"
-        title="The document's Nostr address, for any client"
-      />
-      <CopyButton
-        value={() => fetch(eventPath(spec.npub, spec.identifier)).then((event) => event.text())}
-        label="Copy event"
-        title="The signed event, exactly as the relays serve it"
-      />
-      <Rebroadcast eventUrl={eventPath(spec.npub, spec.identifier)} relays={relays} />
+      {/* Beside the reaction, because those two are what a reader does with the
+          document itself. Everything else it has to offer is one word further on.
+
+          Drawn on the server for everybody, with no session gating: the page it
+          leads to offers the ways in, and a control appearing a tick after paint
+          for the already connected would hide this from the readers most likely
+          to have never signed anything. */}
+      <Link
+        to={specForkPath(spec.npub, spec.identifier)}
+        title="Write your own from this one"
+        className={CHROME}
+      >
+        Fork
+      </Link>
+      {/* Before the menu, though both arrive a tick after paint and push it
+          along when they do. A named action sitting after a catch-all reads as
+          something that fell out of it, and that misreading is on the page for
+          as long as an author is looking at their own document. */}
+      <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
+      <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
       <More
         target={{
           kind: "document",
@@ -321,10 +345,10 @@ const Masthead = ({
           id: spec.eventId,
           coordinate: toCoordinate(spec),
           identifier: spec.identifier,
+          canonical,
+          relays,
         }}
       />
-      <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
-      <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
     </div>
   </header>
 );
@@ -405,13 +429,11 @@ const Article = ({
 }) => {
   const { shown, fresher, show } = useLiveRevision(served);
   // On the shown revision, not the served one: the marks sit on the text on screen.
-  const { variants: every, spots, standings } = useVariants(shown);
+  const { copies: every, spots, standings } = useCopies(shown);
 
   const blocked = useBlocked();
   const [shownAnyway, setShownAnyway] = useState(false);
-  const variants = every.filter(
-    (variant) => !hidesSpec(blocked, { pubkey: variant.pubkey, identifier: shown.identifier }),
-  );
+  const copies = every.filter((copy) => !hidesSpec(blocked, copy));
 
   // A preview was fetched for the links the served revision cited. One that no
   // longer appears in the document has no business under it.
@@ -450,12 +472,12 @@ const Article = ({
         author={author}
         canonical={canonical}
         relays={relays}
-        variantCount={variants.length}
+        copyCount={copies.length}
         spotCount={spots.length}
       />
 
       <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
-        <Contents headings={shown.headings} variantCount={variants.length} />
+        <Contents headings={shown.headings} copyCount={copies.length} />
         <div className="max-w-[40rem]">
           {shown.isEmpty ? (
             <p className="font-serif text-lg text-muted">
@@ -469,8 +491,8 @@ const Article = ({
             <AnnotatedDoc key={shown.eventId} html={shown.html} spots={spots} />
           )}
           {cited.length > 0 && <CitedLinks previews={cited} />}
-          <Variants
-            variants={variants}
+          <Copies
+            copies={copies}
             standings={standings}
             from={{ npub: shown.npub, identifier: shown.identifier }}
           />
