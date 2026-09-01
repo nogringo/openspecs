@@ -28,10 +28,10 @@ import { useCopies } from "~/lib/copies";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { useLiveRevision } from "~/lib/live-revision";
 import { publicOrigin } from "~/lib/origin.server";
-import { DISCUSSION_ID, eventPath, oembedPath, ogImagePath, specForkPath } from "~/lib/paths";
+import { DISCUSSION_ID, oembedPath, ogImagePath, specForkPath } from "~/lib/paths";
 import type { LinkPreview } from "~/lib/preview";
 import { loadLinkPreviews } from "~/lib/preview.server";
-import { type Author, shortNpub } from "~/lib/profile";
+import { type Author, authorName, shortNpub } from "~/lib/profile";
 import { loadAuthor } from "~/lib/profile.server";
 import { discussionRelays, rebroadcastRelays } from "~/lib/relays.server";
 import type { SpecPage } from "~/lib/spec-page";
@@ -256,27 +256,23 @@ const Masthead = ({
         <AuthorAvatar pubkey={spec.pubkey} picture={author?.picture ?? null} />
       </Link>
       <div className="min-w-0">
-        {/* A name is what a key says about itself, so the key it belongs to stays under it. */}
-        {author !== null && author.name !== "" && (
-          <p title={author.name} className="mb-1.5 truncate font-mono text-sm font-medium">
-            <Link
-              to={authorPath(spec.pubkey)}
-              style={{ color: keyTextColor(spec.pubkey) }}
-              className="hover:underline"
-            >
-              {author.name}
-            </Link>
-          </p>
-        )}
+        {/* The key gets one line rather than three: the avatar leads to the same
+            page, and the address bar is already spelling the npub out. With no
+            name published the key is written here itself, as it is everywhere
+            else on the site. */}
+        <p
+          title={author?.name || spec.npub}
+          className="mb-1.5 truncate font-mono text-sm font-medium"
+        >
+          <Link
+            to={authorPath(spec.pubkey)}
+            style={{ color: keyTextColor(spec.pubkey) }}
+            className="hover:underline"
+          >
+            {authorName(author, spec.npub)}
+          </Link>
+        </p>
         <dl className="min-w-0 space-y-1 font-mono text-xs">
-          <Field label="signed by">
-            <Link
-              to={authorPath(spec.pubkey)}
-              className="underline decoration-rule underline-offset-2 hover:decoration-current"
-            >
-              {shorten(spec.npub, 10, 6)}
-            </Link>
-          </Field>
           {spec.forkedFrom.map((source) => (
             <Field key={source.type === "spec" ? source.path : source.url} label="forked from">
               {source.type === "spec" ? (
@@ -304,14 +300,6 @@ const Masthead = ({
           {spec.revisedAt > spec.publishedAt && (
             <Field label="revised">{asDate(spec.revisedAt)}</Field>
           )}
-          <Field label="event">
-            <a
-              href={eventPath(spec.npub, spec.identifier)}
-              className="underline decoration-rule underline-offset-2 hover:decoration-current"
-            >
-              {shorten(spec.eventId, 10, 4)}
-            </a>
-          </Field>
         </dl>
       </div>
     </div>
