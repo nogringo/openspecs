@@ -1,4 +1,4 @@
-import { fetchSpecEvent, type NostrEvent, parsePubkey, toNpub } from "@openspecs/nostr";
+import { fetchSpecEvent, type NostrEvent, parsePubkey, parseSpec, toNpub } from "@openspecs/nostr";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { SpecEditor } from "~/components/editor/spec-editor";
 import { MakeKey } from "~/components/make-key";
@@ -6,6 +6,7 @@ import { Shell } from "~/components/shell";
 import { SignInDialog } from "~/components/sign-in-dialog";
 import { Unlock } from "~/components/unlock";
 import { PAGE_HEADERS } from "~/lib/http";
+import { eventPath } from "~/lib/paths";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
 import type { Route } from "./+types/spec-fork";
 
@@ -46,6 +47,43 @@ export function headers(_: Route.HeadersArgs) {
  * offered on the page rather than in the header for the same reason: whoever
  * clicked Fork on a document is often somebody who has never signed anything.
  */
+/**
+ * The document as this server last read it, which is the copy the page offering
+ * Fork was rendered from and is already in its cache. Asked first because the
+ * relays are six sockets and a four second window from a cold browser, and this
+ * is one request to the origin the reader is already on.
+ *
+ * Safe here and nowhere near the editor of one's own document: a fork replaces
+ * nothing, so a revision a minute old costs a sentence somebody retypes, where
+ * an edit built on one would publish over whatever came since. Null rather than
+ * an error when there is nothing here to serve, and the relays are then asked
+ * properly: this backend is an accelerator, and a build without one still works.
+ */
+const fromServer = async (pubkey: string, identifier: string): Promise<NostrEvent | null> => {
+  try {
+    const response = await fetch(eventPath(toNpub(pubkey), identifier));
+    if (!response.ok) return null;
+    const spec = parseSpec(await response.json());
+    return spec !== null && spec.pubkey === pubkey && spec.identifier === identifier
+      ? spec.event
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+/** `"unreachable"` is not `null`: nothing came back is not the same as nothing is there. */
+const fromRelays = async (
+  pubkey: string,
+  identifier: string,
+): Promise<NostrEvent | null | "unreachable"> => {
+  try {
+    return await fetchSpecEvent({ pubkey, identifier });
+  } catch {
+    return "unreachable";
+  }
+};
+
 export default function SpecForkRoute({ params }: Route.ComponentProps) {
   const session = useSyncExternalStore(subscribeSession, sessionState, serverSessionState);
   useEffect(restoreSession, []);
@@ -68,14 +106,15 @@ export default function SpecForkRoute({ params }: Route.ComponentProps) {
     setReading("reading");
 
     (async () => {
-      try {
-        const found = await fetchSpecEvent({ pubkey, identifier });
-        if (!live) return;
-        setEvent(found);
-        setReading(found === null ? "missing" : "read");
-      } catch {
-        if (live) setReading("failed");
+      const found =
+        (await fromServer(pubkey, identifier)) ?? (await fromRelays(pubkey, identifier));
+      if (!live) return;
+      if (found === "unreachable") {
+        setReading("failed");
+        return;
       }
+      setEvent(found);
+      setReading(found === null ? "missing" : "read");
     })();
 
     return () => {
