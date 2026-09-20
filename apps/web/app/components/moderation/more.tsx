@@ -36,11 +36,11 @@ const ROW = `${SUGGESTION} text-left`;
  * Everything else there is to do with a document, a comment or an account,
  * behind one word.
  *
- * A document's addresses and its signed event live here rather than in the row
- * above it. Each of them serves whoever already knows what an naddr is, and a
- * reading page that spends seven controls on that before its first paragraph is
- * charging every reader for a few. The link is here too, because on a document's
- * own page the address bar is already showing it.
+ * A document's text, its addresses and its signed event live here rather than in
+ * the row above it. Most of them serve whoever already knows what an naddr is,
+ * and a reading page that spends seven controls on that before its first
+ * paragraph is charging every reader for a few. The link is here too, because on
+ * a document's own page the address bar is already showing it.
  *
  * Nothing here needs a key. Blocking is this browser deciding what it shows, and
  * the page or the comment flips to the notice that carries the undo, so the menu
@@ -86,8 +86,8 @@ export const More = ({ target }: { target: MoreTarget }) => {
         aria-expanded={stage !== "closed"}
         title={
           mine
-            ? "Addresses, and the signed event"
-            : "Addresses, republishing, reporting and blocking"
+            ? "The text, the addresses and the signed event"
+            : "The text, addresses, republishing, reporting and blocking"
         }
         className={CHROME}
       >
@@ -102,6 +102,19 @@ export const More = ({ target }: { target: MoreTarget }) => {
                 value={target.canonical}
                 label="Copy link"
                 title={target.canonical}
+                className={ROW}
+              />
+              {/* Fetched rather than held: the page ships the rendered HTML and
+                  leaves the source behind, and sending both would double every
+                  document's payload for the few who take a copy. */}
+              <CopyButton
+                value={() =>
+                  fetch(eventPath(toNpub(target.pubkey), target.identifier))
+                    .then((response) => response.json())
+                    .then((event) => String(event.content ?? ""))
+                }
+                label="Copy markdown"
+                title="The whole document, as its author wrote it"
                 className={ROW}
               />
               <CopyButton
