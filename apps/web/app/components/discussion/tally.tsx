@@ -1,6 +1,7 @@
 import { LIKE, type ReactionTally, type ReactionTarget } from "@openspecs/nostr";
 import { useState, useSyncExternalStore } from "react";
 import type { Response } from "~/lib/discussion";
+import { useDismiss } from "~/lib/dismiss";
 import type { Author } from "~/lib/profile";
 import {
   intentsState,
@@ -59,8 +60,13 @@ export const Tally = ({
 }: TallyProps) => {
   const [open, setOpen] = useState(false);
   const [zapping, setZapping] = useState(false);
+  const [quoted, setQuoted] = useState(false);
   const [typed, setTyped] = useState("");
   const intents = useSyncExternalStore(subscribeIntents, intentsState, serverIntentsState);
+
+  const palette = useDismiss<HTMLSpanElement>(open, () => setOpen(false));
+  // Until there is an invoice to pay, after which the dialog says why it stays.
+  const zap = useDismiss<HTMLSpanElement>(zapping && !quoted, () => setZapping(false));
   const canReact = me !== null && target !== null;
   // Offered only to somebody who can be paid: a button that fails after three
   // clicks and a signature is worse than no button.
@@ -101,11 +107,14 @@ export const Tally = ({
       })}
 
       {(response.zapSats > 0 || canZap) && (
-        <span className="relative">
+        <span ref={zap} className="relative">
           <button
             type="button"
             disabled={!canZap}
-            onClick={() => setZapping(!zapping)}
+            onClick={() => {
+              setQuoted(false);
+              setZapping(!zapping);
+            }}
             title={canZap ? `Zap ${name || "them"}` : `${sats(response.zapSats)} satoshis zapped`}
             className={`${CHIP} border-rule ${canZap ? "hover:border-muted hover:text-ink" : "cursor-default"}`}
           >
@@ -126,6 +135,7 @@ export const Tally = ({
                   kind: target.kind,
                 }}
                 onDone={() => setZapping(false)}
+                onQuoted={() => setQuoted(true)}
               />
             </span>
           )}
@@ -133,7 +143,7 @@ export const Tally = ({
       )}
 
       {canReact && (
-        <span className="relative">
+        <span ref={palette} className="relative">
           <button
             type="button"
             onClick={() => setOpen(!open)}

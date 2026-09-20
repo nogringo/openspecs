@@ -86,9 +86,16 @@ export type ZapDialogProps = {
   /** What they are called, so the dialog says who is being paid. */
   name: string;
   onDone: () => void;
+  /**
+   * That an invoice now exists, which is the point after which whatever put this
+   * dialog on screen must stop taking a click elsewhere as a reason to close it:
+   * what is showing from here on is a QR somebody may be halfway through
+   * scanning, and unmounting it aborts a payment the wallet is already making.
+   */
+  onQuoted?: () => void;
 };
 
-export const ZapDialog = ({ me, author, target, name, onDone }: ZapDialogProps) => {
+export const ZapDialog = ({ me, author, target, name, onDone, onQuoted }: ZapDialogProps) => {
   const [stage, setStage] = useState<Stage>("choosing");
   const [amount, setAmount] = useState(PRESETS[0] ?? 21);
   const [comment, setComment] = useState("");
@@ -127,6 +134,7 @@ export const ZapDialog = ({ me, author, target, name, onDone }: ZapDialogProps) 
       const quoted = await quoteZap(me, author, target, amount, comment);
       setQuote(quoted);
       setStage("invoice");
+      onQuoted?.();
 
       // Paid here when this device can, and offered as an invoice when it cannot.
       if (canPayHere()) {

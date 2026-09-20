@@ -3,6 +3,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { RelayReport } from "~/components/relay-results";
 import { rememberSpec } from "~/lib/corpus";
+import { useDismiss } from "~/lib/dismiss";
 import { type RelayResult, signAndPublish } from "~/lib/publish";
 import { documentRelays } from "~/lib/relays";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
@@ -57,6 +58,15 @@ export const Withdraw = ({ pubkey, identifier }: { pubkey: string; identifier: s
   /** The empty revision landed somewhere, so the document is blank from then on. */
   const [replaced, setReplaced] = useState(false);
   const [refused, setRefused] = useState(false);
+  /*
+   * Not while the two events are going out. The panel is the only account of
+   * what reached which relay, the button that would bring it back is disabled
+   * until it is done, and the next stage would reopen it over the reader anyway.
+   */
+  const holder = useDismiss<HTMLDivElement>(
+    stage === "asking" || stage === "done" || stage === "failed",
+    () => setStage("closed"),
+  );
 
   const me = session.pubkey;
   if (me === null || me !== pubkey) return null;
@@ -131,7 +141,7 @@ export const Withdraw = ({ pubkey, identifier }: { pubkey: string; identifier: s
   const sending = stage === "emptying" || stage === "retracting";
 
   return (
-    <div className="relative">
+    <div ref={holder} className="relative">
       <button
         type="button"
         onClick={() => setStage(stage === "closed" ? "asking" : "closed")}

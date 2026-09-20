@@ -4,6 +4,7 @@ import { CHROME } from "~/components/chrome";
 import { CopyButton } from "~/components/copy-button";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { block, unblock, useBlocked } from "~/lib/blocked";
+import { useDismiss } from "~/lib/dismiss";
 import { eventPath } from "~/lib/paths";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
 import { ReportForm } from "./report-form";
@@ -57,6 +58,7 @@ export const More = ({ target }: { target: MoreTarget }) => {
   const session = useSyncExternalStore(subscribeSession, sessionState, serverSessionState);
   const blocked = useBlocked();
   const [stage, setStage] = useState<Stage>("closed");
+  const holder = useDismiss<HTMLDivElement>(stage !== "closed", () => setStage("closed"));
 
   const me = session.pubkey;
   const mine = me !== null && me === target.pubkey;
@@ -79,7 +81,7 @@ export const More = ({ target }: { target: MoreTarget }) => {
   };
 
   return (
-    <div className="relative">
+    <div ref={holder} className="relative">
       <button
         type="button"
         onClick={() => setStage(stage === "closed" ? "menu" : "closed")}
