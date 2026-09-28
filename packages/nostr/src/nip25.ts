@@ -1,5 +1,5 @@
 import { allTags, type EventDraft, type NostrEvent, nostrEventSchema, tagValue } from "./event";
-import { CLIENT_NAME } from "./nip22";
+import { CLIENT_NAME, COMMENT_KIND } from "./nip22";
 
 export const REACTION_KIND = 7;
 export const DELETION_KIND = 5;
@@ -46,6 +46,17 @@ export const buildRetraction = (reactionId: string): EventDraft => ({
   tags: [
     ["e", reactionId],
     ["k", String(REACTION_KIND)],
+    ["client", CLIENT_NAME],
+  ],
+});
+
+/** NIP-09 again, and read the same way: the discussion drops the comment either way. */
+export const buildCommentDeletion = (commentId: string): EventDraft => ({
+  kind: DELETION_KIND,
+  content: "",
+  tags: [
+    ["e", commentId],
+    ["k", String(COMMENT_KIND)],
     ["client", CLIENT_NAME],
   ],
 });

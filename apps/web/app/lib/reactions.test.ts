@@ -22,7 +22,10 @@ vi.mock("./discussion", () => ({
   addToDiscussion: record.addToDiscussion,
 }));
 vi.mock("./publish", () => ({ signDraft: mocks.signDraft }));
-vi.mock("./relays", () => ({ writeRelays: mocks.writeRelays }));
+vi.mock("./relays", async (original) => ({
+  ...(await original<typeof import("./relays")>()),
+  writeRelays: mocks.writeRelays,
+}));
 vi.mock("./outbox", () => ({ enqueue: mocks.enqueue }));
 vi.mock("./likes", () => ({ rememberLike: mocks.rememberLike }));
 

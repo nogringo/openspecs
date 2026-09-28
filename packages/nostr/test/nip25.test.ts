@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SPEC_KIND } from "../src/event";
 import {
+  buildCommentDeletion,
   buildReaction,
   buildRetraction,
   DELETION_KIND,
@@ -70,6 +71,20 @@ describe("buildRetraction", () => {
       tags: [
         ["e", "a".repeat(64)],
         ["k", "7"],
+        ["client", "Open Specs"],
+      ],
+    });
+  });
+});
+
+describe("buildCommentDeletion", () => {
+  it("names the comment and its kind", () => {
+    expect(buildCommentDeletion("a".repeat(64))).toEqual({
+      kind: DELETION_KIND,
+      content: "",
+      tags: [
+        ["e", "a".repeat(64)],
+        ["k", "1111"],
         ["client", "Open Specs"],
       ],
     });

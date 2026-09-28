@@ -4,12 +4,13 @@ import { CHROME } from "~/components/chrome";
 import { CopyButton } from "~/components/copy-button";
 import { Rebroadcast } from "~/components/rebroadcast";
 import { block, unblock, useBlocked } from "~/lib/blocked";
+import { deleteComment } from "~/lib/delete-comment";
 import { useDismiss } from "~/lib/dismiss";
 import { eventPath } from "~/lib/paths";
 import { commentRebroadcastRelays } from "~/lib/relays";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
 import { ReportForm } from "./report-form";
-import { SUGGESTION } from "./styles";
+import { NOTE, SUGGESTION } from "./styles";
 
 export type MoreTarget =
   | {
@@ -33,7 +34,7 @@ export type MoreTarget =
     }
   | { kind: "account"; pubkey: string };
 
-type Stage = "closed" | "menu" | "report";
+type Stage = "closed" | "menu" | "report" | "delete";
 
 /** The same panel a withdrawal and a zap hang off their buttons. */
 const PANEL =
@@ -51,10 +52,11 @@ const ROW = `${SUGGESTION} text-left`;
  * paragraph is charging every reader for a few. The link is here too, because on
  * a document's own page the address bar is already showing it.
  *
- * Nothing here needs a key. Blocking is this browser deciding what it shows, and
- * the page or the comment flips to the notice that carries the undo, so the menu
- * closes on the click and says nothing more. A report from a reader with no key
- * is signed by one made for it; the form says what that is worth.
+ * Nothing here needs a key, except deleting a comment of one's own. Blocking is
+ * this browser deciding what it shows, and the page or the comment flips to the
+ * notice that carries the undo, so the menu closes on the click and says nothing
+ * more. A report from a reader with no key is signed by one made for it; the
+ * form says what that is worth.
  *
  * A report on yourself is a mistake and a block on yourself is a bug, so neither
  * is offered on the reader's own words. On their own document or comment the
@@ -97,7 +99,7 @@ export const More = ({ target }: { target: MoreTarget }) => {
         title={
           target.kind === "comment"
             ? mine
-              ? "The link, the address and the signed event"
+              ? "The link, the address, the signed event, and deleting it"
               : "The link, address, republishing, reporting and blocking"
             : mine
               ? "The text, the addresses and the signed event"
@@ -210,6 +212,38 @@ export const More = ({ target }: { target: MoreTarget }) => {
               </button>
             </div>
           )}
+
+          {mine && target.kind === "comment" && (
+            <div className="border-t border-rule pt-3">
+              <button type="button" className={ROW} onClick={() => setStage("delete")}>
+                Delete this comment
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {stage === "delete" && target.kind === "comment" && (
+        <div className={PANEL}>
+          <p className={NOTE}>
+            It leaves this page at once, and the relays are asked to forget it. Like a letter
+            already posted, a copy somebody kept stays with them.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className={SUGGESTION}
+              onClick={() => {
+                setStage("closed");
+                void deleteComment(target.event);
+              }}
+            >
+              Delete it
+            </button>
+            <button type="button" className={SUGGESTION} onClick={() => setStage("closed")}>
+              Keep it
+            </button>
+          </div>
         </div>
       )}
 

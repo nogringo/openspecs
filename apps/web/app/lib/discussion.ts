@@ -78,6 +78,8 @@ let quieting: ReturnType<typeof setTimeout> | null = null;
 /** Second-pass subscriptions that have not said what they hold yet. */
 let awaiting = 0;
 let pointer: DiscussionPointer | null = null;
+/** Comments their author just deleted, gone from the screen before the deletion is signed. */
+let deleting = new Set<string>();
 let events = new Map<string, NostrEvent>();
 /** Comments a second pass already covers, so widening it asks only about the new ones. */
 let asked = new Set<string>();
@@ -160,6 +162,7 @@ const recompute = (): Recomputed => {
   const hidden = blockedState().pubkeys;
   const discussion = {
     ...sorted,
+    comments: sorted.comments.filter((comment) => !deleting.has(comment.id)),
     reactions: sorted.reactions.filter((reaction) => !hidden.has(reaction.pubkey)),
     zaps: sorted.zaps.filter((zap) => zap.zapper === null || !hidden.has(zap.zapper)),
   };
@@ -358,6 +361,14 @@ export const addToDiscussion = (event: NostrEvent): void => {
   publish();
 };
 
+/** The click, and the undo the signer can force by refusing. */
+export const setDeleting = (id: string, on: boolean): void => {
+  deleting = new Set(deleting);
+  if (on) deleting.add(id);
+  else deleting.delete(id);
+  publish();
+};
+
 export const stopDiscussion = (): void => close();
 
 /** Test seam, and what a reader leaving the document behind eventually calls. */
@@ -368,6 +379,7 @@ export const clearDiscussion = (): void => {
   events = new Map();
   asked = new Set();
   paid = new Set();
+  deleting = new Set();
   pointer = null;
   listed = false;
   settled = false;

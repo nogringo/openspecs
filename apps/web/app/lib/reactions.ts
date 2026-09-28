@@ -1,12 +1,9 @@
 import {
   buildReaction,
   buildRetraction,
-  DEFAULT_RELAYS,
-  DISCUSSION_RELAYS,
   LIKE,
   type ReactionTally,
   type ReactionTarget,
-  relaySet,
 } from "@openspecs/nostr";
 import {
   addToDiscussion,
@@ -17,7 +14,7 @@ import {
 import { rememberLike } from "./likes";
 import { enqueue } from "./outbox";
 import { signDraft } from "./publish";
-import { writeRelays } from "./relays";
+import { FALLBACK_RELAYS, writeRelays } from "./relays";
 
 /** Which way a reader wants a symbol on a target, keyed by `reactionKey`. */
 export type Intents = Record<string, boolean>;
@@ -30,9 +27,6 @@ export const NO_INTENTS: Intents = Object.freeze({});
  * offline looks like, must not be able to hold a click hostage.
  */
 const PATIENCE_MS = 5000;
-
-/** Where an event goes when no relay list could be read, which is also what offline looks like. */
-const FALLBACK_RELAYS = relaySet(DISCUSSION_RELAYS, DEFAULT_RELAYS);
 
 type Intent = {
   me: string;

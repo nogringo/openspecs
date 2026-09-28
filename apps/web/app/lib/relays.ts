@@ -27,6 +27,9 @@ export const PUBLIC_RELAYS = [
   "wss://nostr-01.yakihonne.com",
 ];
 
+/** Where an event goes when no relay list could be read, which is also what offline looks like. */
+export const FALLBACK_RELAYS = relaySet(DISCUSSION_RELAYS, DEFAULT_RELAYS);
+
 /**
  * Relay hints found on the event being answered. Two, because a hint is a guess
  * somebody else made about where a thing lives.

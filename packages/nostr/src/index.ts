@@ -103,6 +103,7 @@ export {
   threadComments,
 } from "./nip22";
 export {
+  buildCommentDeletion,
   buildReaction,
   buildRetraction,
   DELETION_KIND,
