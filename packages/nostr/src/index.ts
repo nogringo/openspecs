@@ -99,6 +99,8 @@ export {
   type CommentParent,
   type CommentRoot,
   correspondents,
+  type Gap,
+  headOf,
   parseComment,
   threadComments,
 } from "./nip22";

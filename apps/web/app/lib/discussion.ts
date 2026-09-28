@@ -8,6 +8,8 @@ import type {
 } from "@openspecs/nostr";
 import {
   correspondents,
+  headOf,
+  retractions,
   sortDiscussion,
   subscribeDiscussion,
   subscribeReferences,
@@ -163,6 +165,10 @@ const recompute = (): Recomputed => {
   const discussion = {
     ...sorted,
     comments: sorted.comments.filter((comment) => !deleting.has(comment.id)),
+    retracted: [
+      ...sorted.retracted,
+      ...sorted.comments.filter((comment) => deleting.has(comment.id)),
+    ],
     reactions: sorted.reactions.filter((reaction) => !hidden.has(reaction.pubkey)),
     zaps: sorted.zaps.filter((zap) => zap.zapper === null || !hidden.has(zap.zapper)),
   };
@@ -180,7 +186,10 @@ const recompute = (): Recomputed => {
       // Ready means the record can be read, not that events stopped arriving:
       // the relays have listed what they hold, and nothing in it was retracted.
       status: pointer === null ? "idle" : listed && settled ? "ready" : "loading",
-      roots: threadComments(discussion.comments),
+      roots: threadComments(discussion.comments, {
+        retracted: discussion.retracted,
+        retractions: retractions(discussion.deletions),
+      }),
       count: discussion.comments.length,
       correspondents: correspondents(discussion.comments),
       document: responseTo(discussion, {
@@ -212,9 +221,11 @@ const askAbout = (state: DiscussionState, reactions: string[]): void => {
     if (!asked.has(id)) ids.push(id);
   };
 
+  // A gap is asked about too: a deletion naming it is what tells a comment its
+  // author took back from one no relay happened to hold.
   const walk = (walking: CommentNode[]): void => {
     for (const node of walking) {
-      want(node.comment.id);
+      want(headOf(node).id);
       walk(node.replies);
     }
   };

@@ -157,6 +157,11 @@ describe("sortDiscussion", () => {
       expect(sortDiscussion([comment, deletion(readerKey)], ROOT.coordinate).comments).toEqual([]);
     });
 
+    it("is kept aside, so the replies to it still know where they hang", () => {
+      const sorted = sortDiscussion([comment, deletion(readerKey)], ROOT.coordinate);
+      expect(sorted.retracted.map((taken) => taken.id)).toEqual([comment.id]);
+    });
+
     it("stays when the request came from somebody else", () => {
       expect(sortDiscussion([comment, deletion(authorKey)], ROOT.coordinate).comments).toHaveLength(
         1,
@@ -341,8 +346,10 @@ describe("fetchDiscussion", () => {
     const roots = threadComments(discussion.comments);
 
     expect(roots).toHaveLength(1);
-    expect(roots[0]?.comment.id).toBe(parent.id);
-    expect(roots[0]?.replies.map((node) => node.comment.id)).toEqual([reply.id]);
+    expect(roots[0]).toMatchObject({
+      comment: { id: parent.id },
+      replies: [{ comment: { id: reply.id } }],
+    });
   });
 });
 

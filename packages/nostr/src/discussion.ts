@@ -73,6 +73,8 @@ export const referenceFilters = (ids: string[]): Filter[] =>
 
 export type Discussion = {
   comments: Comment[];
+  /** Taken back by their authors: not shown, but still where their replies hang. */
+  retracted: Comment[];
   reactions: Reaction[];
   zaps: ZapReceipt[];
   deletions: Deletion[];
@@ -80,6 +82,7 @@ export type Discussion = {
 
 export const EMPTY_DISCUSSION: Discussion = Object.freeze({
   comments: [],
+  retracted: [],
   reactions: [],
   zaps: [],
   deletions: [],
@@ -146,9 +149,11 @@ export const sortDiscussion = (
   // A comment its own author asked to be forgotten is not shown, whether or not
   // the relays honoured the request: a reader who took their words back has
   // said so, and only the pages that ignore them keep them up.
-  const retracted = retractions(deletions);
+  const asked = retractions(deletions);
+  const taken = (comment: Comment) => asked.get(comment.id)?.has(comment.pubkey) === true;
   return {
-    comments: comments.filter((comment) => !retracted.get(comment.id)?.has(comment.pubkey)),
+    comments: comments.filter((comment) => !taken(comment)),
+    retracted: comments.filter(taken),
     reactions,
     zaps,
     deletions,

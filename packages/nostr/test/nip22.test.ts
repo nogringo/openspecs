@@ -5,6 +5,7 @@ import {
   buildComment,
   COMMENT_KIND,
   correspondents,
+  headOf,
   parseComment,
   threadComments,
 } from "../src/nip22";
@@ -234,7 +235,7 @@ describe("threadComments", () => {
     const roots = threadComments(comments);
 
     const count = (nodes: ReturnType<typeof threadComments>): number =>
-      nodes.reduce((total, node) => total + 1 + count(node.replies), 0);
+      nodes.reduce((total, node) => total + ("comment" in node ? 1 : 0) + count(node.replies), 0);
 
     expect(count(roots)).toBe(comments.length);
     expect(roots.length).toBeGreaterThan(0);
@@ -244,24 +245,113 @@ describe("threadComments", () => {
   it("reads oldest first, at every depth", () => {
     const roots = threadComments(parseAll(discussionCase("thread")));
     const ordered = (nodes: ReturnType<typeof threadComments>): void => {
-      const times = nodes.map((node) => node.comment.createdAt);
+      const times = nodes.map((node) => headOf(node).createdAt);
       expect(times).toEqual([...times].sort((a, b) => a - b));
       for (const node of nodes) ordered(node.replies);
     };
     ordered(roots);
   });
 
-  it("surfaces a reply whose parent never arrived rather than dropping it", () => {
-    const orphan = parseComment(
-      asEvent([
-        ["A", ROOT.coordinate],
-        ["e", "f".repeat(64)],
-        ["k", "1111"],
-      ]),
+  describe("a reply whose parent is not here", () => {
+    const MISSING = "f".repeat(64);
+    const orphan = (tags: string[][] = [["k", "1111"]], overrides = {}) => {
+      const comment = parseComment(
+        asEvent(
+          [["A", ROOT.coordinate], ["e", MISSING], ["p", PARENT.pubkey], ...tags],
+          "a reply",
+          overrides,
+        ),
+      );
+      if (comment === null) throw new Error("the reply did not parse");
+      return comment;
+    };
+
+    it("hangs from a gap standing in for the parent, rather than surfacing alone", () => {
+      const reply = orphan();
+      expect(threadComments([reply])).toEqual([
+        {
+          gap: { id: MISSING, createdAt: reply.createdAt, deleted: false },
+          replies: [{ comment: reply, replies: [] }],
+        },
+      ]);
+    });
+
+    it("says the parent was deleted when its author asked", () => {
+      const roots = threadComments([orphan()], {
+        retractions: new Map([[MISSING, new Set([PARENT.pubkey])]]),
+      });
+      expect(roots[0]).toMatchObject({ gap: { deleted: true } });
+    });
+
+    it("does not take a deletion from anyone but the parent's author", () => {
+      const roots = threadComments([orphan()], {
+        retractions: new Map([[MISSING, new Set(["9".repeat(64)])]]),
+      });
+      expect(roots[0]).toMatchObject({ gap: { deleted: false } });
+    });
+
+    it("gives two replies to the same parent one gap", () => {
+      const first = orphan();
+      const second = orphan(undefined, { id: "c".repeat(64), created_at: 1_700_000_001 });
+      const roots = threadComments([second, first]);
+      expect(roots).toHaveLength(1);
+      expect(roots[0]?.replies).toHaveLength(2);
+    });
+
+    it("surfaces alone when nothing says the parent was a comment", () => {
+      const reply = orphan([]);
+      expect(threadComments([reply])).toEqual([{ comment: reply, replies: [] }]);
+    });
+  });
+
+  describe("a comment its author deleted", () => {
+    const parent = parseComment(
+      asEvent([["A", ROOT.coordinate]], "the parent", { id: PARENT.id, pubkey: PARENT.pubkey }),
     );
-    expect(orphan).not.toBeNull();
-    const roots = threadComments(orphan === null ? [] : [orphan]);
-    expect(roots).toHaveLength(1);
+    const reply = parseComment(
+      asEvent(
+        [
+          ["A", ROOT.coordinate],
+          ["e", PARENT.id],
+          ["k", "1111"],
+          ["p", PARENT.pubkey],
+        ],
+        "a reply",
+        { created_at: 1_700_000_001 },
+      ),
+    );
+    if (parent === null || reply === null) throw new Error("the fixtures did not parse");
+
+    it("keeps its place as a gap while something answers it", () => {
+      expect(threadComments([reply], { retracted: [parent] })).toEqual([
+        {
+          gap: { id: parent.id, createdAt: parent.createdAt, deleted: true },
+          replies: [{ comment: reply, replies: [] }],
+        },
+      ]);
+    });
+
+    it("stays nested under what it answered", () => {
+      const grandparent = parseComment(
+        asEvent([["A", ROOT.coordinate]], "the first word", {
+          id: "1".repeat(64),
+          created_at: 1_699_999_999,
+        }),
+      );
+      if (grandparent === null) throw new Error("the fixture did not parse");
+      const nested = { ...parent, parentId: grandparent.id };
+
+      const roots = threadComments([grandparent, reply], { retracted: [nested] });
+      expect(roots).toHaveLength(1);
+      expect(roots[0]?.replies[0]).toMatchObject({
+        gap: { id: parent.id },
+        replies: [{ comment: reply }],
+      });
+    });
+
+    it("leaves nothing behind when nothing answers it", () => {
+      expect(threadComments([], { retracted: [parent] })).toEqual([]);
+    });
   });
 
   it("counts a comment served twice once", () => {

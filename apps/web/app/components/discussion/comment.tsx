@@ -1,6 +1,6 @@
 import { renderMarkdown } from "@openspecs/markdown";
-import type { CommentNode, CommentRoot } from "@openspecs/nostr";
-import { authorPath, COMMENT_KIND, toNpub } from "@openspecs/nostr";
+import type { CommentNode, CommentRoot, Gap } from "@openspecs/nostr";
+import { authorPath, COMMENT_KIND, headOf, toNpub } from "@openspecs/nostr";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { AuthorAvatar } from "~/components/author-avatar";
@@ -70,15 +70,46 @@ export type CommentProps = {
   depth?: number;
 };
 
-export const CommentThread = ({
-  node,
-  authors,
-  responses,
-  root,
-  canonical,
-  me = null,
-  depth = 0,
-}: CommentProps) => {
+type Said = Extract<CommentNode, { comment: unknown }>;
+
+export const CommentThread = (props: CommentProps) =>
+  "gap" in props.node ? (
+    <GapLine {...props} gap={props.node.gap} />
+  ) : (
+    <SaidThread {...props} node={props.node} />
+  );
+
+const Replies = ({ node, depth = 0, ...shared }: CommentProps) =>
+  node.replies.length === 0 ? null : (
+    <div className={depth < MAX_DEPTH ? SPINE : "mt-6 space-y-6"}>
+      {node.replies.map((reply) => (
+        <CommentThread
+          key={headOf(reply).id}
+          {...shared}
+          node={reply}
+          depth={Math.min(depth + 1, MAX_DEPTH)}
+        />
+      ))}
+    </div>
+  );
+
+/** Drawn like a blocked comment's line, in the same blank column. */
+const GapLine = ({ gap, ...props }: CommentProps & { gap: Gap }) => (
+  <article id={gap.id} className="relative scroll-mt-24">
+    <div className="flex gap-3">
+      <span aria-hidden="true" className="w-6 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="font-mono text-xs text-muted">
+          {gap.deleted ? "A comment its author deleted." : "A comment this page could not find."}
+        </p>
+        <Replies {...props} />
+      </div>
+    </div>
+  </article>
+);
+
+const SaidThread = (props: CommentProps & { node: Said }) => {
+  const { node, authors, responses, root, canonical, me = null } = props;
   const [replying, setReplying] = useState(false);
   const { comment } = node;
   const npub = toNpub(comment.pubkey);
@@ -88,22 +119,7 @@ export const CommentThread = ({
   /** Opened by hand, for this visit: a block is not a lock. */
   const [shownAnyway, setShownAnyway] = useState(false);
 
-  const replies = node.replies.length > 0 && (
-    <div className={depth < MAX_DEPTH ? SPINE : "mt-6 space-y-6"}>
-      {node.replies.map((reply) => (
-        <CommentThread
-          key={reply.comment.id}
-          node={reply}
-          authors={authors}
-          responses={responses}
-          root={root}
-          canonical={canonical}
-          me={me}
-          depth={Math.min(depth + 1, MAX_DEPTH)}
-        />
-      ))}
-    </div>
-  );
+  const replies = <Replies {...props} />;
 
   // Collapsed to a line in its place rather than taken out, so what was said
   // in answer keeps its thread. The blank on the left is where the mark of the

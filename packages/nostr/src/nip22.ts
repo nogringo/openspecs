@@ -121,26 +121,89 @@ const parentOf = (event: NostrEvent): string | null => {
   return parentId;
 };
 
-export type CommentNode = { comment: Comment; replies: CommentNode[] };
+/**
+ * A comment its replies answer and this page cannot show: taken back by its
+ * author, or not found on any relay read. Kept as a line in its place, or a
+ * reply would read as answering whatever sits above it instead.
+ */
+export type Gap = { id: string; createdAt: number; deleted: boolean };
+
+export type CommentNode =
+  | { comment: Comment; replies: CommentNode[] }
+  | { gap: Gap; replies: CommentNode[] };
+
+/** What a node stands for, whichever of the two it is: enough to key it and date it. */
+export const headOf = (node: CommentNode): { id: string; createdAt: number } =>
+  "gap" in node ? node.gap : node.comment;
+
+export type ThreadOptions = {
+  /** Comments their author deleted, kept only to hold their replies in place. */
+  retracted?: Comment[];
+  /** Who asked for which id to be forgotten, as `retractions` reads it. */
+  retractions?: Map<string, Set<string>>;
+};
+
+type Entry = { id: string; createdAt: number; parentId: string | null; node: CommentNode };
+
+type Dated = { id: string; createdAt: number };
+
+const byTime = (a: Dated, b: Dated): number =>
+  a.createdAt - b.createdAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+/** A gap that holds no reply has nothing to explain, so it goes. */
+const prune = (nodes: CommentNode[]): CommentNode[] =>
+  nodes.flatMap((node) => {
+    const replies = prune(node.replies);
+    return "gap" in node && replies.length === 0 ? [] : [{ ...node, replies }];
+  });
 
 /**
  * Oldest first, at every depth: a specification's discussion is a record, and a
  * record is read in the order it was written.
  *
- * A reply whose parent is not here surfaces at the top rather than disappearing.
- * That covers the comment answering something the relays no longer serve, and
- * the client that pointed its parent at a revision of the document instead.
+ * A reply whose parent is not here hangs from a gap standing in for it, when its
+ * `k` says the parent was a comment. Without that `k` nothing says so: some
+ * clients point `e` at a revision of the document instead, and those replies
+ * surface at the top, as a comment on the document is.
  */
-export const threadComments = (comments: Comment[]): CommentNode[] => {
-  const unique = new Map<string, Comment>();
-  for (const comment of comments) unique.set(comment.id, comment);
+export const threadComments = (
+  comments: Comment[],
+  { retracted = [], retractions = new Map() }: ThreadOptions = {},
+): CommentNode[] => {
+  const entries = new Map<string, Entry>();
+  for (const comment of retracted) {
+    entries.set(comment.id, {
+      id: comment.id,
+      createdAt: comment.createdAt,
+      parentId: comment.parentId,
+      node: { gap: { id: comment.id, createdAt: comment.createdAt, deleted: true }, replies: [] },
+    });
+  }
+  for (const comment of comments) {
+    entries.set(comment.id, {
+      id: comment.id,
+      createdAt: comment.createdAt,
+      parentId: comment.parentId,
+      node: { comment, replies: [] },
+    });
+  }
 
-  const ordered = [...unique.values()].sort(
-    (a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
-  );
-
-  const nodes = new Map<string, CommentNode>();
-  for (const comment of ordered) nodes.set(comment.id, { comment, replies: [] });
+  // Oldest reply first, so a gap is dated by the earliest thing that answered it.
+  for (const comment of [...retracted, ...comments].sort(byTime)) {
+    const parentId = comment.parentId;
+    if (parentId === null || entries.has(parentId)) continue;
+    if (tagValue(comment.event, "k") !== String(COMMENT_KIND)) continue;
+    // The lowercase `p` names the author of the comment answered, which is the
+    // only key whose deletion of it counts.
+    const author = tagValue(comment.event, "p");
+    const deleted = author !== "" && retractions.get(parentId)?.has(author) === true;
+    entries.set(parentId, {
+      id: parentId,
+      createdAt: comment.createdAt,
+      parentId: null,
+      node: { gap: { id: parentId, createdAt: comment.createdAt, deleted }, replies: [] },
+    });
+  }
 
   const parentOf = new Map<string, string>();
   // An event id is a hash of the event pointing at it, so a loop cannot be
@@ -155,20 +218,18 @@ export const threadComments = (comments: Comment[]): CommentNode[] => {
   };
 
   const roots: CommentNode[] = [];
-  for (const comment of ordered) {
-    const node = nodes.get(comment.id);
-    if (!node) continue;
-    const parentId = comment.parentId;
+  for (const entry of [...entries.values()].sort(byTime)) {
+    const { parentId } = entry;
     const parent =
-      parentId === null || wouldLoop(comment.id, parentId) ? undefined : nodes.get(parentId);
+      parentId === null || wouldLoop(entry.id, parentId) ? undefined : entries.get(parentId);
     if (parent && parentId !== null) {
-      parentOf.set(comment.id, parentId);
-      parent.replies.push(node);
+      parentOf.set(entry.id, parentId);
+      parent.node.replies.push(entry.node);
     } else {
-      roots.push(node);
+      roots.push(entry.node);
     }
   }
-  return roots;
+  return prune(roots);
 };
 
 /** Everyone who wrote something, which is what the thread is a record of. */

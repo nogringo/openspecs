@@ -17,6 +17,7 @@ import {
   clearDiscussion,
   discussionState,
   invoicePaid,
+  setDeleting,
   startDiscussion,
   subscribeDiscussionState,
 } from "./discussion";
@@ -311,5 +312,56 @@ describe("what it counts", () => {
     expect(discussionState().count).toBe(2);
     expect(discussionState().roots).toHaveLength(1);
     expect(discussionState().roots[0]?.replies).toHaveLength(1);
+  });
+  describe("a comment taken back while somebody had answered it", () => {
+    const parent = comment("the parent", 10);
+    const reply = finalizeEvent(
+      {
+        ...buildComment({
+          root: ROOT,
+          parent: { id: parent.id, pubkey: parent.pubkey },
+          content: "the reply",
+        }),
+        created_at: 20,
+      },
+      authorKey,
+    );
+
+    const open = async (events: NostrEvent[]) => {
+      startDiscussion(POINTER);
+      for (const event of events) main.send(event);
+      main.eose();
+      await settleTimers();
+      for (const channel of references) channel.eose();
+      await settleTimers();
+    };
+
+    it("leaves a line in its place, with the reply still under it", async () => {
+      await open([parent, reply, deletion(parent.id, 30)]);
+
+      expect(discussionState().count).toBe(1);
+      expect(discussionState().roots).toMatchObject([
+        { gap: { id: parent.id, deleted: true }, replies: [{ comment: { id: reply.id } }] },
+      ]);
+    });
+
+    it("says so when the relays forgot it and only the deletion is left", async () => {
+      await open([reply]);
+      references[0]?.send(deletion(parent.id, 30));
+      await settleTimers();
+
+      expect(discussionState().roots).toMatchObject([
+        { gap: { id: parent.id, deleted: true }, replies: [{ comment: { id: reply.id } }] },
+      ]);
+    });
+
+    it("leaves the line the moment its author clicks, before anything is signed", async () => {
+      await open([parent, reply]);
+      setDeleting(parent.id, true);
+
+      expect(discussionState().roots).toMatchObject([
+        { gap: { id: parent.id, deleted: true }, replies: [{ comment: { id: reply.id } }] },
+      ]);
+    });
   });
 });

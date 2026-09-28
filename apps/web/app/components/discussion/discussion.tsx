@@ -1,4 +1,4 @@
-import { type CommentNode, SPEC_KIND, toNpub } from "@openspecs/nostr";
+import { type CommentNode, headOf, SPEC_KIND, toNpub } from "@openspecs/nostr";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useLocation } from "react-router";
 import {
@@ -126,7 +126,8 @@ export const Discussion = ({
   const waiting = !mine || discussion.status === "idle";
 
   const { before, after } = useMemo(() => split(roots, revisedAt), [roots, revisedAt]);
-  const since = roots[0]?.comment.createdAt ?? null;
+  const first = roots[0];
+  const since = first === undefined ? null : headOf(first).createdAt;
 
   /**
    * A link from a notification names the comment it is about. The browser looks
@@ -195,7 +196,7 @@ export const Discussion = ({
         <div className="mt-8 space-y-8">
           {before.map((node) => (
             <CommentThread
-              key={node.comment.id}
+              key={headOf(node).id}
               node={node}
               authors={authors}
               responses={discussion.byComment}
@@ -209,7 +210,7 @@ export const Discussion = ({
           )}
           {after.map((node) => (
             <CommentThread
-              key={node.comment.id}
+              key={headOf(node).id}
               node={node}
               authors={authors}
               responses={discussion.byComment}
@@ -235,7 +236,7 @@ const split = (
 ): { before: CommentNode[]; after: CommentNode[] } => {
   if (revisedAt === null) return { before: [], after: roots };
   return {
-    before: roots.filter((node) => node.comment.createdAt < revisedAt),
-    after: roots.filter((node) => node.comment.createdAt >= revisedAt),
+    before: roots.filter((node) => headOf(node).createdAt < revisedAt),
+    after: roots.filter((node) => headOf(node).createdAt >= revisedAt),
   };
 };
