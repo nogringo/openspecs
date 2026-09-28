@@ -25,14 +25,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.7.0"
-  ascii_qr:
-    dependency: transitive
-    description:
-      name: ascii_qr
-      sha256: "2046e400a0fa4ea0de5df44c87b992cdd1f76403bb15e64513b89263598750ae"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.1"
   async:
     dependency: transitive
     description:
@@ -317,10 +309,10 @@ packages:
     dependency: "direct main"
     description:
       name: ndk
-      sha256: "719e1537d63833101ab7de3e4c6d530d484a2a3090c6ca6054cb0f48af7fe88b"
+      sha256: ba165fe2b9e917dbd9910829e84c38fc54e9ffdd23632a5916ef37d087e0e68e
       url: "https://pub.dev"
     source: hosted
-    version: "0.9.0"
+    version: "0.10.0-dev.9"
   node_preamble:
     dependency: transitive
     description:
@@ -377,14 +369,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
-  qr:
-    dependency: transitive
-    description:
-      name: qr
-      sha256: "5a1d2586170e172b8a8c8470bbbffd5eb0cd38a66c0d77155ea138d3af3a4445"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.2"
   record_use:
     dependency: transitive
     description:
@@ -501,10 +485,10 @@ packages:
     dependency: "direct main"
     description:
       name: sync_engine_shim_for_ndk
-      sha256: "4b10c71a6ec59d053552e1fb577489afaff439d2f7723c6c110c9414f30232ad"
+      sha256: ce995e780b781b070c2827ef2abe11954305b9c60adda99b927bd5a40c7fc28b
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.0"
+    version: "0.7.1"
   synchronized:
     dependency: transitive
     description:
@@ -609,14 +593,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.3"
-  web_socket_client:
-    dependency: transitive
-    description:
-      name: web_socket_client
-      sha256: "394789177aa3bc1b7b071622a1dbf52a4631d7ce23c555c39bb2523e92316b07"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.1"
   webkit_inspection_protocol:
     dependency: transitive
     description:
