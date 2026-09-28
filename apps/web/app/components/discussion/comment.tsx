@@ -63,6 +63,8 @@ export type CommentProps = {
   responses: Record<string, Response>;
   /** The document this thread hangs from, which stays the root of every reply. */
   root: CommentRoot;
+  /** The document's canonical URL, which this comment's link is an anchor on. */
+  canonical: string;
   /** Null when nobody is signed in: the thread is then a record and not a form. */
   me?: string | null;
   depth?: number;
@@ -73,6 +75,7 @@ export const CommentThread = ({
   authors,
   responses,
   root,
+  canonical,
   me = null,
   depth = 0,
 }: CommentProps) => {
@@ -94,6 +97,7 @@ export const CommentThread = ({
           authors={authors}
           responses={responses}
           root={root}
+          canonical={canonical}
           me={me}
           depth={Math.min(depth + 1, MAX_DEPTH)}
         />
@@ -176,7 +180,15 @@ export const CommentThread = ({
                 Reply
               </button>
             )}
-            <More target={{ kind: "comment", pubkey: comment.pubkey, id: comment.id }} />
+            <More
+              target={{
+                kind: "comment",
+                pubkey: comment.pubkey,
+                id: comment.id,
+                event: comment.event,
+                link: `${canonical}#${comment.id}`,
+              }}
+            />
           </div>
 
           {me !== null && replying && (

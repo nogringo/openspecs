@@ -1,4 +1,4 @@
-import { naddrEncode, nprofileEncode, npubEncode } from "nostr-tools/nip19";
+import { decode, naddrEncode, nprofileEncode, npubEncode } from "nostr-tools/nip19";
 import { describe, expect, it } from "vitest";
 import {
   authorPath,
@@ -8,6 +8,7 @@ import {
   specPath,
   toCoordinate,
   toNaddr,
+  toNevent,
 } from "../src/address";
 import { SPEC_KIND } from "../src/event";
 import { parseSpec } from "../src/spec";
@@ -120,5 +121,17 @@ describe("authorPath", () => {
     for (const spec of specs) {
       expect(specPath(spec).startsWith(`/spec${authorPath(spec.pubkey)}/`)).toBe(true);
     }
+  });
+});
+
+describe("nevent", () => {
+  it("carries the id, the author, the kind and the relay hints", () => {
+    const pointer = { id: "e".repeat(64), pubkey: "a".repeat(64), kind: 1111 };
+    const hint = "wss://relay.example.com/";
+    const decoded = decode(toNevent({ ...pointer, relays: [hint] }));
+    expect(decoded).toEqual({
+      type: "nevent",
+      data: { id: pointer.id, author: pointer.pubkey, kind: pointer.kind, relays: [hint] },
+    });
   });
 });

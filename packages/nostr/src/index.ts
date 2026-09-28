@@ -7,6 +7,7 @@ export {
   specPath,
   toCoordinate,
   toNaddr,
+  toNevent,
   toNpub,
 } from "./address";
 export {

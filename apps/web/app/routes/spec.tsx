@@ -488,6 +488,7 @@ const Article = ({
             coordinate={toCoordinate(shown)}
             specEventId={shown.eventId}
             pubkey={shown.pubkey}
+            canonical={canonical}
             relays={discussion}
             revisedAt={shown.revisedAt > shown.publishedAt ? shown.revisedAt : null}
           />

@@ -20,6 +20,7 @@ vi.mock("@openspecs/nostr", () => nostr);
 
 import {
   announceRelays,
+  commentRebroadcastRelays,
   documentRelays,
   identityRelays,
   MAX_WRITE_RELAYS,
@@ -109,6 +110,39 @@ describe("reportRelays", () => {
     const relays = await reportRelays(ME, AUTHOR);
     expect(relays[0]).toBe("wss://mine.example");
     expect(relays).toContain(PUBLIC_RELAYS[0]);
+  });
+});
+
+describe("commentRebroadcastRelays", () => {
+  const comment = (tags: string[][]) => ({
+    id: "e".repeat(64),
+    pubkey: ME,
+    created_at: 0,
+    kind: 1111,
+    tags,
+    content: "a comment",
+    sig: "f".repeat(128),
+  });
+
+  it("goes where the comment went, then to the large operators", async () => {
+    const relays = await commentRebroadcastRelays(comment([["P", AUTHOR]]));
+
+    expect(nostr.writeRelaysOf).toHaveBeenCalledWith([ME]);
+    expect(relays[0]).toBe("wss://mine.example");
+    expect(relays[1]).toBe("wss://their-inbox.example");
+    expect(relays).toContain(PUBLIC_RELAYS[0]);
+  });
+
+  it("reaches the author of the comment answered, and skips a malformed key", async () => {
+    await commentRebroadcastRelays(
+      comment([
+        ["P", AUTHOR],
+        ["p", PARENT],
+        ["p", "not a key"],
+        ["p", AUTHOR],
+      ]),
+    );
+    expect(nostr.fetchRelayLists).toHaveBeenCalledWith([AUTHOR, PARENT]);
   });
 });
 

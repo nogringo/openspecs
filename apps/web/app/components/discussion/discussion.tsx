@@ -67,6 +67,8 @@ export type DiscussionProps = {
   specEventId: string;
   /** The document's author, who is the root scope of every comment here. */
   pubkey: string;
+  /** The document's canonical URL, which a comment's link is an anchor on. */
+  canonical: string;
   /** The document author's own relays, resolved by the loader. */
   relays: string[];
   /** When the document was last edited, or null if it never was. */
@@ -77,6 +79,7 @@ export const Discussion = ({
   coordinate,
   specEventId,
   pubkey,
+  canonical,
   relays,
   revisedAt,
 }: DiscussionProps) => {
@@ -197,6 +200,7 @@ export const Discussion = ({
               authors={authors}
               responses={discussion.byComment}
               root={root}
+              canonical={canonical}
               me={me}
             />
           ))}
@@ -210,6 +214,7 @@ export const Discussion = ({
               authors={authors}
               responses={discussion.byComment}
               root={root}
+              canonical={canonical}
               me={me}
             />
           ))}

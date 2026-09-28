@@ -1,4 +1,4 @@
-import { decode, naddrEncode, npubEncode } from "nostr-tools/nip19";
+import { decode, naddrEncode, neventEncode, npubEncode } from "nostr-tools/nip19";
 import { SPEC_KIND } from "./event";
 
 export type SpecPointer = {
@@ -37,6 +37,20 @@ export const toNaddr = (
     kind: SPEC_KIND,
     pubkey: pointer.pubkey,
     identifier: pointer.identifier,
+    relays: pointer.relays,
+  });
+
+/** Any event other than a document, which is addressed by its naddr instead. */
+export const toNevent = (pointer: {
+  id: string;
+  pubkey: string;
+  kind: number;
+  relays?: string[];
+}): string =>
+  neventEncode({
+    id: pointer.id,
+    author: pointer.pubkey,
+    kind: pointer.kind,
     relays: pointer.relays,
   });
 

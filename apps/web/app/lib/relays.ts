@@ -6,6 +6,7 @@ import {
   IMPORT_RELAYS,
   INDEXER_RELAYS,
   MAX_RELAYS_PER_AUTHOR,
+  type NostrEvent,
   relaySet,
   writeRelaysOf,
 } from "@openspecs/nostr";
@@ -190,6 +191,23 @@ export const writeRelays = async (me: string, target: WriteTarget): Promise<stri
     DISCUSSION_RELAYS,
     DEFAULT_RELAYS,
   ).slice(0, MAX_WRITE_RELAYS);
+};
+
+const HEX_64 = /^[0-9a-f]{64}$/;
+
+/**
+ * Where a comment is sent again: everywhere it went when it was written, worked
+ * out from its author and the `p` and `P` tags naming who it answers, then the
+ * large operators, as for a document. Sending it on needs no key.
+ */
+export const commentRebroadcastRelays = async (comment: NostrEvent): Promise<string[]> => {
+  const addressed = new Set<string>();
+  for (const [name, value] of comment.tags) {
+    if ((name === "p" || name === "P") && value !== undefined && HEX_64.test(value)) {
+      addressed.add(value);
+    }
+  }
+  return relaySet(await writeRelays(comment.pubkey, { addressed: [...addressed] }), PUBLIC_RELAYS);
 };
 
 /**

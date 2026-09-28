@@ -1,4 +1,4 @@
-import { toNaddr, toNpub } from "@openspecs/nostr";
+import { COMMENT_KIND, type NostrEvent, toNaddr, toNevent, toNpub } from "@openspecs/nostr";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { CHROME } from "~/components/chrome";
 import { CopyButton } from "~/components/copy-button";
@@ -6,6 +6,7 @@ import { Rebroadcast } from "~/components/rebroadcast";
 import { block, unblock, useBlocked } from "~/lib/blocked";
 import { useDismiss } from "~/lib/dismiss";
 import { eventPath } from "~/lib/paths";
+import { commentRebroadcastRelays } from "~/lib/relays";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
 import { ReportForm } from "./report-form";
 import { SUGGESTION } from "./styles";
@@ -22,7 +23,14 @@ export type MoreTarget =
       /** Where a republished copy of the event would be sent. */
       relays: string[];
     }
-  | { kind: "comment"; pubkey: string; id: string }
+  | {
+      kind: "comment";
+      pubkey: string;
+      id: string;
+      event: NostrEvent;
+      /** The document's URL, anchored on this comment. */
+      link: string;
+    }
   | { kind: "account"; pubkey: string };
 
 type Stage = "closed" | "menu" | "report";
@@ -49,9 +57,9 @@ const ROW = `${SUGGESTION} text-left`;
  * is signed by one made for it; the form says what that is worth.
  *
  * A report on yourself is a mistake and a block on yourself is a bug, so neither
- * is offered on the reader's own words. On their own document the menu still
- * opens, holding what is left: an author needs their document's address as much
- * as anybody.
+ * is offered on the reader's own words. On their own document or comment the
+ * menu still opens, holding what is left: an author needs their words' address
+ * and event as much as anybody.
  */
 export const More = ({ target }: { target: MoreTarget }) => {
   useEffect(restoreSession, []);
@@ -62,8 +70,8 @@ export const More = ({ target }: { target: MoreTarget }) => {
 
   const me = session.pubkey;
   const mine = me !== null && me === target.pubkey;
-  // A comment or an account of the reader's own leaves nothing to put in it.
-  if (mine && target.kind !== "document") return null;
+  // An account of the reader's own leaves nothing to put in it.
+  if (mine && target.kind === "account") return null;
 
   const noun = target.kind;
   const accountBlocked = blocked.pubkeys.has(target.pubkey);
@@ -87,9 +95,13 @@ export const More = ({ target }: { target: MoreTarget }) => {
         onClick={() => setStage(stage === "closed" ? "menu" : "closed")}
         aria-expanded={stage !== "closed"}
         title={
-          mine
-            ? "The text, the addresses and the signed event"
-            : "The text, addresses, republishing, reporting and blocking"
+          target.kind === "comment"
+            ? mine
+              ? "The link, the address and the signed event"
+              : "The link, address, republishing, reporting and blocking"
+            : mine
+              ? "The text, the addresses and the signed event"
+              : "The text, addresses, republishing, reporting and blocking"
         }
         className={CHROME}
       >
@@ -136,8 +148,36 @@ export const More = ({ target }: { target: MoreTarget }) => {
                 className={ROW}
               />
               <Rebroadcast
-                eventUrl={eventPath(toNpub(target.pubkey), target.identifier)}
+                event={eventPath(toNpub(target.pubkey), target.identifier)}
                 relays={target.relays}
+                className={ROW}
+              />
+            </div>
+          )}
+
+          {target.kind === "comment" && (
+            <div className="flex flex-col items-start gap-2">
+              <CopyButton
+                value={target.link}
+                label="Copy link"
+                title={target.link}
+                className={ROW}
+              />
+              <CopyButton
+                value={toNevent({ id: target.id, pubkey: target.pubkey, kind: COMMENT_KIND })}
+                label="Copy nevent"
+                title="The comment's Nostr address, for any client"
+                className={ROW}
+              />
+              <CopyButton
+                value={JSON.stringify(target.event)}
+                label="Copy event"
+                title="The signed event, exactly as the relays serve it"
+                className={ROW}
+              />
+              <Rebroadcast
+                event={target.event}
+                relays={() => commentRebroadcastRelays(target.event)}
                 className={ROW}
               />
             </div>
@@ -145,30 +185,31 @@ export const More = ({ target }: { target: MoreTarget }) => {
 
           {/* Last, and behind a rule: the two that act on somebody rather than on
               what this browser is holding. */}
-          <div
-            className={`flex flex-col items-start gap-2 ${target.kind === "document" && !mine ? "border-t border-rule pt-3" : ""}`}
-            hidden={mine}
-          >
-            <button type="button" className={ROW} onClick={() => setStage("report")}>
-              Report this {noun}
-            </button>
-            {thing !== null && (
+          {!mine && (
+            <div
+              className={`flex flex-col items-start gap-2 ${target.kind !== "account" ? "border-t border-rule pt-3" : ""}`}
+            >
+              <button type="button" className={ROW} onClick={() => setStage("report")}>
+                Report this {noun}
+              </button>
+              {thing !== null && (
+                <button
+                  type="button"
+                  className={ROW}
+                  onClick={() => toggle(thing.type, thing.value, thingBlocked)}
+                >
+                  {thingBlocked ? `Unblock this ${noun}` : `Block this ${noun}`}
+                </button>
+              )}
               <button
                 type="button"
                 className={ROW}
-                onClick={() => toggle(thing.type, thing.value, thingBlocked)}
+                onClick={() => toggle("p", target.pubkey, accountBlocked)}
               >
-                {thingBlocked ? `Unblock this ${noun}` : `Block this ${noun}`}
+                {accountBlocked ? "Unblock this account" : "Block this account"}
               </button>
-            )}
-            <button
-              type="button"
-              className={ROW}
-              onClick={() => toggle("p", target.pubkey, accountBlocked)}
-            >
-              {accountBlocked ? "Unblock this account" : "Block this account"}
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       )}
 
