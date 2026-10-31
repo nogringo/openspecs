@@ -7,7 +7,7 @@ describe("loadManifests", () => {
   it("reads the three corpora", async () => {
     const corpora = await loadManifests();
     expect(corpora.map((corpus) => corpus.name)).toEqual(["buds", "nips", "nuts"]);
-    expect(corpora.map((corpus) => corpus.specs.length)).toEqual([13, 94, 31]);
+    expect(corpora.map((corpus) => corpus.specs.length)).toEqual([13, 96, 31]);
   });
 
   it("resolves every npub to a key of its own", async () => {

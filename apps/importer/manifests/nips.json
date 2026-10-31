@@ -524,6 +524,10 @@
         {
           "kind": 28936,
           "name": "Leave Request"
+        },
+        {
+          "kind": 33534,
+          "name": "Role Definition"
         }
       ]
     },
@@ -656,6 +660,10 @@
           "name": "Media follows"
         },
         {
+          "kind": 10021,
+          "name": "Favorite follow sets"
+        },
+        {
           "kind": 10030,
           "name": "User emoji list"
         },
@@ -670,6 +678,10 @@
         {
           "kind": 10064,
           "name": "Authored podcasts list"
+        },
+        {
+          "kind": 10992,
+          "name": "Installed slash commands"
         },
         {
           "kind": 30000,
@@ -880,6 +892,10 @@
         {
           "kind": 1059,
           "name": "Gift Wrap"
+        },
+        {
+          "kind": 21059,
+          "name": "Ephemeral Gift Wrap"
         }
       ]
     },
@@ -1166,6 +1182,10 @@
       "summary": "Assertions a trusted provider publishes about a key, an event or an external identifier, so a client does not have to compute a web of trust itself.",
       "kinds": [
         {
+          "kind": 10040,
+          "name": "Trusted Service Providers"
+        },
+        {
           "kind": 30382,
           "name": "User Trusted Assertion"
         },
@@ -1193,6 +1213,10 @@
       "status": "draft",
       "summary": "How an ecash mint announces itself and its capabilities, and how users recommend the mints they trust.",
       "kinds": [
+        {
+          "kind": 38000,
+          "name": "Mint Recommendation"
+        },
         {
           "kind": 38172,
           "name": "Cashu Mint Announcement"
@@ -1325,6 +1349,19 @@
       ]
     },
     {
+      "file": "A3.md",
+      "d": "nip-a3",
+      "title": "NIP-A3: payto: Payment Targets",
+      "status": "draft",
+      "summary": "Kind 10133, a list of payto tags saying where a key can be paid, on Bitcoin, Lightning or any other network.",
+      "kinds": [
+        {
+          "kind": 10133,
+          "name": "Payment Targets"
+        }
+      ]
+    },
+    {
       "file": "A4.md",
       "d": "nip-a4",
       "title": "NIP-A4: Public Messages",
@@ -1422,6 +1459,23 @@
         {
           "kind": 37517,
           "name": "Geocache Curation List"
+        }
+      ]
+    },
+    {
+      "file": "CD.md",
+      "d": "nip-cd",
+      "title": "NIP-CD: Slash Commands",
+      "status": "draft",
+      "summary": "Slash commands: kind 31992 defines one, and invoking it is plain text at the start of any event's content, so no client has to support it.",
+      "kinds": [
+        {
+          "kind": 10992,
+          "name": "Installed slash commands"
+        },
+        {
+          "kind": 31992,
+          "name": "Slash command definition"
         }
       ]
     },

@@ -46,8 +46,8 @@ the document is.
 
 ## Membership
 
-These files are the whole truth about what exists. `nips.json` holds 94 documents where
-the repository has 98 files: `12.md`, `16.md`, `20.md` and `33.md` were folded into
+These files are the whole truth about what exists. `nips.json` holds 96 documents where
+the repository has 100 files: `12.md`, `16.md`, `20.md` and `33.md` were folded into
 NIP-01 and dropped from the index, so they are gone from here too. Files that are not
 specifications, `error_codes.md` and `suppl/` in the NUTs repository among them, are
 absent for the same reason.
