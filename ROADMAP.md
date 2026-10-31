@@ -60,6 +60,9 @@ Shippable here: read only, no accounts, no database, but properly indexed.
 - [x] Notifications, read off the relays by the browser holding the key
 - [ ] NIP-37 encrypted drafts
 - [ ] Forks, NIP-32 approvals, NIP-84 highlights
+- [ ] Event kinds read off the document: the editor offers the kinds its text cites
+      (`kind 1059`, `"kind": 13`), named from the corpus, one click each. Offered rather
+      than added, since citing kind 5 in passing is not defining it.
 
 ## Lot 5, the backend
 

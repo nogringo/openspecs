@@ -1,7 +1,9 @@
 import { renderMarkdown } from "@openspecs/markdown";
 import type { SpecKindEntry } from "@openspecs/nostr";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { STATUS_TONE } from "~/components/spec-tags";
+import { corpusState, serverCorpusState, startCorpus, subscribeCorpus } from "~/lib/corpus";
+import { kindNamed, kindNames } from "~/lib/kind-names";
 
 /**
  * Without a width, so a field that wants its own can say so. Composing a width
@@ -276,6 +278,9 @@ export const TopicField = ({
  *
  * A value that is not a number is accepted without complaint, since documents in
  * the wild carry those too.
+ *
+ * Names come from the documents already published, through the search corpus,
+ * which is only fetched once somebody reaches in here.
  */
 export const KindField = ({
   kinds,
@@ -284,13 +289,34 @@ export const KindField = ({
   kinds: SpecKindEntry[];
   onChange: (kinds: SpecKindEntry[]) => void;
 }) => {
+  const list = useId();
+  const { docs } = useSyncExternalStore(subscribeCorpus, corpusState, serverCorpusState);
+  const names = useMemo(() => kindNames(docs), [docs]);
+  // Firefox shows an option's label instead of its value, so the options carry the
+  // name alone and picking one fills in the number.
+  const offered = useMemo(
+    () => [...new Set(names.values())].sort((left, right) => left.localeCompare(right)),
+    [names],
+  );
+
   const at = (index: number, entry: SpecKindEntry) =>
     onChange(kinds.map((held, position) => (position === index ? entry : held)));
+
+  // A name the list filled in follows the number; a name somebody typed stays put.
+  const setKind = (index: number, entry: SpecKindEntry, raw: string) => {
+    const following = entry.name === "" || entry.name === names.get(entry.raw.trim());
+    at(index, { raw, name: following ? (names.get(raw.trim()) ?? "") : entry.name });
+  };
+
+  const setName = (index: number, entry: SpecKindEntry, name: string) => {
+    const kind = entry.raw.trim() === "" ? kindNamed(names, name) : null;
+    at(index, { raw: kind ?? entry.raw, name });
+  };
 
   const declared = kinds.filter((entry) => entry.raw.trim() !== "").length;
 
   return (
-    <details open={declared > 0}>
+    <details open={declared > 0} onFocus={startCorpus}>
       <summary className="cursor-pointer font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:text-ink">
         Event kinds
         <span className="ml-3 normal-case tracking-normal">
@@ -304,39 +330,60 @@ export const KindField = ({
           anything else leaves this empty.
         </p>
 
-        {kinds.map((entry, index) => (
-          <div
-            // The value moves as it is typed, so only its place identifies a row.
-            // biome-ignore lint/suspicious/noArrayIndexKey: a row has no other identity
-            key={index}
-            className="flex flex-wrap items-center gap-2"
-          >
-            <input
-              className={`${FIELD_BASE} w-20`}
-              value={entry.raw}
-              onChange={(event) => at(index, { ...entry, raw: event.target.value })}
-              placeholder="30817"
-              spellCheck={false}
-              onKeyDown={notEnter}
-              aria-label="Event kind"
-            />
-            <input
-              className={`${FIELD} max-w-xs flex-1`}
-              value={entry.name}
-              onChange={(event) => at(index, { ...entry, name: event.target.value })}
-              placeholder="What that kind is called"
-              onKeyDown={notEnter}
-              aria-label="What that kind is called"
-            />
-            <button
-              type="button"
-              className={REMOVE}
-              onClick={() => onChange(kinds.filter((_, position) => position !== index))}
+        {kinds.map((entry, index) => {
+          const known = names.get(entry.raw.trim());
+          return (
+            <div
+              // The value moves as it is typed, so only its place identifies a row.
+              // biome-ignore lint/suspicious/noArrayIndexKey: a row has no other identity
+              key={index}
+              className="flex flex-wrap items-center gap-2"
             >
-              Remove
-            </button>
-          </div>
-        ))}
+              <input
+                className={`${FIELD_BASE} w-20`}
+                value={entry.raw}
+                onChange={(event) => setKind(index, entry, event.target.value)}
+                placeholder="30817"
+                spellCheck={false}
+                onKeyDown={notEnter}
+                aria-label="Event kind"
+              />
+              <input
+                list={list}
+                className={`${FIELD} max-w-xs flex-1`}
+                value={entry.name}
+                onChange={(event) => setName(index, entry, event.target.value)}
+                placeholder="What that kind is called"
+                onKeyDown={notEnter}
+                aria-label="What that kind is called"
+              />
+              {/* The names can arrive after the number was typed, and a published
+                  document may carry a kind it never named. */}
+              {entry.name.trim() === "" && known !== undefined && (
+                <button
+                  type="button"
+                  className={SUGGESTION}
+                  onClick={() => at(index, { ...entry, name: known })}
+                >
+                  Use {known}
+                </button>
+              )}
+              <button
+                type="button"
+                className={REMOVE}
+                onClick={() => onChange(kinds.filter((_, position) => position !== index))}
+              >
+                Remove
+              </button>
+            </div>
+          );
+        })}
+
+        <datalist id={list}>
+          {offered.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
 
         <button
           type="button"
