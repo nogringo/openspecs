@@ -162,7 +162,7 @@ describe("buildRelayList", () => {
     "wss://relay.nmail.li",
     "wss://relay.ditto.pub",
     "wss://relay.dreamith.to",
-    "wss://nos.lol",
+    "wss://nostr.oxtr.dev",
   ];
 
   /** What `relaySet` writes, which is where the trailing slash comes from. */

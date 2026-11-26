@@ -21,7 +21,6 @@ import type { AppSigner } from "./signer";
 export const CONNECT_RELAYS = [
   "wss://promenade.fiatjaf.com",
   "wss://relay.ditto.pub",
-  "wss://nos.lol",
   "wss://relay.primal.net",
 ];
 

@@ -19,7 +19,6 @@ import {
  */
 export const PUBLIC_RELAYS = [
   "wss://relay.damus.io",
-  "wss://nos.lol",
   "wss://relay.primal.net",
   "wss://nostr.mom",
   "wss://offchain.pub",

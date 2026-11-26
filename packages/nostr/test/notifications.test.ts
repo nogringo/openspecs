@@ -65,7 +65,7 @@ const zap = (
   at = 100,
 ) => {
   const request = sign(
-    buildZapRequest({ target, amountMsats: 21_000, relays: ["wss://nos.lol"] }),
+    buildZapRequest({ target, amountMsats: 21_000, relays: ["wss://relay.primal.net"] }),
     by,
     at,
   );

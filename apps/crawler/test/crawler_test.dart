@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crawler/crawler.dart';
 import 'package:ndk/ndk.dart';
@@ -305,6 +306,20 @@ void main() {
     test('no relay is listed twice', () {
       expect(sourceRelays.toSet(), hasLength(sourceRelays.length));
       expect(mirrorRelays.toSet(), hasLength(mirrorRelays.length));
+    });
+
+    test('the sources are the default relays of the web app', () {
+      final source = File('../../packages/nostr/src/relay.ts')
+          .readAsStringSync();
+      final list = RegExp(r'DEFAULT_RELAYS = \[([^\]]*)\]')
+          .firstMatch(source)!
+          .group(1)!;
+      final defaults = [
+        for (final match in RegExp(r'"(wss://[^"]+)"').allMatches(list))
+          match.group(1),
+      ];
+
+      expect(sourceRelays, defaults);
     });
   });
 }

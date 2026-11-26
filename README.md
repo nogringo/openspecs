@@ -12,11 +12,12 @@ owned by it.
 **Relays are the source of truth. The backend is an accelerator, never a dependency.**
 
 The server renders pages, indexes content and serves search, but every document lives on
-relays as a signed event. If this project's servers disappear, the client keeps working
-against relays directly, and a fully static build of the same codebase can be hosted by
-anyone.
+relays as a signed event. If this project's servers disappear, nothing goes with them:
+the documents stay on relays under their authors' signatures, any client that reads kind
+30817 can still show them, and anyone can copy them elsewhere, from the rebroadcast
+button on a page or by running the crawler.
 
-Three rules follow from this, and they are load bearing:
+Two rules follow from this, and they are load bearing:
 
 1. **No server writes.** Every mutation is a Nostr event signed in the browser and
    published straight to relays. The backend only observes. There is no `action` export
@@ -24,8 +25,6 @@ Three rules follow from this, and they are load bearing:
 2. **No server-only state.** Anything that matters (approvals, forks, status, revisions)
    must exist as a Nostr event. The database is a recomputable projection, never an
    origin.
-3. **The backend is swappable.** Its URL is a user setting, and an empty value is valid
-   and means relays only.
 
 ## SEO is a feature, not a finishing touch
 
@@ -164,7 +163,7 @@ a version, since the document inside keeps its author's own signature.
 ## Layout
 
 ```
-apps/web        React Router app, SSR and static builds
+apps/web        React Router app, server rendered
 apps/crawler    Dart service copying documents to mirror relays
 packages/       shared contracts and implementations (from lot 1 on)
 infra/          Docker Compose, reverse proxy

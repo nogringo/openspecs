@@ -28,7 +28,10 @@ const serverKey = getPublicKey(secret);
 
 const signedRequest = (amountMsats: number, target = { pubkey: RECIPIENT }) =>
   finalizeEvent(
-    { ...buildZapRequest({ target, amountMsats, relays: ["wss://nos.lol"] }), created_at: 1 },
+    {
+      ...buildZapRequest({ target, amountMsats, relays: ["wss://relay.primal.net"] }),
+      created_at: 1,
+    },
     generateSecretKey(),
   );
 
@@ -49,13 +52,13 @@ describe("buildZapRequest", () => {
       target: { pubkey: RECIPIENT, eventId: "d".repeat(64), coordinate: COORDINATE, kind: 30817 },
       amountMsats: 21_000,
       comment: "  good spec  ",
-      relays: ["wss://relay.ditto.pub", "wss://nos.lol"],
+      relays: ["wss://relay.ditto.pub", "wss://relay.primal.net"],
     });
 
     expect(draft.kind).toBe(ZAP_REQUEST_KIND);
     expect(draft.content).toBe("good spec");
     expect(draft.tags).toEqual([
-      ["relays", "wss://relay.ditto.pub", "wss://nos.lol"],
+      ["relays", "wss://relay.ditto.pub", "wss://relay.primal.net"],
       ["amount", "21000"],
       ["p", RECIPIENT],
       ["e", "d".repeat(64)],

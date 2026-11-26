@@ -3,11 +3,12 @@ const specKind = 30817;
 
 /// Where documents are read from, mirroring `DEFAULT_RELAYS` in
 /// `packages/nostr`: the relays the web app itself queries, so the crawler sees
-/// what a reader sees.
+/// what a reader sees. That includes the default mirror, so that a crawler
+/// naming its own mirrors still copies what only lives there.
 const sourceRelays = [
+  'wss://relay.nmail.li',
   'wss://relay.ditto.pub',
   'wss://relay.dreamith.to',
-  'wss://nos.lol',
   'wss://nostr.oxtr.dev',
 ];
 

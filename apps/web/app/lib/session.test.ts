@@ -8,7 +8,7 @@ const remote = vi.hoisted(() => ({
   startConnect: vi.fn(),
   awaitConnect: vi.fn(),
   closeSignerPool: vi.fn(),
-  CONNECT_RELAYS: ["wss://relay.nsec.app"],
+  CONNECT_RELAYS: ["wss://promenade.fiatjaf.com"],
 }));
 
 vi.mock("./signer-extension", () => extension);
@@ -56,7 +56,7 @@ const REMOTE: StoredSession = {
   v: 1,
   method: "remote",
   pubkey: KEY,
-  bunker: { pubkey: OTHER, relays: ["wss://relay.nsec.app"] },
+  bunker: { pubkey: OTHER, relays: ["wss://promenade.fiatjaf.com"] },
   clientSecret: "c".repeat(64),
 };
 

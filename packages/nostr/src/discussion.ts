@@ -20,8 +20,9 @@ import { inChunks, openWidening, type Subscription, without } from "./subscribe"
 /**
  * Where a conversation about a specification is. `relay.ditto.pub` is the one
  * relay nostrhub has hard coded, so it holds that site's whole corpus of
- * comments; the next three are what better-nips reads and writes. Missing any of
- * them means showing half a conversation and calling it the discussion.
+ * comments; the next two are the ones better-nips reads and writes that still
+ * answer. Missing any of them means showing half a conversation and calling it
+ * the discussion.
  * `relay.nmail.li` is this project's own, first in `DEFAULT_RELAYS` and the one
  * the crawler mirrors to.
  *
@@ -31,7 +32,6 @@ import { inChunks, openWidening, type Subscription, without } from "./subscribe"
 export const DISCUSSION_RELAYS = [
   "wss://relay.ditto.pub",
   "wss://relay.damus.io",
-  "wss://nos.lol",
   "wss://relay.primal.net",
   "wss://relay.nmail.li",
 ];

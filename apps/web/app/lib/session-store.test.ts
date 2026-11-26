@@ -17,7 +17,7 @@ const REMOTE: StoredSession = {
   v: 1,
   method: "remote",
   pubkey: KEY,
-  bunker: { pubkey: OTHER, relays: ["wss://relay.nsec.app"] },
+  bunker: { pubkey: OTHER, relays: ["wss://promenade.fiatjaf.com"] },
   clientSecret: "c".repeat(64),
 };
 
@@ -123,9 +123,9 @@ describe("parseStoredSession", () => {
 describe("parsePendingConnect", () => {
   const PENDING = {
     v: 1 as const,
-    uri: "nostrconnect://abc?relay=wss%3A%2F%2Frelay.nsec.app",
+    uri: "nostrconnect://abc?relay=wss%3A%2F%2Fpromenade.fiatjaf.com",
     clientSecret: "c".repeat(64),
-    relays: ["wss://relay.nsec.app"],
+    relays: ["wss://promenade.fiatjaf.com"],
   };
 
   it("reads back a handshake nobody has scanned yet", () => {

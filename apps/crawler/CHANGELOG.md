@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.2
+
+- Reads `relay.nmail.li` as a source too, so the sources are exactly the web
+  app's `DEFAULT_RELAYS`. It is the default mirror, and a crawler given mirrors
+  of its own used to leave out the documents that only lived there
+- Drops a source relay that no longer answers
+
 ## 1.2.1
 
 - Requires `sync_engine_shim_for_ndk` 0.4.0, where a held request goes back to

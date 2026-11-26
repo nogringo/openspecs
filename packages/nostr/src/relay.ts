@@ -14,7 +14,6 @@ export const DEFAULT_RELAYS = [
   "wss://relay.nmail.li",
   "wss://relay.ditto.pub",
   "wss://relay.dreamith.to",
-  "wss://nos.lol",
   "wss://nostr.oxtr.dev",
 ];
 

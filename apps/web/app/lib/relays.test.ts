@@ -4,10 +4,10 @@ const nostr = vi.hoisted(() => ({
   fetchRelayLists: vi.fn(),
   writeRelaysOf: vi.fn(),
   authorRelays: vi.fn(),
-  DEFAULT_RELAYS: ["wss://relay.nmail.li", "wss://nos.lol"],
+  DEFAULT_RELAYS: ["wss://relay.nmail.li", "wss://shared.example"],
   IMPORT_RELAYS: ["wss://relay.openspecs.example"],
-  DISCUSSION_RELAYS: ["wss://relay.ditto.pub", "wss://nos.lol"],
-  INDEXER_RELAYS: ["wss://indexer.example", "wss://nos.lol"],
+  DISCUSSION_RELAYS: ["wss://relay.ditto.pub", "wss://shared.example"],
+  INDEXER_RELAYS: ["wss://indexer.example", "wss://shared.example"],
   MAX_RELAYS_PER_AUTHOR: 4,
   relaySet: (...lists: string[][]) => {
     const urls = new Set<string>();
@@ -179,9 +179,9 @@ describe("writeRelays", () => {
   });
 
   it("names a relay once however many lists it appears in", async () => {
-    nostr.writeRelaysOf.mockResolvedValue(["wss://nos.lol"]);
+    nostr.writeRelaysOf.mockResolvedValue(["wss://shared.example"]);
     const relays = await writeRelays(ME, { addressed: [AUTHOR] });
-    expect(relays.filter((relay) => relay === "wss://nos.lol")).toHaveLength(1);
+    expect(relays.filter((relay) => relay === "wss://shared.example")).toHaveLength(1);
   });
 
   it("takes two hints from what is being answered and no more", async () => {
@@ -292,9 +292,9 @@ describe("documentRelays", () => {
   });
 
   it("names a relay once however many lists it appears in", async () => {
-    nostr.writeRelaysOf.mockResolvedValue(["wss://nos.lol"]);
+    nostr.writeRelaysOf.mockResolvedValue(["wss://shared.example"]);
     const relays = await documentRelays(ME);
-    expect(relays.filter((relay) => relay === "wss://nos.lol")).toHaveLength(1);
+    expect(relays.filter((relay) => relay === "wss://shared.example")).toHaveLength(1);
   });
 
   it("does not spray a young key across the relays a rebroadcast is for", async () => {
@@ -324,9 +324,9 @@ describe("identityRelays", () => {
   });
 
   it("names a relay once however many lists it appears in", async () => {
-    nostr.writeRelaysOf.mockResolvedValue(["wss://nos.lol"]);
+    nostr.writeRelaysOf.mockResolvedValue(["wss://shared.example"]);
     const relays = await identityRelays(ME);
-    expect(relays.filter((relay) => relay === "wss://nos.lol")).toHaveLength(1);
+    expect(relays.filter((relay) => relay === "wss://shared.example")).toHaveLength(1);
   });
 });
 
