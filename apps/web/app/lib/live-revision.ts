@@ -11,10 +11,11 @@ export type LiveRevision = {
 };
 
 /**
- * A document page is served from a cache. This server keeps its own copy for a
- * minute and tells any cache in front of it that a day old copy may be served
- * while a fresh one is fetched, so the revision a reader arrives on is the one
- * that was live when the cache was filled rather than the one live now.
+ * A document page is served from a cache. This server refreshes its own copy
+ * after a minute but serves one up to a day old while the fresh one is fetched,
+ * and tells any cache in front of it to do the same, so the revision a reader
+ * arrives on is the one that was live when the cache was filled rather than the
+ * one live now.
  *
  * Nothing can tell that cache a document changed: a browser may not write to
  * this server, which is the rule the whole project is built on. So the reader's

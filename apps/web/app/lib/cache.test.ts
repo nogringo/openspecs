@@ -63,7 +63,58 @@ describe("createLoadCache", () => {
     await cache.get("a", kept, 0);
     expect(kept).not.toHaveBeenCalled();
   });
+
+  it("serves an expired value while one refresh loads behind it", async () => {
+    const cache = cacheOf<string>({ staleMs: 5000 });
+    await cache.get("k", async () => "old", 0);
+
+    let release: (value: string) => void = () => {};
+    const refresh = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          release = resolve;
+        }),
+    );
+    await expect(cache.get("k", refresh, 2000)).resolves.toBe("old");
+    await expect(cache.get("k", refresh, 2001)).resolves.toBe("old");
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    release("new");
+    await flush();
+    await expect(cache.get("k", refresh, 2002)).resolves.toBe("new");
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the stale value when a refresh fails, and tries again on the next request", async () => {
+    const cache = cacheOf<string>({ staleMs: 5000 });
+    await cache.get("k", async () => "old", 0);
+    const failing = vi.fn(() => Promise.reject(new Error("relay down")));
+
+    await expect(cache.get("k", failing, 2000)).resolves.toBe("old");
+    await flush();
+    await expect(cache.get("k", failing, 2001)).resolves.toBe("old");
+    expect(failing).toHaveBeenCalledTimes(2);
+  });
+
+  it("waits for a fresh value once the stale window has passed", async () => {
+    const cache = cacheOf<string>({ staleMs: 5000 });
+    await cache.get("k", async () => "old", 0);
+
+    await expect(cache.get("k", async () => "new", 6001)).resolves.toBe("new");
+  });
+
+  it("never serves stale a value its own window rules out", async () => {
+    const cache = cacheOf<string | null>({
+      staleMs: 5000,
+      staleMsFor: (value) => (value === null ? 0 : 5000),
+    });
+    await cache.get("k", async () => null, 0);
+
+    await expect(cache.get("k", async () => "found", 2000)).resolves.toBe("found");
+  });
 });
+
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("withDeadline", () => {
   it("returns the value when the work answers in time", async () => {

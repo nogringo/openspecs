@@ -20,6 +20,13 @@ export type { SpecPage };
 const FRESH_MS = 60_000;
 /** A document that does not exist yet may appear at any time, so a miss expires sooner. */
 const MISSING_MS = 10_000;
+/**
+ * How long an expired document is still served while the relays are asked again
+ * behind it, so a reader never waits on them for a page this server has seen. A
+ * day, like the `stale-while-revalidate` the pages declare, and the browser offers
+ * the newer revision if there is one.
+ */
+const STALE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * The event travels with the page through the cache but never into a loader's
@@ -32,6 +39,9 @@ const cache = createLoadCache<CachedSpec | null>({
   max: 500,
   ttlMs: FRESH_MS,
   ttlMsFor: (cached) => (cached === null ? MISSING_MS : FRESH_MS),
+  staleMs: STALE_MS,
+  // A miss is never served stale: the document may have just been published.
+  staleMsFor: (cached) => (cached === null ? 0 : STALE_MS),
 });
 
 export const loadSpec = (pubkey: string, identifier: string): Promise<CachedSpec | null> =>
@@ -77,7 +87,7 @@ export type SpecFilter = {
   author?: string;
 };
 
-const listings = createLoadCache<SpecCard[]>({ max: 50, ttlMs: FRESH_MS });
+const listings = createLoadCache<SpecCard[]>({ max: 50, ttlMs: FRESH_MS, staleMs: STALE_MS });
 
 /**
  * A blank document parses, because its author may simply not have written it
