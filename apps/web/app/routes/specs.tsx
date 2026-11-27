@@ -1,4 +1,4 @@
-import { Link, type ShouldRevalidateFunctionArgs } from "react-router";
+import { Link } from "react-router";
 import { TAB_OFF, TAB_ON } from "~/components/chrome";
 import { ErrorPage } from "~/components/error-page";
 import { Pagination } from "~/components/pagination";
@@ -20,6 +20,7 @@ import {
   specsPath,
 } from "~/lib/paths";
 import { loadAuthors } from "~/lib/profile.server";
+import { searchSpecs } from "~/lib/search.server";
 import { LISTING_WINDOW, loadSpecs, type SpecCard } from "~/lib/specs.server";
 import { topicsByFrequency } from "~/lib/topics";
 import type { Route } from "./+types/specs";
@@ -38,25 +39,42 @@ export async function loader({ request }: Route.LoaderArgs) {
   const filtered = topic !== undefined || kind !== undefined;
 
   const origin = publicOrigin(request);
+  const search =
+    query === undefined
+      ? null
+      : await searchSpecs({
+          query,
+          topic,
+          kind,
+          page: parsePage(params),
+          pageSize: PAGE_SIZE,
+          topicsShown: TOPICS_SHOWN,
+        });
   // The unfiltered listing is the home page's, already loaded and cached.
-  const [listing, all] = await Promise.all([
-    loadSpecs({ topic, kind }, LISTING_WINDOW).catch(() => []),
-    loadSpecs({}, 30).catch(() => []),
-  ]);
+  const [listing, all] =
+    search === null
+      ? await Promise.all([
+          loadSpecs({ topic, kind }, LISTING_WINDOW).catch(() => []),
+          loadSpecs({}, 30).catch(() => []),
+        ])
+      : [NO_ROWS, NO_ROWS];
 
-  const { items, page, pages } = pageOf(listing, parsePage(params), PAGE_SIZE);
+  const { items, page, pages } =
+    search === null ? pageOf(listing, parsePage(params), PAGE_SIZE) : { ...search, items: NO_ROWS };
   const pageUrl = (n: number) => `${origin}${specsPath({ topic, kind, page: n })}`;
 
   return {
     specs: items,
+    search,
     page,
     pages,
     // Only the page being shown: a profile lookup for every document in the
     // window would be what this listing actually costs.
-    authors: await loadAuthors(items.map((spec) => spec.pubkey)),
+    authors: await loadAuthors((search?.rows ?? items).map((spec) => spec.pubkey)),
     // Counted over the unfiltered listing: under a filter it would only ever
-    // offer the filter already applied.
-    topics: topicsByFrequency(all, TOPICS_SHOWN),
+    // offer the filter already applied. A search offers the topics of what it
+    // found instead, to narrow it.
+    topics: search?.topics ?? topicsByFrequency(all, TOPICS_SHOWN),
     topic: topic ?? null,
     kind: kind ?? null,
     query: query ?? null,
@@ -75,26 +93,6 @@ export function headers(_: Route.HeadersArgs) {
   return PAGE_HEADERS;
 }
 
-/**
- * A search is answered in the browser, so the loader owes it nothing: asking the
- * server again on every keystroke would fetch the listing it already has. Its
- * pages are answered there too, out of results already in hand, so only a page
- * of the server's own listing is worth another round trip.
- */
-export function shouldRevalidate({
-  currentUrl,
-  nextUrl,
-  defaultShouldRevalidate,
-}: ShouldRevalidateFunctionArgs) {
-  if (currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate;
-  const listing = (url: URL) => {
-    const params = url.searchParams;
-    const page = parseSearchQuery(params) === undefined ? params.get("page") : null;
-    return `${params.get("topic")}:${params.get("kind")}:${page}`;
-  };
-  return listing(currentUrl) === listing(nextUrl) ? false : defaultShouldRevalidate;
-}
-
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Specifications | Open Specs" }];
 
@@ -102,8 +100,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
   const listing = listingTitle({ ...query, q: loaderData.query ?? undefined });
   const description = listingDescription(query);
 
-  // Results are read out of the visitor's browser, so there is no page here to
-  // index and no canonical to point a crawler at.
+  // A search is a question rather than a page: indexing every query would fill
+  // the index with partial copies of the listing.
   if (loaderData.query !== null) {
     return [{ title: `${listing} | Open Specs` }, { name: "robots", content: "noindex, follow" }];
   }
@@ -188,20 +186,14 @@ export default function Specs({ loaderData }: Route.ComponentProps) {
           )}
         </nav>
 
-        {query !== null ? (
-          <>
-            <SearchResults query={query} topic={topic} kind={kind} />
-            <noscript>
-              <p className="mt-6 font-serif text-muted">
-                Search reads the documents into your browser and looks through them there, which
-                needs JavaScript. Without it, the documents are still there to{" "}
-                <Link to={specsPath()} className="underline underline-offset-4">
-                  browse
-                </Link>
-                .
-              </p>
-            </noscript>
-          </>
+        {query !== null && loaderData.search !== null ? (
+          <SearchResults
+            query={query}
+            topic={topic}
+            kind={kind}
+            search={loaderData.search}
+            authors={authors}
+          />
         ) : specs.length === 0 ? (
           <p className="mt-10 border-t border-rule pt-6 font-serif text-muted">
             {filtered

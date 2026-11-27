@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveSummary, firstHeading, stripInlineMarkdown } from "../src/markdown";
+import { deriveSummary, firstHeading, proseText, stripInlineMarkdown } from "../src/markdown";
 
 describe("stripInlineMarkdown", () => {
   it("keeps link text and drops the target", () => {
@@ -12,6 +12,12 @@ describe("stripInlineMarkdown", () => {
 
   it("unwraps emphasis and code", () => {
     expect(stripInlineMarkdown("**bold** _italic_ `code` ~~gone~~")).toBe("bold italic code gone");
+  });
+
+  it("keeps the underscores inside a word", () => {
+    expect(stripInlineMarkdown("`created_at` and created_at, then __strong__ text")).toBe(
+      "created_at and created_at, then strong text",
+    );
   });
 });
 
@@ -78,5 +84,38 @@ describe("deriveSummary", () => {
   it("returns an empty string when there is no prose at all", () => {
     expect(deriveSummary("")).toBe("");
     expect(deriveSummary("# Only a heading")).toBe("");
+  });
+});
+
+describe("proseText", () => {
+  it("keeps running text and drops headings, code, tables and status lines", () => {
+    const content = [
+      "NIP-17",
+      "======",
+      "",
+      "Private Direct Messages",
+      "-----------------------",
+      "",
+      "`draft` `optional` `relay`",
+      "",
+      "This NIP uses [NIP-44](nostr:naddr1qvzqqqrcvypzq2) encryption.",
+      "## Kinds",
+      "A **kind 14** is a chat message.",
+      "",
+      "```json",
+      '{ "kind": 14 }',
+      "```",
+      "",
+      "| kind | name |",
+      "| --- | --- |",
+      "| 14 | DM |",
+      "",
+      "- one item",
+      "- another",
+    ].join("\n");
+
+    expect(proseText(content)).toBe(
+      "This NIP uses NIP-44 encryption. A kind 14 is a chat message. one item another",
+    );
   });
 });

@@ -59,8 +59,10 @@ export const stripInlineMarkdown = (text: string): string =>
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/<[^>]+>/g, "")
     .replace(/`+([^`]*)`+/g, "$1")
-    .replace(/(\*\*|__)(.*?)\1/g, "$2")
-    .replace(/(\*|_)(.*?)\1/g, "$2")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    // Underscores only emphasise from outside a word, so `created_at` stays whole.
+    .replace(/(^|[^\p{L}\p{N}_])(__?)(?=\S)(.+?)(?<=\S)\2(?![\p{L}\p{N}_])/gu, "$1$3")
     .replace(/~~(.*?)~~/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
@@ -99,6 +101,32 @@ const truncate = (text: string, max: number): string => {
   return `${(boundary > max * 0.6 ? cut.slice(0, boundary) : cut).replace(/[\s.,;:]+$/, "")}...`;
 };
 
+const LIST_ITEM = /^\s{0,3}(?:[-*+]|\d+[.)])\s+/;
+const ATX_HEADING = /^\s{0,3}#{1,6}(\s|$)/;
+
+const proseOf = (block: string): string =>
+  stripInlineMarkdown(
+    block
+      .split("\n")
+      .map((line) => line.replace(LIST_ITEM, ""))
+      .join(" "),
+  );
+
+/**
+ * Everything a reader would read as running text, one line of it: headings,
+ * code, tables and quotes left out, links reduced to their words. What a search
+ * excerpt is cut from, so a window can fall anywhere without landing on syntax.
+ */
+export const proseText = (content: string): string =>
+  prepareForProse(content)
+    // A heading glued to the paragraph under it would take the paragraph out too.
+    .filter((line) => !ATX_HEADING.test(line))
+    .join("\n")
+    .split(/\n\s*\n/)
+    .filter(isProse)
+    .map(proseOf)
+    .join(" ");
+
 /**
  * The description shown to crawlers and link unfurlers. Derived rather than read
  * from a tag: a `summary` tag exists on a small minority of published documents,
@@ -110,12 +138,5 @@ export const deriveSummary = (content: string, maxLength = 160): string => {
     .split(/\n\s*\n/);
   const prose = blocks.find(isProse);
   if (!prose) return "";
-  const listItem = /^\s{0,3}(?:[-*+]|\d+[.)])\s+/;
-  const text = stripInlineMarkdown(
-    prose
-      .split("\n")
-      .map((line) => line.replace(listItem, ""))
-      .join(" "),
-  );
-  return truncate(text, maxLength);
+  return truncate(proseOf(prose), maxLength);
 };

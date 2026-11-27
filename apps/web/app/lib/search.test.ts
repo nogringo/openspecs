@@ -49,8 +49,12 @@ describe("matchSpans", () => {
     expect(marked("Le réseau", ["reseau"])).toEqual(["réseau"]);
   });
 
-  it("joins two words that touch into one mark", () => {
-    expect(marked("relayhint", ["relay", "hint"])).toEqual(["relayhint"]);
+  it("joins two words that overlap into one mark", () => {
+    expect(marked("relays", ["relay", "relays"])).toEqual(["relays"]);
+  });
+
+  it("marks a word where it starts, never inside another", () => {
+    expect(marked("redirect directly to the admin dm", ["direct", "dm"])).toEqual(["direct", "dm"]);
   });
 
   it("marks nothing without a term", () => {
@@ -82,6 +86,14 @@ describe("searchDocs", () => {
       doc({ identifier: "b", title: "Something else again" }),
     ];
     expect(found(docs, "webhooks")).toEqual(["a"]);
+  });
+
+  it("finds a word where it starts, never inside another", () => {
+    const docs = [
+      doc({ identifier: "inside", content: "The client may redirect the request." }),
+      doc({ identifier: "start", content: "Sent directly to the relay." }),
+    ];
+    expect(found(docs, "direct")).toEqual(["start"]);
   });
 
   it("narrows on a second word rather than widening", () => {
@@ -148,28 +160,41 @@ describe("searchDocs", () => {
     expect(hit?.excerpt).not.toContain("https://example.com");
   });
 
-  it("reads across a heading and a table without their markup", () => {
-    const content = `${"filler ".repeat(40)}## Kind 7033 the webhook post\n\n| Tag | Description |\n|-----|-----|\n| p | the author |${"filler ".repeat(40)}`;
+  it("leaves headings, tables and code out of the excerpt", () => {
+    const content = `${"filler ".repeat(40)}\n\n## The webhook post\n\n| Tag | webhook |\n|-----|-----|\n\n\`\`\`\nwebhook()\n\`\`\`\n\nThe webhook is called once.\n\n${"filler ".repeat(40)}`;
     const [hit] = searchDocs([doc({ identifier: "a", content })], "webhook");
 
-    expect(hit?.excerpt).toContain("Kind 7033 the webhook post");
-    expect(hit?.excerpt).not.toContain("#");
-    expect(hit?.excerpt).not.toContain("|");
-    expect(hit?.excerpt).toContain("Tag Description");
+    expect(hit?.excerpt).toContain("The webhook is called once.");
+    expect(hit?.excerpt).not.toMatch(/[#|`]/);
   });
 
-  it("drops the half of a table rule the window was cut on", () => {
-    const content = `${"filler ".repeat(30)}the webhook table | Tag | Description |\n|-----`;
+  it("cuts the window between words", () => {
+    const content = `${"filler ".repeat(60)}the webhook contract ${"filler ".repeat(60)}`;
     const [hit] = searchDocs([doc({ identifier: "a", content })], "webhook");
 
-    expect(hit?.excerpt).toMatch(/Tag Description$/);
+    expect(hit?.excerpt).toMatch(/^\.\.\.filler /);
+    expect(hit?.excerpt).toMatch(/ filler\.\.\.$/);
   });
 
-  it("keeps the markup when stripping it would swallow the word", () => {
+  it("does not stack an ellipsis on a full stop", () => {
+    const content = `The webhook is called. ${"filler. ".repeat(60)}`;
+    const [hit] = searchDocs([doc({ identifier: "a", content })], "webhook");
+
+    expect(hit?.excerpt).toMatch(/[^.]\.\.\.$/);
+  });
+
+  it("centres the excerpt on the phrase when the document has it", () => {
+    const content = `A direct path. ${"filler ".repeat(60)}Private direct message here. ${"filler ".repeat(60)}`;
+    const [hit] = searchDocs([doc({ identifier: "a", content })], "direct message");
+
+    expect(hit?.excerpt).toContain("Private direct message here.");
+  });
+
+  it("says nothing rather than show markup when the word is only in a link target", () => {
     const content = `${"filler ".repeat(40)}see [the docs](https://webhooks.example.com) for more${"filler ".repeat(40)}`;
     const [hit] = searchDocs([doc({ identifier: "a", content })], "webhooks");
 
-    expect(hit?.excerpt).toContain("webhooks.example.com");
+    expect(hit?.excerpt).toBe("");
   });
 
   it("leaves the excerpt empty when the word is only in the metadata", () => {

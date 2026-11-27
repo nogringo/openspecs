@@ -41,7 +41,7 @@ export const createCorpus = (options: CorpusOptions = {}) => {
   const live = new Map<string, Spec>();
   let cursors: Cursors = {};
   let read = false;
-  let started = false;
+  let first: Promise<void> | null = null;
   let walking: Promise<void> | null = null;
 
   const keyOf = (pubkey: string, identifier: string) => `${pubkey}:${identifier}`;
@@ -73,12 +73,15 @@ export const createCorpus = (options: CorpusOptions = {}) => {
   };
 
   return {
-    /** Idempotent. The first walk starts here, and every later one on a timer. */
+    /**
+     * Idempotent, and settles with the first walk only: a later one runs on a
+     * timer, behind whoever is reading.
+     */
     start: (): Promise<void> => {
-      if (started) return walking ?? Promise.resolve();
-      started = true;
+      if (first !== null) return first;
       setInterval(() => void tick(), options.refreshMs ?? REFRESH_MS).unref();
-      return tick();
+      first = tick();
+      return first;
     },
     /** As soon as a page of the first walk holds it, which is long before the walk ends. */
     spec: (pubkey: string, identifier: string): Spec | undefined =>

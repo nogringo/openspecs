@@ -84,7 +84,7 @@ export type SpecCard = {
   revisedAt: number;
 };
 
-const toCard = (spec: Spec): SpecCard => ({
+export const toCard = (spec: Spec): SpecCard => ({
   path: specPath(spec),
   title: spec.title,
   summary: spec.summary,

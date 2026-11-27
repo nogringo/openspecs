@@ -279,8 +279,8 @@ export const TopicField = ({
  * A value that is not a number is accepted without complaint, since documents in
  * the wild carry those too.
  *
- * Names come from the documents already published, through the search corpus,
- * which is only fetched once somebody reaches in here.
+ * Names come from the documents already published, through the corpus, which is
+ * only fetched once somebody reaches in here.
  */
 export const KindField = ({
   kinds,

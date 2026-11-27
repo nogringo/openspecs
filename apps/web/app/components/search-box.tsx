@@ -1,17 +1,11 @@
-import { startCorpus } from "~/lib/corpus";
 import { specsPath } from "~/lib/paths";
 
 const FIELD =
   "w-full rounded-sm border border-rule bg-paper px-3 text-ink placeholder:text-muted hover:border-muted";
 
 /**
- * A GET form, so a search is a URL a reader can share, bookmark and go back to.
- * There is no `action` export behind it: the query is answered in the browser,
- * against a corpus it downloaded from the relays itself.
- *
- * Focus is what starts that download. A reader who never searches never pays for
- * the search, and one who is about to has the corpus on its way before the first
- * word is typed.
+ * A GET form, so a search is a URL a reader can share, bookmark and go back to,
+ * answered by the listing's loader like any other page of it.
  */
 export const SearchBox = ({
   query,
@@ -30,7 +24,6 @@ export const SearchBox = ({
         type="search"
         name="q"
         defaultValue={query ?? ""}
-        onFocus={startCorpus}
         autoComplete="off"
         spellCheck={false}
         placeholder="Search specifications"

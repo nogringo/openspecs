@@ -76,7 +76,7 @@ export {
   type PayEndpoint,
   payUrl,
 } from "./lnurl";
-export { deriveSummary, firstHeading, stripInlineMarkdown } from "./markdown";
+export { deriveSummary, firstHeading, proseText, stripInlineMarkdown } from "./markdown";
 export {
   checkNip05,
   clearNip05Cache,

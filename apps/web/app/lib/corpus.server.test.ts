@@ -126,6 +126,20 @@ describe("createCorpus", () => {
     expect(warm).toHaveBeenCalledWith([ALICE, BOB]);
   });
 
+  it("settles with the first walk, not with one running later", async () => {
+    vi.useFakeTimers();
+    const sync = vi
+      .fn<(options: SyncOptions) => Promise<SyncResult>>()
+      .mockResolvedValueOnce(resultOf([]))
+      .mockImplementation(() => new Promise<SyncResult>(() => {}));
+    const corpus = createCorpus({ sync, warm: () => {}, refreshMs: 1000 });
+
+    await corpus.start();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(sync).toHaveBeenCalledTimes(2);
+    await expect(corpus.start()).resolves.toBeUndefined();
+  });
+
   it("starts once, however often it is asked to", async () => {
     const sync = vi.fn(async () => resultOf([]));
     const corpus = createCorpus({ sync, warm: () => {} });

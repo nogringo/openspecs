@@ -1,12 +1,12 @@
 // The narrow entry point, not the package: this file ships to the browser with
 // the page, and the package index would bring a relay client along with it.
-import { stripInlineMarkdown } from "@openspecs/nostr/markdown";
+import { proseText } from "@openspecs/nostr/markdown";
 import type { SpecCard } from "./specs.server";
 
 /**
  * A listing row plus the document behind it. The body never reaches a loader's
- * payload, so this shape only ever exists in the browser, where the corpus is
- * downloaded and searched.
+ * payload, so this shape only exists where a corpus is held: on the server, which
+ * searches it, and in the editor, which names kinds from it.
  */
 export type SearchDoc = SpecCard & { content: string };
 
@@ -49,6 +49,24 @@ export const searchTerms = (query: string): string[] => [
 
 export type Span = { at: number; length: number };
 
+const WORD = /[\p{L}\p{N}]/u;
+
+/**
+ * Every place `term` starts a word, so "direct" is found in "directly" and never
+ * in "redirect", and "dm" never in "admin". Stops at `cap`.
+ */
+const wordStarts = (folded: string, term: string, cap = Number.POSITIVE_INFINITY): number[] => {
+  const found: number[] = [];
+  let at = folded.indexOf(term);
+  while (at !== -1 && found.length < cap) {
+    if (at === 0 || !WORD.test(folded[at - 1] ?? "")) found.push(at);
+    at = folded.indexOf(term, at + 1);
+  }
+  return found;
+};
+
+const hasWord = (folded: string, term: string): boolean => wordStarts(folded, term, 1).length > 0;
+
 /**
  * Where the reader's words sit in a piece of text, so they can be marked.
  *
@@ -63,10 +81,8 @@ export const matchSpans = (text: string, terms: string[]): Span[] => {
 
   const found: Span[] = [];
   for (const term of terms) {
-    let at = folded.indexOf(term);
-    while (at !== -1) {
+    for (const at of wordStarts(folded, term)) {
       if (at < text.length) found.push({ at, length: Math.min(term.length, text.length - at) });
-      at = folded.indexOf(term, at + term.length);
     }
   }
   found.sort((left, right) => left.at - right.at);
@@ -83,23 +99,21 @@ export const matchSpans = (text: string, terms: string[]): Span[] => {
   return merged;
 };
 
-const occurrences = (haystack: string, term: string): number => {
-  let count = 0;
-  let at = haystack.indexOf(term);
-  while (at !== -1) {
-    count++;
-    at = haystack.indexOf(term, at + term.length);
-  }
-  return count;
+type Folded = {
+  title: string;
+  identifier: string;
+  topics: string;
+  summary: string;
+  body: string;
+  /** The running text an excerpt is cut from, as written and folded. */
+  prose: string;
+  foldedProse: string;
 };
 
-type Folded = { title: string; identifier: string; topics: string; summary: string; body: string };
-
 /**
- * Folding the whole corpus costs more than matching against it, and the reader
- * types one letter at a time, so it is done once per document rather than once
- * per keystroke. The documents are the objects the corpus store holds, so this
- * empties on its own when they are replaced.
+ * Folding the whole corpus costs more than matching against it, so it is done
+ * once per document rather than once per search. The documents are the objects
+ * the corpus holds, so this empties on its own when they are replaced.
  */
 const foldedDocs = new WeakMap<SearchDoc, Folded>();
 
@@ -107,67 +121,63 @@ const foldedOf = (doc: SearchDoc): Folded => {
   const known = foldedDocs.get(doc);
   if (known) return known;
 
+  const prose = proseText(doc.content);
   const folded: Folded = {
     title: fold(doc.title),
     identifier: fold(doc.identifier),
     topics: fold(doc.topics.join(" ")),
     summary: fold(doc.summary),
     body: fold(doc.content),
+    prose,
+    foldedProse: fold(prose),
   };
   foldedDocs.set(doc, folded);
   return folded;
 };
 
-const scoreTerm = (folded: Folded, term: string): number => {
-  const body = Math.min(occurrences(folded.body, term), BODY_CAP);
-  const score =
-    (folded.title.includes(term) ? TITLE : 0) +
-    (folded.identifier.includes(term) ? IDENTIFIER : 0) +
-    (folded.topics.includes(term) ? TOPIC : 0) +
-    (folded.summary.includes(term) ? SUMMARY : 0) +
-    body;
-  return score;
+const scoreTerm = (folded: Folded, term: string): number =>
+  (hasWord(folded.title, term) ? TITLE : 0) +
+  (hasWord(folded.identifier, term) ? IDENTIFIER : 0) +
+  (hasWord(folded.topics, term) ? TOPIC : 0) +
+  (hasWord(folded.summary, term) ? SUMMARY : 0) +
+  wordStarts(folded.body, term, BODY_CAP).length;
+
+const atWordEdge = (text: string, from: number, forward: boolean): number => {
+  const space = forward ? text.indexOf(" ", from) : text.lastIndexOf(" ", from);
+  return space === -1 ? from : forward ? space + 1 : space;
 };
 
 /**
- * `stripInlineMarkdown` is written for a description, which is one paragraph, so
- * it leaves block syntax alone. An excerpt is a window cut wherever the word
- * fell, and it lands on headings and table rows as often as on prose.
+ * Where the reader's words sit in the running text, with enough around it to
+ * read: the whole phrase when the document has it, the first word otherwise.
+ * Cut out of prose rather than out of the source, so a window can fall anywhere
+ * without landing on a table rule or half a link. A word that only appears in
+ * a heading, a code block or a link target has no excerpt, and the row shows its
+ * summary instead.
  */
-const withoutBlockMarkup = (text: string): string =>
-  text
-    .replace(/(^|\s)#{1,6}(?=\s)/g, "$1")
-    .replace(/\|[\s|:-]*\|/g, " ")
-    .replace(/\s*\|\s*/g, " ")
-    .replace(/\s+/g, " ")
-    // A window cut inside a table ends on the half of a rule row that survived.
-    .replace(/[-:\s]{3,}$/, "")
-    .trim();
+const excerptFor = (folded: Folded, terms: string[], phrase: string): string => {
+  const { prose, foldedProse } = folded;
+  const candidates = terms.length > 1 ? [phrase, ...terms] : terms;
+  let at = -1;
+  let length = 0;
+  for (const candidate of candidates) {
+    const [first] = wordStarts(foldedProse, candidate, 1);
+    if (first !== undefined) {
+      at = first;
+      length = candidate.length;
+      break;
+    }
+  }
+  if (at === -1) return "";
 
-/**
- * Where the reader's word sits in the document, with enough around it to read.
- *
- * The window is cut out of the original body, so an excerpt keeps its accents
- * and its capitals, and the markup around it is stripped the same way a meta
- * description is. Stripping can swallow the word itself, when it only existed
- * inside a link target, and the raw window is shown rather than an excerpt that
- * does not contain what was searched for.
- */
-const excerptFor = (doc: SearchDoc, folded: Folded, terms: string[]): string => {
-  const term = terms.find((candidate) => folded.body.includes(candidate));
-  if (term === undefined) return "";
-
-  const at = folded.body.indexOf(term);
-  const from = Math.max(0, at - Math.floor((EXCERPT - term.length) / 2));
-  const cut = doc.content.slice(from, from + EXCERPT).replace(/^[#>\s`*_-]+/, "");
-
-  const stripped = withoutBlockMarkup(stripInlineMarkdown(cut));
-  const window = fold(stripped).includes(term) ? stripped : cut.replace(/\s+/g, " ").trim();
-  if (window === "") return "";
+  let from = Math.max(0, at - Math.floor((EXCERPT - length) / 2));
+  let to = Math.min(prose.length, from + EXCERPT);
+  if (from > 0) from = Math.min(atWordEdge(prose, from, true), at);
+  if (to < prose.length) to = Math.max(atWordEdge(prose, to, false), at + length);
 
   const head = from > 0 ? "..." : "";
-  const tail = from + EXCERPT < doc.content.length ? "..." : "";
-  return `${head}${window}${tail}`;
+  const window = prose.slice(from, to).trim();
+  return to < prose.length ? `${head}${window.replace(/[.,;:]+$/, "")}...` : `${head}${window}`;
 };
 
 /**
@@ -196,8 +206,8 @@ export const searchDocs = (docs: SearchDoc[], query: string, limit?: number): Se
     }
     if (!matchesAll) continue;
 
-    if (terms.length > 1 && folded.title.includes(phrase)) score += PHRASE;
-    hits.push({ doc, score, excerpt: excerptFor(doc, folded, terms) });
+    if (terms.length > 1 && hasWord(folded.title, phrase)) score += PHRASE;
+    hits.push({ doc, score, excerpt: excerptFor(folded, terms, phrase) });
   }
 
   hits.sort((a, b) => b.score - a.score || b.doc.publishedAt - a.doc.publishedAt);

@@ -54,7 +54,7 @@ export const subscribeCorpus = (listener: () => void): (() => void) => {
 
 export const corpusState = (): CorpusState => state;
 
-/** The server holds no corpus: it renders the page, the browser searches it. */
+/** Empty while rendering on the server: only the editor reads this, in the browser. */
 export const serverCorpusState = (): CorpusState => EMPTY_CORPUS;
 
 /**
@@ -88,7 +88,7 @@ const walk = async (): Promise<void> => {
   publish("syncing");
 
   try {
-    // nostr-tools comes with the search, not with the page: someone who only
+    // nostr-tools comes with the editor, not with the page: someone who only
     // reads should not download a relay client to do it.
     const { specPath, syncSpecs, toNpub } = await import("@openspecs/nostr");
     // Blank revisions come through with the rest, rather than being dropped
@@ -128,14 +128,14 @@ export const startCorpus = (): void => {
 
 /**
  * A revision its author just published. The walk above happens once a session
- * and nothing tells it a document appeared, so without this the one thing
- * somebody wrote here is the one thing they cannot find here.
+ * and nothing tells it a document appeared, so without this the kinds somebody
+ * just named here are the ones the editor cannot offer back to them.
  *
  * A blank revision is one of these too, and is why there is no `forgetSpec`
  * beside this: withdrawing a document is publishing an empty one over it, so it
  * arrives the same way, outranks what it replaces by being newer, and drops out
- * of the search because there is nothing in it rather than because something
- * here went looking for it.
+ * because there is nothing in it rather than because something here went
+ * looking for it.
  *
  * Written to disk as well as held, since a walk that has not started yet reads
  * from disk and would replace what is in memory with what is on it.
