@@ -1,5 +1,7 @@
 import { toNpub } from "@openspecs/nostr";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSearchParams } from "react-router";
+import { Unfinished } from "~/components/editor/drafts";
 import { SpecEditor } from "~/components/editor/spec-editor";
 import { MakeKey } from "~/components/make-key";
 import { Shell } from "~/components/shell";
@@ -7,6 +9,7 @@ import { SignInDialog } from "~/components/sign-in-dialog";
 import { Unlock } from "~/components/unlock";
 import { PAGE_HEADERS } from "~/lib/http";
 import { restoreSession, serverSessionState, sessionState, subscribeSession } from "~/lib/session";
+import { newDraftId } from "~/lib/spec-draft-store";
 import type { Route } from "./+types/new";
 
 const NOTE = "font-serif text-[0.9375rem] leading-relaxed text-muted";
@@ -39,6 +42,14 @@ export default function NewSpecRoute() {
   const session = useSyncExternalStore(subscribeSession, sessionState, serverSessionState);
   useEffect(restoreSession, []);
   const [making, setMaking] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const draftId = params.get("draft");
+
+  // Every new document gets an id in the address, so a reload comes back to it
+  // and starting another one keeps this one.
+  useEffect(() => {
+    if (draftId === null) setParams({ draft: newDraftId() }, { replace: true });
+  }, [draftId, setParams]);
 
   const me = session.pubkey;
   const locked = session.status === "locked" && session.method === "key";
@@ -70,9 +81,16 @@ export default function NewSpecRoute() {
           <div className="mt-8 max-w-sm">
             <Unlock />
           </div>
-        ) : (
-          <div className="mt-8">
-            <SpecEditor me={me} npub={toNpub(me)} live={null} />
+        ) : draftId === null ? null : (
+          <div className="mt-8 space-y-10">
+            <Unfinished me={me} current={draftId} />
+            <SpecEditor
+              key={`${me}:${draftId}`}
+              me={me}
+              npub={toNpub(me)}
+              live={null}
+              draftId={draftId}
+            />
           </div>
         )}
       </main>

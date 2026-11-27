@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearDraft,
+  listDrafts,
   MAX_DRAFT_BYTES,
   parseStoredDraft,
   readDraft,
@@ -40,8 +41,10 @@ const fakeStorage = (broken = false): Storage => {
     },
     removeItem: (key: string) => void held.delete(key),
     clear: () => held.clear(),
-    key: () => null,
-    length: 0,
+    key: (at: number) => [...held.keys()][at] ?? null,
+    get length() {
+      return held.size;
+    },
   } as unknown as Storage;
 };
 
@@ -92,20 +95,20 @@ describe("readDraft and writeDraft", () => {
   });
 
   it("keeps the slot for a document apart from the one for a new document", () => {
-    writeDraft(ME, { of: "new" }, stored({ title: "Unaddressed" }));
+    writeDraft(ME, { of: "new", id: "one" }, stored({ title: "Unaddressed" }));
     writeDraft(ME, { of: "doc", identifier: "a-document" }, stored({ title: "Addressed" }));
 
-    expect(readDraft(ME, { of: "new" })?.draft.title).toBe("Unaddressed");
+    expect(readDraft(ME, { of: "new", id: "one" })?.draft.title).toBe("Unaddressed");
     expect(readDraft(ME, { of: "doc", identifier: "a-document" })?.draft.title).toBe("Addressed");
   });
 
   it("keeps a fork apart from both, so starting one eats neither", () => {
     const origin = `30817:${OTHER}:a-document`;
-    writeDraft(ME, { of: "new" }, stored({ title: "Unaddressed" }));
+    writeDraft(ME, { of: "new", id: "one" }, stored({ title: "Unaddressed" }));
     writeDraft(ME, { of: "doc", identifier: "a-document" }, stored({ title: "Addressed" }));
     writeDraft(ME, { of: "fork", origin }, stored({ title: "Forked" }));
 
-    expect(readDraft(ME, { of: "new" })?.draft.title).toBe("Unaddressed");
+    expect(readDraft(ME, { of: "new", id: "one" })?.draft.title).toBe("Unaddressed");
     expect(readDraft(ME, { of: "doc", identifier: "a-document" })?.draft.title).toBe("Addressed");
     expect(readDraft(ME, { of: "fork", origin })?.draft.title).toBe("Forked");
   });
@@ -120,10 +123,10 @@ describe("readDraft and writeDraft", () => {
 
   /** The collision the separate prefixes exist to prevent. */
   it("keeps a document identified as `new` apart from a new document", () => {
-    writeDraft(ME, { of: "new" }, stored({ title: "Unaddressed" }));
+    writeDraft(ME, { of: "new", id: "one" }, stored({ title: "Unaddressed" }));
     writeDraft(ME, { of: "doc", identifier: "new" }, stored({ title: "A document called new" }));
 
-    expect(readDraft(ME, { of: "new" })?.draft.title).toBe("Unaddressed");
+    expect(readDraft(ME, { of: "new", id: "one" })?.draft.title).toBe("Unaddressed");
     expect(readDraft(ME, { of: "doc", identifier: "new" })?.draft.title).toBe(
       "A document called new",
     );
@@ -168,12 +171,64 @@ describe("readDraft and writeDraft", () => {
 
 describe("clearDraft", () => {
   it("removes only the slot it was asked for", () => {
-    writeDraft(ME, { of: "new" }, stored({ title: "Unaddressed" }));
+    writeDraft(ME, { of: "new", id: "one" }, stored({ title: "Unaddressed" }));
     writeDraft(ME, { of: "doc", identifier: "a-document" }, stored({ title: "Addressed" }));
 
     clearDraft(ME, { of: "doc", identifier: "a-document" });
 
     expect(readDraft(ME, { of: "doc", identifier: "a-document" })).toBeNull();
-    expect(readDraft(ME, { of: "new" })?.draft.title).toBe("Unaddressed");
+    expect(readDraft(ME, { of: "new", id: "one" })?.draft.title).toBe("Unaddressed");
+  });
+});
+
+describe("new documents", () => {
+  it("gives every new document a slot of its own, so starting a second keeps the first", () => {
+    writeDraft(ME, { of: "new", id: "one" }, stored({ title: "First" }));
+    writeDraft(ME, { of: "new", id: "two" }, stored({ title: "Second" }));
+
+    expect(readDraft(ME, { of: "new", id: "one" })?.draft.title).toBe("First");
+    expect(readDraft(ME, { of: "new", id: "two" })?.draft.title).toBe("Second");
+  });
+});
+
+describe("listDrafts", () => {
+  it("lists every draft a key holds, the most recently saved first", () => {
+    const origin = `30817:${OTHER}:a-document`;
+    writeDraft(ME, { of: "new", id: "one" }, stored({ title: "New" }, { savedAt: 1 }));
+    writeDraft(
+      ME,
+      { of: "doc", identifier: "a-document" },
+      stored({ title: "Edit" }, { savedAt: 3 }),
+    );
+    writeDraft(ME, { of: "fork", origin }, stored({ title: "Fork" }, { savedAt: 2 }));
+
+    expect(listDrafts(ME).map((entry) => [entry.slot, entry.stored.draft.title])).toEqual([
+      [{ of: "doc", identifier: "a-document" }, "Edit"],
+      [{ of: "fork", origin }, "Fork"],
+      [{ of: "new", id: "one" }, "New"],
+    ]);
+  });
+
+  it("leaves another key's drafts and unreadable records out", () => {
+    writeDraft(OTHER, { of: "new", id: "one" }, stored({ title: "Theirs" }));
+    localStorage.setItem(`openspecs:draft:doc:${ME}:broken`, "{not json");
+    localStorage.setItem("openspecs:outbox", "{}");
+
+    expect(listDrafts(ME)).toEqual([]);
+  });
+
+  it("moves the draft from before new documents had ids into a slot of its own", () => {
+    localStorage.setItem(`openspecs:draft:new:${ME}`, JSON.stringify(stored({ title: "Old" })));
+
+    const [entry] = listDrafts(ME);
+    expect(entry?.stored.draft.title).toBe("Old");
+    expect(entry?.slot.of).toBe("new");
+    expect(localStorage.getItem(`openspecs:draft:new:${ME}`)).toBeNull();
+    expect(listDrafts(ME)).toHaveLength(1);
+  });
+
+  it("has nothing to list where there is no storage at all", () => {
+    vi.stubGlobal("localStorage", undefined);
+    expect(listDrafts(ME)).toEqual([]);
   });
 });

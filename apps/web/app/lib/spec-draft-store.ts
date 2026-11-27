@@ -4,7 +4,9 @@ import type { SpecDraft, SpecKindEntry } from "@openspecs/nostr";
  * Where a document waits while it is being written, so a closed tab is not a
  * lost afternoon. Three prefixes rather than one, or a document whose identifier
  * is literally `new` would share a slot with the one nobody has addressed yet,
- * and starting a fork would eat whichever of those two it landed on.
+ * and starting a fork would eat whichever of those two it landed on. A document
+ * nobody has addressed yet gets an id of its own, or starting a second one would
+ * eat the first.
  *
  * NIP-37 encrypted drafts replace this. Until then a draft never leaves the
  * browser it was typed in, which is worth saying on screen rather than hiding.
@@ -84,14 +86,21 @@ export const parseStoredDraft = (input: unknown): StoredDraft | null => {
  * back up and forking another one does not.
  */
 export type DraftSlot =
-  | { of: "new" }
+  | { of: "new"; id: string }
   | { of: "doc"; identifier: string }
   | { of: "fork"; origin: string };
 
 const slot = (pubkey: string, at: DraftSlot): string => {
-  if (at.of === "new") return `${NEW_PREFIX}${pubkey}`;
+  if (at.of === "new") return `${NEW_PREFIX}${pubkey}:${at.id}`;
   if (at.of === "doc") return `${DOC_PREFIX}${pubkey}:${at.identifier}`;
   return `${FORK_PREFIX}${pubkey}:${at.origin}`;
+};
+
+/** Short, since it sits in the address bar, and random, since two tabs pick one each. */
+export const newDraftId = (): string => {
+  const bytes = new Uint8Array(6);
+  globalThis.crypto.getRandomValues(bytes);
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 };
 
 /**
@@ -124,4 +133,53 @@ export const clearDraft = (pubkey: string, at: DraftSlot): void => {
   try {
     local()?.removeItem(slot(pubkey, at));
   } catch {}
+};
+
+export type DraftEntry = { slot: DraftSlot; stored: StoredDraft };
+
+const slotOf = (pubkey: string, key: string): DraftSlot | null => {
+  const rest = (prefix: string) =>
+    key.startsWith(`${prefix}${pubkey}:`) ? key.slice(prefix.length + pubkey.length + 1) : null;
+  const id = rest(NEW_PREFIX);
+  if (id !== null) return { of: "new", id };
+  const identifier = rest(DOC_PREFIX);
+  if (identifier !== null) return { of: "doc", identifier };
+  const origin = rest(FORK_PREFIX);
+  return origin === null ? null : { of: "fork", origin };
+};
+
+/**
+ * Before new documents had ids there was one slot per key, and the draft in it
+ * is moved to an id of its own rather than left where nothing reads it.
+ */
+const adoptUnnamed = (storage: Storage, pubkey: string): void => {
+  const raw = storage.getItem(`${NEW_PREFIX}${pubkey}`);
+  if (raw === null) return;
+  storage.setItem(slot(pubkey, { of: "new", id: newDraftId() }), raw);
+  storage.removeItem(`${NEW_PREFIX}${pubkey}`);
+};
+
+/** Every draft this browser holds for a key, the most recently saved first. */
+export const listDrafts = (pubkey: string): DraftEntry[] => {
+  try {
+    const storage = local();
+    if (storage === undefined) return [];
+    adoptUnnamed(storage, pubkey);
+
+    const keys: string[] = [];
+    for (let at = 0; at < storage.length; at++) {
+      const key = storage.key(at);
+      if (key !== null) keys.push(key);
+    }
+
+    const entries: DraftEntry[] = [];
+    for (const key of keys) {
+      const found = slotOf(pubkey, key);
+      const stored = found === null ? null : readDraft(pubkey, found);
+      if (found !== null && stored !== null) entries.push({ slot: found, stored });
+    }
+    return entries.sort((left, right) => right.stored.savedAt - left.stored.savedAt);
+  } catch {
+    return [];
+  }
 };

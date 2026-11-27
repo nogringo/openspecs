@@ -97,8 +97,12 @@ export const diffPath = (
 /** What this site does with a document, for somebody who just met the word relay. */
 export const aboutPath = (): string => "/about";
 
-/** A document nobody has written yet, which belongs to whichever key is connected. */
-export const newSpecPath = (): string => "/new";
+/**
+ * A document nobody has written yet, which belongs to whichever key is connected.
+ * With a draft, the one this browser keeps under that id.
+ */
+export const newSpecPath = (draft?: string): string =>
+  draft === undefined ? "/new" : `/new?draft=${encodeURIComponent(draft)}`;
 
 /** The conversation under a document, which is the one part of its page with a name. */
 export const DISCUSSION_ID = "discussion";

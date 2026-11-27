@@ -17,6 +17,8 @@ export type MarkdownHeading = {
   /** As rendered, so a table of contents can indent on it directly. */
   depth: number;
   text: string;
+  /** Where the heading starts in the source, so an editor can find it in what is being typed. */
+  offset: number;
 };
 
 export type RenderedMarkdown = {
@@ -288,7 +290,10 @@ const collectHeadings = (headings: MarkdownHeading[]) => (tree: Root) => {
     if (node.properties.dataFootnotes !== undefined) return SKIP;
     if (!HEADINGS.has(node.tagName)) return;
     const id = String(node.properties.id ?? "");
-    if (id !== "") headings.push({ id, depth: Number(node.tagName.slice(1)), text: textOf(node) });
+    const offset = node.position?.start.offset;
+    if (id !== "" && offset !== undefined) {
+      headings.push({ id, depth: Number(node.tagName.slice(1)), text: textOf(node), offset });
+    }
   });
 };
 

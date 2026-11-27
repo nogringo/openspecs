@@ -53,7 +53,7 @@ describe("headings", () => {
     );
     expect(out).not.toContain("NIP-59");
     expect(out).not.toContain("Gift Wrap");
-    expect(headings).toEqual([{ id: "overview", depth: 2, text: "Overview" }]);
+    expect(headings).toEqual([{ id: "overview", depth: 2, text: "Overview", offset: 48 }]);
   });
 
   it("reads a title's code spans as the text its headings render", () => {
@@ -91,7 +91,7 @@ describe("headings", () => {
 
   it("keeps the permalink sign out of the reported heading text", () => {
     const { headings } = renderMarkdown("## Section", { headingOffset: 0 });
-    expect(headings).toEqual([{ id: "section", depth: 2, text: "Section" }]);
+    expect(headings).toEqual([{ id: "section", depth: 2, text: "Section", offset: 0 }]);
   });
 
   it("leaves the generated footnote label without a permalink", () => {
@@ -106,8 +106,18 @@ describe("headings", () => {
   it("reports headings with the identifiers rendered, disambiguating duplicates", () => {
     const { headings } = renderMarkdown("## Motivation\n\n### Motivation", { headingOffset: 0 });
     expect(headings).toEqual([
-      { id: "motivation", depth: 2, text: "Motivation" },
-      { id: "motivation-1", depth: 3, text: "Motivation" },
+      { id: "motivation", depth: 2, text: "Motivation", offset: 0 },
+      { id: "motivation-1", depth: 3, text: "Motivation", offset: 15 },
+    ]);
+  });
+
+  it("reports where each heading starts in the source, underlined ones included", () => {
+    const source = "Intro.\n\nSetext\n------\n\n> ### Quoted\n\n## Last";
+    const { headings } = renderMarkdown(source, { headingOffset: 0 });
+    expect(headings.map((heading) => source.slice(heading.offset, heading.offset + 6))).toEqual([
+      "Setext",
+      "### Qu",
+      "## Las",
     ]);
   });
 

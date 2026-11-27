@@ -1,6 +1,5 @@
-import { renderMarkdown } from "@openspecs/markdown";
 import type { SpecKindEntry } from "@openspecs/nostr";
-import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { STATUS_TONE } from "~/components/spec-tags";
 import { corpusState, serverCorpusState, startCorpus, subscribeCorpus } from "~/lib/corpus";
 import { kindNamed, kindNames } from "~/lib/kind-names";
@@ -32,7 +31,7 @@ export const LABEL = "block font-mono text-[0.6875rem] uppercase tracking-[0.14e
 export const SUGGESTION =
   "rounded-sm border border-dashed border-rule px-2 py-1 font-mono text-[0.6875rem] text-muted hover:border-muted hover:text-ink";
 
-const REMOVE =
+export const REMOVE =
   "shrink-0 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted hover:text-signal-closed";
 
 /**
@@ -401,14 +400,20 @@ export const KindField = ({
  * A field that grows with what is typed in it, so the page scrolls rather than
  * the box: a specification is thousands of words, and a window onto it that
  * scrolls inside a window that also scrolls is two places to lose your line.
+ *
+ * Measured before paint, so a field shown again is its full height by the time
+ * anything reads where its lines are. A hidden one measures as nothing, so it
+ * is left at the height it had.
  */
-const useAutoGrow = (value: string) => {
-  const area = useRef<HTMLTextAreaElement>(null);
-
+export const useGrow = (
+  area: React.RefObject<HTMLTextAreaElement | null>,
+  value: string,
+  shown = true,
+) => {
   // biome-ignore lint/correctness/useExhaustiveDependencies: the height follows the value, which is read off the element rather than out of this scope
-  useEffect(() => {
+  useLayoutEffect(() => {
     const field = area.current;
-    if (field === null) return;
+    if (field === null || !shown) return;
 
     const measure = () => {
       field.style.height = "auto";
@@ -420,8 +425,12 @@ const useAutoGrow = (value: string) => {
     // measured at the old width clips them. A turned phone is the common case.
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [value]);
+  }, [area, value, shown]);
+};
 
+const useAutoGrow = (value: string) => {
+  const area = useRef<HTMLTextAreaElement>(null);
+  useGrow(area, value);
   return area;
 };
 
@@ -493,60 +502,6 @@ export const SummaryField = ({
         Shown wherever the document is listed, and under its title when it is read. Left empty, the
         opening paragraph is used.
       </p>
-    </div>
-  );
-};
-
-/**
- * The document itself, in the reading face at the reading measure, and without a
- * border for the same reason the published page has none around its prose. The
- * numbers match `.doc` in `app.css`, so what is written here is set exactly as
- * what will be read.
- *
- * The preview goes through the same renderer the server uses, with the same
- * options, so it is the published page rather than an approximation of it.
- */
-export const DocumentField = ({
-  content,
-  title,
-  onChange,
-}: {
-  content: string;
-  title: string;
-  onChange: (content: string) => void;
-}) => {
-  const [preview, setPreview] = useState(false);
-  const { html } = useMemo(() => renderMarkdown(content, { title }), [content, title]);
-  const area = useAutoGrow(preview ? "" : content);
-  const empty = content.trim() === "";
-
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-4 border-t border-rule py-3">
-        <span className={LABEL}>Document</span>
-        {!empty && (
-          <button type="button" className={CHROME} onClick={() => setPreview(!preview)}>
-            {preview ? "Write" : "Preview"}
-          </button>
-        )}
-      </div>
-
-      {preview && !empty ? (
-        <div
-          className="doc min-h-[60vh]"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized by the pipeline above
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      ) : (
-        <textarea
-          ref={area}
-          value={content}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={"# A heading\n\nAnd a paragraph under it."}
-          aria-label="Document"
-          className="writing min-h-[60vh] w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-serif text-[1.0625rem] leading-[1.72] text-ink placeholder:text-muted"
-        />
-      )}
     </div>
   );
 };

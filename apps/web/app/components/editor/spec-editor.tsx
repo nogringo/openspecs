@@ -20,10 +20,11 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { Link } from "react-router";
 import { RelayReport } from "~/components/relay-results";
 import { rememberSpec } from "~/lib/corpus";
+import { enqueue } from "~/lib/outbox";
 import { specEditPath } from "~/lib/paths";
 import { authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
-import { type RelayResult, signAndPublish } from "~/lib/publish";
+import { type RelayResult, signAndPublish, transient } from "~/lib/publish";
 import { documentRelays } from "~/lib/relays";
 import {
   clearDraft,
@@ -32,9 +33,11 @@ import {
   type StoredDraft,
   writeDraft,
 } from "~/lib/spec-draft-store";
+import { Changes } from "./changes";
+import { DocumentField, Outline, useDocument } from "./document-field";
+import { ago } from "./drafts";
 import {
   ACTION,
-  DocumentField,
   IdentifierField,
   KindField,
   NOTE,
@@ -47,7 +50,7 @@ import {
   WRONG,
 } from "./fields";
 
-type State = "editing" | "sending" | "sent" | "failed";
+type State = "editing" | "sending" | "sent" | "queued" | "failed";
 
 /** Long enough that a sentence is one write rather than forty. */
 const SAVE_AFTER_MS = 800;
@@ -63,27 +66,42 @@ const SAYING: Record<SpecFault, string> = {
   "identifier-too-long": "That address is too long to be one.",
 };
 
-const ago = (savedAt: number): string => {
-  const minutes = Math.round((Date.now() - savedAt) / 60_000);
-  if (minutes < 1) return "a moment ago";
-  if (minutes < 60) return `${minutes} minutes ago`;
-  const hours = Math.round(minutes / 60);
-  return hours < 24 ? `${hours} hours ago` : "some days ago";
+/**
+ * What the form opens on. A draft is picked up straight away when nothing was
+ * published since it was started, which is always so for a document nobody has
+ * published. One started from a revision that is no longer the live one is only
+ * offered: restoring it would write over what came since, and that is a
+ * decision. One saying what is already published has done its job.
+ */
+type Opening =
+  | { as: "published" }
+  | { as: "resumed"; stored: StoredDraft }
+  | { as: "held"; stored: StoredDraft }
+  | { as: "spent" };
+
+const opening = (
+  stored: StoredDraft | null,
+  live: NostrEvent | null,
+  says: (draft: SpecDraft) => boolean,
+): Opening => {
+  if (stored === null) return { as: "published" };
+  if (says(stored.draft)) return { as: "spent" };
+  if (live !== null && stored.basedOn !== live.id) return { as: "held", stored };
+  return { as: "resumed", stored };
 };
 
 /**
- * Never sprung on anyone: the form always starts from the revision that was
- * published, and this only says that something else is available. Restoring is a
- * decision, the same way reading before writing is.
+ * A draft started from a revision that is no longer the live one. The form
+ * starts from what is published, and this says something else is available.
+ * Nothing typed is saved until it is answered, or the draft it offers would be
+ * written over by the first sentence typed beside it.
  */
 const Held = ({
   held,
-  live,
   onRestore,
   onDiscard,
 }: {
   held: StoredDraft;
-  live: NostrEvent | null;
   onRestore: () => void;
   onDiscard: () => void;
 }) => (
@@ -91,12 +109,11 @@ const Held = ({
     <p className={NOTE}>
       A draft of this document was saved in this browser {ago(held.savedAt)}, and it says something
       other than what is published.{" "}
-      {live !== null && held.basedOn !== live.id && (
-        <span className="text-signal-closed">
-          It was started from a revision that is no longer the live one, so restoring it would write
-          over whatever was published since.
-        </span>
-      )}
+      <span className="text-signal-closed">
+        It was started from a revision that is no longer the live one, so restoring it would write
+        over whatever was published since.
+      </span>{" "}
+      Until you choose, nothing typed here is kept.
     </p>
     <div className="flex flex-wrap items-center gap-2">
       <button type="button" className={SUGGESTION} onClick={onRestore}>
@@ -152,6 +169,7 @@ export const SpecEditor = ({
   npub,
   live: initial,
   fork = null,
+  draftId = "",
 }: {
   me: string;
   npub: string;
@@ -159,6 +177,8 @@ export const SpecEditor = ({
   live: NostrEvent | null;
   /** The document this one starts from, for a fork nobody has published yet. */
   fork?: { origin: NostrEvent; relay: string | null } | null;
+  /** Which of this key's new documents this is, for a document nobody has published. */
+  draftId?: string;
 }) => {
   const [live, setLive] = useState(initial);
   // Read off `live` and never off the prop: publishing the fork makes it a
@@ -181,11 +201,45 @@ export const SpecEditor = ({
     () => (live === null && fork !== null ? specDraftOf(fork.origin) : specDraftOf(live)),
     [live, fork],
   );
-  const [draft, setDraft] = useState<SpecDraft>(published);
-  // Only until somebody types one of their own. A published address never moves,
-  // and neither does a fork's, which keeps the name it was forked from until its
-  // author decides otherwise.
-  const [deriving, setDeriving] = useState(initial === null && fork === null);
+
+  const existing = live !== null;
+  // The slot a draft is kept in, fixed for as long as this editor is open: a
+  // first save turns a new document into an existing one, and the half written
+  // draft it replaces is the one under the address it did not have yet.
+  const slot = useMemo((): DraftSlot => {
+    if (initial !== null) return { of: "doc", identifier: specDraftOf(initial).identifier };
+    if (origin !== null) return { of: "fork", origin: toCoordinate(origin) };
+    return { of: "new", id: draftId };
+  }, [initial, origin, draftId]);
+
+  /**
+   * The event this form would sign. A fork is built from the draft alone, never
+   * from the document it came from: see `forkSpec`. Only the first one is, and
+   * after it every revision is an ordinary edit that carries the marker through.
+   */
+  const build = (fields: SpecDraft): EventDraft =>
+    origin !== null && !existing ? forkSpec(origin, me, fields) : editSpec(live, fields);
+
+  /**
+   * Compared as events rather than as forms. A blank kind row, a repeated topic
+   * and a trailing space all change the draft and none of them changes the
+   * document.
+   */
+  const signing = (fields: SpecDraft) => JSON.stringify(build(fields));
+
+  /** Whether the address still follows the title: only until somebody types one of their own. */
+  const follows = (fields: SpecDraft) =>
+    live === null && fork === null && fields.identifier === toIdentifier(fields.title);
+
+  const [opened] = useState(() =>
+    opening(readDraft(me, slot), initial, (fields) => signing(fields) === signing(published)),
+  );
+  const start = opened.as === "resumed" ? opened.stored.draft : published;
+
+  const [draft, setDraft] = useState<SpecDraft>(start);
+  // A published address never moves, and neither does a fork's, which keeps the
+  // name it was forked from until its author decides otherwise.
+  const [deriving, setDeriving] = useState(() => follows(start));
   const [state, setState] = useState<State>("editing");
   const [relays, setRelays] = useState<string[]>([]);
   const [results, setResults] = useState<RelayResult[]>([]);
@@ -204,32 +258,28 @@ export const SpecEditor = ({
   const [standing, setStanding] = useState<string | null>(null);
   /** One question per address, however many times the editor comes back to it. */
   const answered = useRef(new Map<string, boolean>());
-  const [held, setHeld] = useState<StoredDraft | null>(null);
+  const [held, setHeld] = useState<StoredDraft | null>(opened.as === "held" ? opened.stored : null);
+  const [resumed, setResumed] = useState<number | null>(
+    opened.as === "resumed" ? opened.stored.savedAt : null,
+  );
+  /** What Start over took away, until the next keystroke makes it too late to want back. */
+  const [dropped, setDropped] = useState<SpecDraft | null>(null);
+  /** The event the changes were last shown for. */
+  const [reviewed, setReviewed] = useState<string | null>(null);
 
-  const existing = live !== null;
-  // The slot a draft is kept in, fixed for as long as this editor is open: a
-  // first save turns a new document into an existing one, and the half written
-  // draft it replaces is the one under the address it did not have yet.
-  const slot = useMemo((): DraftSlot => {
-    if (initial !== null) return { of: "doc", identifier: specDraftOf(initial).identifier };
-    if (origin !== null) return { of: "fork", origin: toCoordinate(origin) };
-    return { of: "new" };
-  }, [initial, origin]);
+  const doc = useDocument(draft.content, draft.title);
 
+  const now = signing(draft);
+  const changed = now !== signing(published);
+  // The text a publish starts from, and so the one its changes are read against.
+  const base = existing || forking ? published : null;
+  const comparable = base !== null && changed;
   /**
-   * The event this form would sign. A fork is built from the draft alone, never
-   * from the document it came from: see `forkSpec`. Only the first one is, and
-   * after it every revision is an ordinary edit that carries the marker through.
+   * A revision replaces the whole of the one before it, so it is shown before
+   * it is signed. Once is enough: the button publishes once the changes on
+   * screen are the ones it would send.
    */
-  const build = (fields: SpecDraft): EventDraft =>
-    origin !== null && !existing ? forkSpec(origin, me, fields) : editSpec(live, fields);
-
-  /**
-   * Whether saving would say anything different, asked of the event rather than
-   * of the form. A blank kind row, a repeated topic and a trailing space all
-   * change the draft and none of them changes the document.
-   */
-  const changed = JSON.stringify(build(draft)) !== JSON.stringify(build(published));
+  const reviewing = existing && changed && reviewed !== now;
 
   const faults = specFaults(draft);
   const wanted = draft.identifier.trim();
@@ -244,16 +294,18 @@ export const SpecEditor = ({
   // What the document is already shown under when it carries no title tag.
   const heading = draft.title === "" ? firstHeading(draft.content) : null;
   const basedOn = live?.id ?? null;
+  const keeping = changed && held === null;
 
-  const latest = useRef({ draft, changed, basedOn });
-  latest.current = { draft, changed, basedOn };
+  const latest = useRef({ draft, keeping, basedOn });
+  latest.current = { draft, keeping, basedOn };
 
   useEffect(() => {
-    const stored = readDraft(me, slot);
-    setHeld(
-      stored !== null && JSON.stringify(stored.draft) !== JSON.stringify(published) ? stored : null,
-    );
-  }, [me, slot, published]);
+    if (opened.as === "spent") clearDraft(me, slot);
+  }, [opened, me, slot]);
+
+  useEffect(() => {
+    if (doc.view === "changes") setReviewed(now);
+  }, [doc.view, now]);
 
   useEffect(() => {
     // A published address never moves, so there is nothing to ask about.
@@ -282,41 +334,74 @@ export const SpecEditor = ({
   }, [existing, me, wanted]);
 
   useEffect(() => {
-    if (!changed) return;
+    if (!keeping) return;
     const timer = setTimeout(() => {
       writeDraft(me, slot, { v: 1, draft, savedAt: Date.now(), basedOn });
     }, SAVE_AFTER_MS);
     return () => clearTimeout(timer);
-  }, [changed, draft, basedOn, me, slot]);
+  }, [keeping, draft, basedOn, me, slot]);
 
-  // A tab closed between two keystrokes would otherwise lose the sentence being
-  // typed, which is the whole case this store exists for.
-  useEffect(
-    () => () => {
+  // The sentence typed in the last moment before the page goes. Closing a tab
+  // or reloading it unmounts nothing, so `pagehide` is what catches those, and a
+  // phone that drops a tab in the background only ever said it was hidden.
+  useEffect(() => {
+    const flush = () => {
       const saved = latest.current;
-      if (saved.changed) {
-        writeDraft(me, slot, {
-          v: 1,
-          draft: saved.draft,
-          savedAt: Date.now(),
-          basedOn: saved.basedOn,
-        });
-      }
-    },
-    [me, slot],
-  );
+      if (!saved.keeping) return;
+      writeDraft(me, slot, {
+        v: 1,
+        draft: saved.draft,
+        savedAt: Date.now(),
+        basedOn: saved.basedOn,
+      });
+    };
+    const hidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", hidden);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", hidden);
+      flush();
+    };
+  }, [me, slot]);
 
   const edit = (fields: Partial<SpecDraft>) => {
     setDraft((was) => ({ ...was, ...fields }));
     setState("editing");
     setTaken(null);
+    setResumed(null);
+    setDropped(null);
   };
 
   const setTitle = (title: string) =>
     edit(deriving ? { title, identifier: toIdentifier(title) } : { title });
 
+  const startOver = () => {
+    setDropped(draft);
+    setDraft(published);
+    setDeriving(follows(published));
+    clearDraft(me, slot);
+    setResumed(null);
+    setState("editing");
+    setTaken(null);
+  };
+
+  const undo = () => {
+    if (dropped === null) return;
+    setDraft(dropped);
+    setDeriving(follows(dropped));
+    setDropped(null);
+  };
+
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (reviewing) {
+      doc.show("changes");
+      return;
+    }
+
     setState("sending");
     setResults([]);
     setError(null);
@@ -341,7 +426,13 @@ export const SpecEditor = ({
         setResults((answered) => [...answered, result]),
       );
 
-      if (report.accepted === 0) {
+      // A relay that was not there gets the signed event when it is back. Late
+      // is safe: NIP-01 keeps the newest `created_at` of an address whatever
+      // order its revisions arrive in.
+      const owed = report.results.filter(transient).map((result) => result.relay);
+      if (owed.length > 0) enqueue(report.event, owed);
+
+      if (report.accepted === 0 && owed.length === 0) {
         setState("failed");
         setError("No relay took it. Nothing was published, and what was there is unchanged.");
         return;
@@ -352,8 +443,18 @@ export const SpecEditor = ({
       setLive(report.event);
       setDraft(specDraftOf(report.event));
       setDeriving(false);
-      clearDraft(me, slot);
       setHeld(null);
+      setResumed(null);
+      setDropped(null);
+
+      // Still only in the outbox, which gives up after a day, so the draft
+      // stays where it was until a relay has the event.
+      if (report.accepted === 0) {
+        setState("queued");
+        return;
+      }
+
+      clearDraft(me, slot);
       void rememberSpec(report.event);
       setState("sent");
     } catch (reason) {
@@ -361,6 +462,8 @@ export const SpecEditor = ({
       setError(reason instanceof Error ? reason.message : "that did not work");
     }
   };
+
+  const reported = state === "sending" || state === "sent" || state === "queued";
 
   return (
     /*
@@ -373,10 +476,11 @@ export const SpecEditor = ({
       <div className="max-w-[40rem] space-y-4">
         {forking && fork !== null && <ForkedFrom origin={fork.origin} />}
 
+        {resumed !== null && <p className={NOTE}>Picked up where you left off, {ago(resumed)}.</p>}
+
         {held !== null && (
           <Held
             held={held}
-            live={live}
             onRestore={() => {
               setDraft(held.draft);
               setDeriving(false);
@@ -433,9 +537,11 @@ export const SpecEditor = ({
 
         <div className="pt-4">
           <DocumentField
+            doc={doc}
             content={draft.content}
-            title={draft.title}
             onChange={(content) => edit({ content })}
+            comparable={comparable}
+            changes={base !== null && <Changes base={base} draft={draft} />}
           />
         </div>
 
@@ -454,19 +560,40 @@ export const SpecEditor = ({
           those pixels back and the padding puts the fields where they were. */}
       <aside className="mt-16 space-y-8 border-t border-rule pt-8 lg:-mx-1.5 lg:mt-0 lg:self-start lg:border-t-0 lg:px-1.5 lg:pt-0 lg:sticky lg:top-10 lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto">
         <div className="space-y-3">
-          {/* A fork that changes nothing is still a real thing to publish: a copy
-              under your own key, which is what a mirror is. Everywhere else an
-              untouched form has nothing to send, and a blank one is refused by
-              its faults rather than by this. */}
-          <button
-            type="submit"
-            className={ACTION}
-            disabled={(!changed && !forking) || clashes || faults.length > 0 || state === "sending"}
-          >
-            {state === "sending" ? "Publishing" : existing ? "Publish revision" : "Publish"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* A fork that changes nothing is still a real thing to publish: a
+                copy under your own key, which is what a mirror is. Everywhere
+                else an untouched form has nothing to send, and a blank one is
+                refused by its faults rather than by this. */}
+            <button
+              type="submit"
+              className={ACTION}
+              disabled={
+                (!changed && !forking) || clashes || faults.length > 0 || state === "sending"
+              }
+            >
+              {state === "sending"
+                ? "Publishing"
+                : reviewing
+                  ? "Review changes"
+                  : existing
+                    ? "Publish revision"
+                    : "Publish"}
+            </button>
 
-          {!changed && state !== "sent" && (
+            {changed && state !== "sending" && (
+              <button type="button" className={SUGGESTION} onClick={startOver}>
+                Start over
+              </button>
+            )}
+            {dropped !== null && (
+              <button type="button" className={SUGGESTION} onClick={undo}>
+                Undo
+              </button>
+            )}
+          </div>
+
+          {!changed && state !== "sent" && state !== "queued" && dropped === null && (
             <p className={NOTE}>
               {forking
                 ? "Unchanged from the document you forked. Publishing it puts a copy of it under your key."
@@ -476,6 +603,12 @@ export const SpecEditor = ({
             </p>
           )}
           {state === "sent" && !changed && <p className={NOTE}>Published.</p>}
+          {state === "queued" && !changed && (
+            <p className={NOTE}>
+              Signed, and waiting for a relay to answer. This browser keeps trying for a day,
+              whenever this site is open in it.
+            </p>
+          )}
 
           {faults.length > 0 && changed && (
             <ul className="space-y-1">
@@ -490,9 +623,9 @@ export const SpecEditor = ({
           {/* In the margin beside the document, which is the whole of what this
               site claims: the thing being written goes to relays, one square
               each, and nothing of it stays here. */}
-          {(state === "sending" || state === "sent") && relays.length > 0 && (
+          {reported && relays.length > 0 && (
             <div className="font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
-              <RelayReport relays={relays} results={results} done={state === "sent"} />
+              <RelayReport relays={relays} results={results} done={state !== "sending"} />
             </div>
           )}
 
@@ -542,6 +675,8 @@ export const SpecEditor = ({
             )}
           </Row>
         </div>
+
+        <Outline doc={doc} />
       </aside>
     </form>
   );
