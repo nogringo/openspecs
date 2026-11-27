@@ -9,7 +9,14 @@ import {
 } from "@openspecs/nostr";
 import { useEffect, useState } from "react";
 import { eventPath } from "./paths";
-import { compareCopies, type Spot, type Standing } from "./spots";
+import {
+  type CopiesComparison,
+  compareCopies,
+  type Spot,
+  type SpotBase,
+  type Standing,
+  standingKey,
+} from "./spots";
 
 /** Another key's copy of this document, reduced to what its row draws. */
 export type Copy = {
@@ -74,7 +81,45 @@ export type Copies = {
   standings: Record<string, Standing>;
 };
 
+/** What the server found for the revision it rendered, named by that revision. */
+export type KnownCopies = Copies & { eventId: string };
+
 const NOTHING: Copies = { copies: [], spots: [], standings: {} };
+
+/**
+ * Two questions because the relays answer two: who publishes at this address,
+ * and who cites it. They go out together and are folded into one list, because
+ * a copy found by both is one copy, and the newer of its two revisions is the
+ * one that counts.
+ *
+ * Caught one by one rather than together: the relays answer these separately
+ * and a reader is owed whichever of the two came back, not silence because the
+ * other did not. When the indexer backend exists, these two queries are what it
+ * replaces.
+ */
+export const fetchCandidates = async (shown: {
+  pubkey: string;
+  identifier: string;
+}): Promise<Spec[]> => {
+  const [byName, byCitation] = await Promise.all([
+    fetchSpecs({ identifiers: [shown.identifier] }).catch(() => [] as Spec[]),
+    fetchSpecs({ cites: [toCoordinate(shown)] }).catch(() => [] as Spec[]),
+  ]);
+  return latestByCoordinate([...byName, ...byCitation]);
+};
+
+/** The selected copies measured against the shown revision, whose source is `base`. */
+export const compareSelected = (
+  candidates: Spec[],
+  copies: Copy[],
+  base: SpotBase,
+): CopiesComparison => {
+  const held = new Set(copies.map(standingKey));
+  return compareCopies(
+    base,
+    candidates.filter((spec) => held.has(standingKey(spec))),
+  );
+};
 
 /**
  * The marks must sit on the text the reader is looking at, so the base source
@@ -101,55 +146,49 @@ const baseContentOf = async (
 };
 
 /**
- * Asked by the browser after the page is on screen, like the discussion and for
- * the same reason: the server renders the document for crawlers and cachers, and
- * who else has written it is not part of the document. When the indexer backend
- * exists, these two queries are what it replaces.
- *
- * Two questions because the relays answer two: who publishes at this address,
- * and who cites it. They go out together and are folded into one list, because
- * a copy found by both is one copy.
+ * The server's answer when it has one for the revision on screen. Otherwise the
+ * browser asks, after the page is on screen: the server gave up waiting on the
+ * relays, or the reader moved to a newer revision than the one it rendered.
  *
  * The list is published first and the margin marks after: the section is a list
  * to draw, the marks cost a comparison per copy, and neither should wait on the
  * other.
  */
-export const useCopies = (shown: {
-  pubkey: string;
-  npub: string;
-  identifier: string;
-  eventId: string;
-  title: string;
-}): Copies => {
+export const useCopies = (
+  shown: {
+    pubkey: string;
+    npub: string;
+    identifier: string;
+    eventId: string;
+    title: string;
+  },
+  known: KnownCopies | null,
+): Copies => {
   const [found, setFound] = useState<Copies>(NOTHING);
   const { pubkey, npub, identifier, eventId, title } = shown;
+  const given = known?.eventId === eventId ? known : null;
 
   useEffect(() => {
+    if (given !== null) return;
     let live = true;
     setFound(NOTHING);
 
     (async () => {
       try {
-        // Caught one by one rather than together: the relays answer these
-        // separately and a reader is owed whichever of the two came back, not
-        // silence because the other did not.
-        const [byName, byCitation] = await Promise.all([
-          fetchSpecs({ identifiers: [identifier] }).catch(() => [] as Spec[]),
-          fetchSpecs({ cites: [toCoordinate({ pubkey, identifier })] }).catch(() => [] as Spec[]),
-        ]);
+        const candidates = await fetchCandidates({ pubkey, identifier });
         if (!live) return;
-        // One document answering both queries is one document, and the newer of
-        // the two revisions is the one that counts.
-        const specs = latestByCoordinate([...byName, ...byCitation]);
-        const copies = selectCopies(specs, { pubkey, identifier });
+        const copies = selectCopies(candidates, { pubkey, identifier });
         setFound({ copies, spots: [], standings: {} });
         if (copies.length === 0) return;
 
-        const content = await baseContentOf(specs, { pubkey, npub, identifier, eventId });
+        const content = await baseContentOf(candidates, { pubkey, npub, identifier, eventId });
         if (!live || content === null) return;
-        const held = new Set(copies.map((copy) => `${copy.pubkey}:${copy.identifier}`));
-        const others = specs.filter((spec) => held.has(`${spec.pubkey}:${spec.identifier}`));
-        const { spots, standings } = compareCopies({ content, title, npub, identifier }, others);
+        const { spots, standings } = compareSelected(candidates, copies, {
+          content,
+          title,
+          npub,
+          identifier,
+        });
         if (live) setFound({ copies, spots, standings });
       } catch {
         // A page that could not learn who else has written this still has its document.
@@ -159,7 +198,7 @@ export const useCopies = (shown: {
     return () => {
       live = false;
     };
-  }, [pubkey, npub, identifier, eventId, title]);
+  }, [pubkey, npub, identifier, eventId, title, given]);
 
-  return found;
+  return given ?? found;
 };

@@ -50,13 +50,23 @@ const SpotPanel = ({ spot, authors }: { spot: Spot; authors: Authors }) => (
  * inserted among them, because the document itself is one block of HTML the
  * server rendered: annotating it must not mean re-rendering it.
  */
-export const AnnotatedDoc = ({ html, spots }: { html: string; spots: Spot[] }) => {
+export const AnnotatedDoc = ({
+  html,
+  spots,
+  known,
+}: {
+  html: string;
+  spots: Spot[];
+  /** Authors the server already looked up. */
+  known: Authors;
+}) => {
   const docRef = useRef<HTMLDivElement>(null);
   const kept = useRef<Record<number, HTMLElement>>({});
   const [open, setOpen] = useState<ReadonlySet<number>>(new Set());
   const [tops, setTops] = useState<Record<number, number>>({});
   const [slots, setSlots] = useState<Record<number, HTMLElement>>({});
-  const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
+  const looked = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
+  const authors = { ...known, ...looked };
 
   /**
    * One object per document, not one per render: React re-applies

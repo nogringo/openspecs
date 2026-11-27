@@ -17,7 +17,7 @@ export type { SpecPage };
  * a revision replaces its predecessor the moment its author publishes it, and
  * nothing tells this server when that happens.
  */
-const FRESH_MS = 60_000;
+export const FRESH_MS = 60_000;
 /** A document that does not exist yet may appear at any time, so a miss expires sooner. */
 const MISSING_MS = 10_000;
 /**
@@ -26,7 +26,7 @@ const MISSING_MS = 10_000;
  * day, like the `stale-while-revalidate` the pages declare, and the browser offers
  * the newer revision if there is one.
  */
-const STALE_MS = 24 * 60 * 60 * 1000;
+export const STALE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * The event travels with the page through the cache but never into a loader's

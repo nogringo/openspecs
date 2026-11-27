@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { keyTextColor } from "~/lib/color";
 import type { Copy } from "~/lib/copies";
 import { diffPath } from "~/lib/paths";
-import { authorName } from "~/lib/profile";
+import { type Authors, authorName } from "~/lib/profile";
 import { authorsState, serverAuthorsState, subscribeAuthors, wantAuthors } from "~/lib/profiles";
 import { type Standing, standingKey } from "~/lib/spots";
 import { AuthorAvatar } from "./author-avatar";
@@ -41,19 +41,24 @@ const said = (standing: Standing): string => {
  */
 export const Copies = ({
   copies,
+  known,
   standings,
   from,
 }: {
   copies: Copy[];
+  /** The authors the server already looked up, so their names are in the first paint. */
+  known: Authors;
   standings: Record<string, Standing>;
   /** The document whose page this section sits on, and a comparison's base side. */
   from: { npub: string; identifier: string };
 }) => {
-  const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
+  const looked = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
+  const authors = { ...known, ...looked };
 
   useEffect(() => {
-    if (copies.length > 0) wantAuthors(copies.map((copy) => copy.pubkey));
-  }, [copies]);
+    const unknown = copies.filter((copy) => known[copy.pubkey] === undefined);
+    if (unknown.length > 0) wantAuthors(unknown.map((copy) => copy.pubkey));
+  }, [copies, known]);
 
   if (copies.length === 0) return null;
 

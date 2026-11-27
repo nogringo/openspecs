@@ -24,15 +24,16 @@ import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
 import { hidesSpec, unblock, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
-import { useCopies } from "~/lib/copies";
+import { type KnownCopies, useCopies } from "~/lib/copies";
+import { loadCopies } from "~/lib/copies.server";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { useLiveRevision } from "~/lib/live-revision";
 import { publicOrigin } from "~/lib/origin.server";
 import { DISCUSSION_ID, oembedPath, ogImagePath, specForkPath } from "~/lib/paths";
 import type { LinkPreview } from "~/lib/preview";
 import { loadLinkPreviews } from "~/lib/preview.server";
-import { type Author, authorName, shortNpub } from "~/lib/profile";
-import { loadAuthor } from "~/lib/profile.server";
+import { type Author, type Authors, authorName, shortNpub } from "~/lib/profile";
+import { loadAuthor, loadAuthors } from "~/lib/profile.server";
 import { discussionRelays, rebroadcastRelays } from "~/lib/relays.server";
 import type { SpecPage } from "~/lib/spec-page";
 import { loadSpec } from "~/lib/specs.server";
@@ -58,11 +59,18 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   // served under more than one origin, and only this one is canonical.
   const origin = publicOrigin(request);
   const spec = cached.page;
-  const [relays, discussion, previews, author] = await Promise.all([
+  const [relays, discussion, previews, author, { copies, copyAuthors }] = await Promise.all([
     rebroadcastRelays(pubkey),
     discussionRelays(pubkey),
     loadLinkPreviews(spec.links),
     loadAuthor(pubkey),
+    loadCopies(cached).then(async (copies) => ({
+      copies,
+      copyAuthors:
+        copies === null || copies.copies.length === 0
+          ? {}
+          : await loadAuthors(copies.copies.map((copy) => copy.pubkey)),
+    })),
   ]);
   return {
     spec,
@@ -72,6 +80,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     discussion,
     previews,
     author,
+    copies,
+    copyAuthors,
     origin,
     canonical: `${origin}${path}`,
     ogImage: `${origin}${ogImagePath(toNpub(pubkey), spec.identifier)}`,
@@ -344,8 +354,8 @@ const Byline = ({
             </span>
           </>
         )}
-        {/* Growing sideways rather than down: this arrives after the page is on
-            screen, and text under the reader's eye must not move for it. */}
+        {/* Growing sideways rather than down: when the server could not wait for
+            it, this arrives after the page is on screen. */}
         {copyCount > 0 && (
           <a
             href={`#${COPIES_ID}`}
@@ -497,6 +507,8 @@ const Article = ({
   canonical,
   relays,
   discussion,
+  known,
+  copyAuthors,
 }: {
   served: SpecPage;
   author: Author | null;
@@ -504,10 +516,12 @@ const Article = ({
   canonical: string;
   relays: string[];
   discussion: string[];
+  known: KnownCopies | null;
+  copyAuthors: Authors;
 }) => {
   const { shown, fresher, show } = useLiveRevision(served);
   // On the shown revision, not the served one: the marks sit on the text on screen.
-  const { copies: every, spots, standings } = useCopies(shown);
+  const { copies: every, spots, standings } = useCopies(shown, known);
 
   const blocked = useBlocked();
   const [shownAnyway, setShownAnyway] = useState(false);
@@ -569,11 +583,12 @@ const Article = ({
             // this server or in this browser: both call `renderMarkdown`.
             // Keyed on the revision: the marks and panels are measured against
             // this exact markup and must not outlive it.
-            <AnnotatedDoc key={shown.eventId} html={shown.html} spots={spots} />
+            <AnnotatedDoc key={shown.eventId} html={shown.html} spots={spots} known={copyAuthors} />
           )}
           {cited.length > 0 && <CitedLinks previews={cited} />}
           <Copies
             copies={copies}
+            known={copyAuthors}
             standings={standings}
             from={{ npub: shown.npub, identifier: shown.identifier }}
           />
@@ -592,7 +607,7 @@ const Article = ({
 };
 
 export default function Spec({ loaderData }: Route.ComponentProps) {
-  const { spec, author, previews, canonical, relays, discussion } = loaderData;
+  const { spec, author, previews, canonical, relays, discussion, copies, copyAuthors } = loaderData;
 
   return (
     <Shell>
@@ -608,6 +623,8 @@ export default function Spec({ loaderData }: Route.ComponentProps) {
         canonical={canonical}
         relays={relays}
         discussion={discussion}
+        known={copies}
+        copyAuthors={copyAuthors}
       />
     </Shell>
   );
