@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderMarkdown } from "../src/index";
+import { highlighter, renderMarkdown } from "../src/index";
 
 const html = (content: string, options?: Parameters<typeof renderMarkdown>[1]) =>
   renderMarkdown(content, options).html;
@@ -233,4 +233,48 @@ describe("references", () => {
 
 it("renders an empty document to nothing", () => {
   expect(renderMarkdown("")).toEqual({ html: "", headings: [], links: [] });
+});
+
+describe("code", () => {
+  it("colours a fenced block in a language the corpus uses", () => {
+    const out = html('```json\n{"kind": 1059}\n```', { highlight: highlighter });
+    expect(out).toContain('<span class="hljs-attr">"kind"</span>');
+    expect(out).toContain('<span class="hljs-number">1059</span>');
+  });
+
+  it("reads jsonc and sh as the languages they are", () => {
+    expect(html('```jsonc\n{"a": 1}\n```', { highlight: highlighter })).toContain("hljs-attr");
+    expect(html("```sh\necho hi\n```", { highlight: highlighter })).toContain("hljs-built_in");
+  });
+
+  it("leaves a block plain when its language is unknown or unnamed", () => {
+    expect(html("```rust\nfn main() {}\n```", { highlight: highlighter })).not.toContain("hljs");
+    expect(html("```\nconst a = 1\n```", { highlight: highlighter })).not.toContain("hljs");
+  });
+
+  it("colours nothing unless asked, so a diff compares plain words", () => {
+    expect(html('```json\n{"a": 1}\n```')).not.toContain("hljs");
+  });
+});
+
+describe("kind links", () => {
+  const kindHref = (kind: number) => (kind === 13 ? null : `/specs?kind=${kind}`);
+
+  it("points a kind code span at the documents covering it", () => {
+    expect(html("Wrapped in a `kind:1059` event.", { kindHref })).toContain(
+      '<a href="/specs?kind=1059" class="kind"><code>kind:1059</code></a>',
+    );
+    expect(html("A `kind 1059`.", { kindHref })).toContain('href="/specs?kind=1059"');
+  });
+
+  it("leaves a kind its resolver declines as plain code", () => {
+    expect(html("A `kind:13` seal.", { kindHref })).toContain("<code>kind:13</code>");
+    expect(html("A `kind:13` seal.", { kindHref })).not.toContain("<a");
+  });
+
+  it("leaves kinds in fenced blocks, in links and in longer spans alone", () => {
+    expect(html("```\nkind:1059\n```", { kindHref })).not.toContain("<a");
+    expect(html("[`kind:1059`](https://example.com)", { kindHref })).not.toContain("/specs");
+    expect(html("`kind:1059 events`", { kindHref })).not.toContain("<a");
+  });
 });

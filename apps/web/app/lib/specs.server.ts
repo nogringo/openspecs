@@ -1,3 +1,4 @@
+import { highlighter } from "@openspecs/markdown";
 import type { NostrEvent } from "@openspecs/nostr";
 import {
   fetchSpec,
@@ -47,7 +48,9 @@ const cache = createLoadCache<CachedSpec | null>({
 export const loadSpec = (pubkey: string, identifier: string): Promise<CachedSpec | null> =>
   cache.get(`${pubkey}:${identifier}`, async () => {
     const spec = await fetchSpec({ pubkey, identifier });
-    return spec === null ? null : { page: toPage(spec), event: spec.event };
+    return spec === null
+      ? null
+      : { page: toPage(spec, { highlight: highlighter }), event: spec.event };
   });
 
 export type SpecCard = {

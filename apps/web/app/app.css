@@ -20,6 +20,9 @@
   --color-signal-open: #8a5a00;
   --color-signal-settled: #1e6a45;
   --color-signal-closed: #9c2f2f;
+
+  --color-code-key: #2c5d88;
+  --color-code-keyword: #7a3f99;
 }
 
 /*
@@ -38,6 +41,9 @@
     --color-signal-open: #e0a83d;
     --color-signal-settled: #59b98b;
     --color-signal-closed: #e08585;
+
+    --color-code-key: #86b6e0;
+    --color-code-keyword: #c4a0e2;
   }
 }
 
@@ -224,6 +230,27 @@ html {
     background: none;
     padding: 0;
     font-size: inherit;
+  }
+
+  /* Four colours, from the page's own: enough to tell a key from its value. */
+  .doc :is(.hljs-attr, .hljs-attribute, .hljs-property, .hljs-title, .hljs-section) {
+    color: var(--color-code-key);
+  }
+
+  .doc :is(.hljs-string, .hljs-regexp, .hljs-symbol) {
+    color: var(--color-signal-settled);
+  }
+
+  .doc :is(.hljs-number, .hljs-literal, .hljs-built_in) {
+    color: var(--color-signal-open);
+  }
+
+  .doc :is(.hljs-keyword, .hljs-type, .hljs-meta, .hljs-selector-tag) {
+    color: var(--color-code-keyword);
+  }
+
+  .doc :is(.hljs-comment, .hljs-quote) {
+    color: var(--color-muted);
   }
 
   .doc blockquote {

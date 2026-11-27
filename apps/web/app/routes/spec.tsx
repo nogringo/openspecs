@@ -22,6 +22,7 @@ import { BlockedNotice } from "~/components/moderation/blocked-notice";
 import { More } from "~/components/moderation/more";
 import { Shell } from "~/components/shell";
 import { SpecTags } from "~/components/spec-tags";
+import { useActiveSection } from "~/lib/active-section";
 import { hidesSpec, unblock, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
 import { type KnownCopies, useCopies } from "~/lib/copies";
@@ -172,59 +173,94 @@ const shorten = (value: string, head: number, tail: number): string =>
 const listedHeadings = (headings: MarkdownHeading[]) =>
   headings.filter((heading) => heading.depth <= 3);
 
+/** What the contents lists, in page order: the headings, then the sections under the document. */
+const sectionsOf = (headings: MarkdownHeading[], copyCount: number) => [
+  ...listedHeadings(headings).map((heading) => ({ id: heading.id, text: heading.text })),
+  ...(copyCount > 0 ? [{ id: COPIES_ID, text: "Other copies" }] : []),
+  { id: DISCUSSION_ID, text: "Discussion" },
+];
+
 const ContentsList = ({
   headings,
   copyCount,
+  active,
   onPick,
 }: {
   headings: MarkdownHeading[];
   copyCount: number;
+  active: string | null;
   /** Set where the list is tapped rather than clicked: taller targets, and the width for whole headings. */
   onPick?: () => void;
-}) => (
-  <ul
-    className={`font-mono leading-snug ${onPick ? "space-y-0.5 text-sm [&_a]:py-1.5" : "space-y-2 text-xs"}`}
-  >
-    {listedHeadings(headings).map((heading) => (
-      <li key={heading.id} style={{ paddingLeft: `${Math.max(0, heading.depth - 2) * 0.75}rem` }}>
-        <a
-          href={`#${heading.id}`}
-          title={heading.text}
-          onClick={onPick}
-          className={`${onPick ? "block" : "line-clamp-2"} text-muted hover:text-ink`}
-        >
-          {heading.text}
-        </a>
-      </li>
-    ))}
-    {/* Part of the page rather than an appendix to it: what was said about a
-        specification is one of the things a reader comes here to find. */}
-    <li className="mt-4 border-t border-rule pt-3">
-      {copyCount > 0 && (
-        <a href={`#${COPIES_ID}`} onClick={onPick} className="mb-2 block text-muted hover:text-ink">
-          Other copies
-        </a>
-      )}
-      <a href={`#${DISCUSSION_ID}`} onClick={onPick} className="block text-muted hover:text-ink">
-        Discussion
-      </a>
-    </li>
-  </ul>
-);
+}) => {
+  const linkTo = (id: string, text: string, className: string) => (
+    <a
+      href={`#${id}`}
+      title={text}
+      onClick={onPick}
+      aria-current={id === active ? "location" : undefined}
+      className={`${className} ${id === active ? "text-ink" : "text-muted"} hover:text-ink`}
+    >
+      {text}
+    </a>
+  );
 
-const Contents = ({ headings, copyCount }: { headings: MarkdownHeading[]; copyCount: number }) => (
-  <nav
-    aria-label="Contents"
-    /* The negative margin and the padding are one pair: scrolling this rail
-       makes it clip on both axes, and a link's focus ring sits outside the link. */
-    className="hidden lg:-mx-1.5 lg:sticky lg:top-10 lg:block lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto lg:px-1.5"
-  >
-    <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">Contents</p>
-    <div className="mt-3">
-      <ContentsList headings={headings} copyCount={copyCount} />
-    </div>
-  </nav>
-);
+  return (
+    <ul
+      className={`font-mono leading-snug ${onPick ? "space-y-0.5 text-sm [&_a]:py-1.5" : "space-y-2 text-xs"}`}
+    >
+      {listedHeadings(headings).map((heading) => (
+        <li key={heading.id} style={{ paddingLeft: `${Math.max(0, heading.depth - 2) * 0.75}rem` }}>
+          {linkTo(heading.id, heading.text, onPick ? "block" : "line-clamp-2")}
+        </li>
+      ))}
+      {/* Part of the page rather than an appendix to it: what was said about a
+          specification is one of the things a reader comes here to find. */}
+      <li className="mt-4 border-t border-rule pt-3">
+        {copyCount > 0 && linkTo(COPIES_ID, "Other copies", "mb-2 block")}
+        {linkTo(DISCUSSION_ID, "Discussion", "block")}
+      </li>
+    </ul>
+  );
+};
+
+const Contents = ({
+  headings,
+  copyCount,
+  active,
+}: {
+  headings: MarkdownHeading[];
+  copyCount: number;
+  active: string | null;
+}) => {
+  const rail = useRef<HTMLElement>(null);
+
+  // The rail scrolls on its own when the list is taller than the window, and
+  // the section being read should not be the one it has scrolled out of sight.
+  useEffect(() => {
+    const box = rail.current;
+    const link = active === null ? null : box?.querySelector('[aria-current="location"]');
+    if (!box || !link) return;
+    const outer = box.getBoundingClientRect();
+    const inner = link.getBoundingClientRect();
+    if (inner.top < outer.top) box.scrollTop -= outer.top - inner.top + 8;
+    else if (inner.bottom > outer.bottom) box.scrollTop += inner.bottom - outer.bottom + 8;
+  }, [active]);
+
+  return (
+    <nav
+      ref={rail}
+      aria-label="Contents"
+      /* The negative margin and the padding are one pair: scrolling this rail
+         makes it clip on both axes, and a link's focus ring sits outside the link. */
+      className="hidden lg:-mx-1.5 lg:sticky lg:top-10 lg:block lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto lg:px-1.5"
+    >
+      <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">Contents</p>
+      <div className="mt-3">
+        <ContentsList headings={headings} copyCount={copyCount} active={active} />
+      </div>
+    </nav>
+  );
+};
 
 const shut = (details: HTMLDetailsElement | null) => {
   if (details) details.open = false;
@@ -234,17 +270,21 @@ const shut = (details: HTMLDetailsElement | null) => {
  * The rail folded into a bar pinned over the column, where there is no room
  * beside the text. A `details`, so it opens without any script; the list lies
  * over the text rather than pushing it, so opening it mid-document moves nothing.
+ * Closed, it names the section being read.
  */
 const ContentsBar = ({
   headings,
   copyCount,
+  active,
 }: {
   headings: MarkdownHeading[];
   copyCount: number;
+  active: string | null;
 }) => {
   const bar = useRef<HTMLDetailsElement>(null);
   const [open, setOpen] = useState(false);
   const close = () => shut(bar.current);
+  const reading = sectionsOf(headings, copyCount).find((section) => section.id === active);
 
   useEffect(() => {
     if (!open) return;
@@ -262,14 +302,17 @@ const ContentsBar = ({
         onToggle={(event) => setOpen(event.currentTarget.open)}
         className="group relative border-b border-rule bg-paper"
       >
-        <summary className="flex cursor-pointer list-none items-center justify-between px-6 py-3 font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted [&::-webkit-details-marker]:hidden">
-          Contents
+        <summary className="flex cursor-pointer list-none items-center gap-4 px-6 py-3 font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted [&::-webkit-details-marker]:hidden">
+          <span className="shrink-0">Contents</span>
+          <span className="min-w-0 flex-1 truncate text-xs normal-case tracking-normal text-ink">
+            {reading?.text}
+          </span>
           <span aria-hidden="true" className="text-sm leading-none group-open:rotate-180">
             ▾
           </span>
         </summary>
         <div className="absolute inset-x-0 top-full max-h-[60dvh] overflow-y-auto border-b border-rule bg-paper px-6 pt-1 pb-5 shadow-sm">
-          <ContentsList headings={headings} copyCount={copyCount} onPick={close} />
+          <ContentsList headings={headings} copyCount={copyCount} active={active} onPick={close} />
         </div>
       </details>
     </nav>
@@ -526,6 +569,9 @@ const Article = ({
   const blocked = useBlocked();
   const [shownAnyway, setShownAnyway] = useState(false);
   const copies = every.filter((copy) => !hidesSpec(blocked, copy));
+  const active = useActiveSection(
+    sectionsOf(shown.headings, copies.length).map((section) => section.id),
+  );
 
   // A preview was fetched for the links the served revision cited. One that no
   // longer appears in the document has no business under it.
@@ -569,10 +615,10 @@ const Article = ({
       />
 
       <div className="mt-10 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
-        <Contents headings={shown.headings} copyCount={copies.length} />
+        <Contents headings={shown.headings} copyCount={copies.length} active={active} />
         <div className="max-w-[40rem]">
           {listedHeadings(shown.headings).length >= 2 && (
-            <ContentsBar headings={shown.headings} copyCount={copies.length} />
+            <ContentsBar headings={shown.headings} copyCount={copies.length} active={active} />
           )}
           {shown.isEmpty ? (
             <p className="font-serif text-lg text-muted">

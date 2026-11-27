@@ -10,6 +10,7 @@ export {
   type MarkdownDiffOptions,
   textSimilarity,
 } from "./diff";
+export { type Highlighter, highlighter } from "./highlight";
 export {
   type MarkdownHeading,
   type Mention,

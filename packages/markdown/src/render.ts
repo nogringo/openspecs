@@ -9,6 +9,7 @@ import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import { SKIP, visit } from "unist-util-visit";
+import type { Highlighter } from "./highlight";
 import { type OpeningHeading, repeatedTitleHeadings } from "./title";
 
 export type MarkdownHeading = {
@@ -43,6 +44,17 @@ export type RenderOptions = {
    * about keys, and the caller that does can turn one into a name.
    */
   mention?: MentionResolver;
+  /**
+   * Colours fenced code, with `highlighter` from this package. Left out by a diff,
+   * which merges rendered fragments that coloured spans would split, and by
+   * anything running in a browser, which would have to carry the grammars.
+   */
+  highlight?: Highlighter;
+  /**
+   * Where a `kind:1059` code span points, for a caller that knows which documents
+   * cover which kinds. Left out, or answering null, the span stays plain code.
+   */
+  kindHref?: (kind: number) => string | null;
 };
 
 const HEADINGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6"]);
@@ -214,6 +226,62 @@ const pointLinks = (resolve: MentionResolver | undefined) => (tree: Root) => {
   });
 };
 
+const languageOf = (code: Element): string | null => {
+  const classes = code.properties.className;
+  if (!Array.isArray(classes)) return null;
+  for (const name of classes) {
+    if (typeof name === "string" && name.startsWith("language-")) {
+      return name.slice("language-".length).toLowerCase();
+    }
+  }
+  return null;
+};
+
+/**
+ * After the sanitizer, so the spans it writes keep their class names. Takes an
+ * object because unified reads a bare `true` as "on, without options".
+ */
+const highlightCode =
+  ({ highlight }: { highlight: Highlighter | undefined }) =>
+  (tree: Root) => {
+    if (highlight === undefined) return;
+    visit(tree, "element", (node: Element, _index, parent) => {
+      if (node.tagName !== "code" || parent?.type !== "element" || parent.tagName !== "pre") return;
+      const language = languageOf(node);
+      const coloured = language === null ? null : highlight(language, textOf(node));
+      if (coloured !== null) node.children = coloured;
+    });
+  };
+
+/** `kind:1059`, `kind 1059` or `kind1059`, alone in its code span. */
+const KIND_SPAN = /^kind[\s:]*(\d{1,5})$/i;
+
+/**
+ * Only inline code, which is how documents name a kind they lean on. A kind in
+ * a fenced block is part of an example, and one in prose is often just a number.
+ */
+const linkKinds = (resolve: RenderOptions["kindHref"]) => (tree: Root) => {
+  if (resolve === undefined) return;
+
+  visit(tree, "element", (node: Element, index, parent) => {
+    if (index === undefined || parent === undefined || parent === null) return;
+    if (parent.type === "element" && ["a", "pre"].includes(parent.tagName)) return SKIP;
+    if (node.tagName !== "code") return;
+
+    const kind = KIND_SPAN.exec(textOf(node).trim())?.[1];
+    const href = kind === undefined ? null : resolve(Number(kind));
+    if (href === null || href === undefined) return SKIP;
+
+    parent.children[index] = {
+      type: "element",
+      tagName: "a",
+      properties: { href, className: ["kind"] },
+      children: [node],
+    };
+    return SKIP;
+  });
+};
+
 const collectHeadings = (headings: MarkdownHeading[]) => (tree: Root) => {
   visit(tree, "element", (node: Element) => {
     // The footnote label is generated, not written, and belongs to no section.
@@ -284,6 +352,8 @@ export const renderMarkdown = (content: string, options: RenderOptions = {}): Re
     .use(drawMentions, options.mention)
     // After the mentions: a reference already written as a link keeps its text.
     .use(pointLinks, options.mention)
+    .use(linkKinds, options.kindHref)
+    .use(highlightCode, { highlight: options.highlight })
     .use(hardenLinks)
     .use(rehypeStringify)
     .processSync(content)

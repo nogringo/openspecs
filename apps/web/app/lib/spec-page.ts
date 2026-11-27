@@ -1,5 +1,4 @@
-import type { MarkdownHeading } from "@openspecs/markdown";
-import { renderMarkdown } from "@openspecs/markdown";
+import { type Highlighter, type MarkdownHeading, renderMarkdown } from "@openspecs/markdown";
 import {
   parseCoordinate,
   type Spec,
@@ -9,6 +8,7 @@ import {
   toNpub,
 } from "@openspecs/nostr";
 import { mentionResolver } from "./mention";
+import { specsPath } from "./paths";
 
 /** One place a document says it was forked from, reduced to what the row drawing it needs. */
 export type ForkSource =
@@ -90,13 +90,18 @@ export type SpecPage = {
  * request. The raw document is left behind: sending both would double the
  * payload of every page for no reader.
  */
-export const toPage = (spec: Spec): SpecPage => {
+export const toPage = (spec: Spec, colours: { highlight?: Highlighter } = {}): SpecPage => {
   const { html, headings, links } = renderMarkdown(spec.content, {
     title: spec.title,
     // Without names: a body is rendered here on the server and again in the
     // browser, and neither has profiles to hand. A key still becomes a link,
     // wearing the short form of itself, and a document becomes its address.
     mention: mentionResolver({}),
+    // Given by the server only: a newer revision swapped in by the browser reads
+    // plain, which is the price of not sending the grammars to every reader.
+    highlight: colours.highlight,
+    // A kind the document covers itself would lead to a list headed by this page.
+    kindHref: (kind) => (spec.kinds.some((ref) => ref.kind === kind) ? null : specsPath({ kind })),
   });
   return {
     kind: spec.event.kind,
