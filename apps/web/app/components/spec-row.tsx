@@ -1,5 +1,6 @@
 import { Link } from "react-router";
-import type { Author } from "~/lib/profile";
+import { keyTextColor } from "~/lib/color";
+import { type Author, authorName } from "~/lib/profile";
 import type { SpecCard } from "~/lib/specs.server";
 import { AuthorAvatar } from "./author-avatar";
 import { Highlight } from "./highlight";
@@ -18,8 +19,8 @@ export const SpecRow = ({
 }: {
   spec: SpecCard;
   /**
-   * Only the picture is taken: a name arriving after the row would push the rest
-   * of it down, and a list that jumps under the eye is worse than a list of marks.
+   * The key stands in for a name not known yet, on the same line, so a name
+   * arriving after the row is drawn takes its place instead of pushing the row down.
    */
   author?: Author | null;
   /** Off where every row is signed by the same key, which the page already names. */
@@ -34,7 +35,7 @@ export const SpecRow = ({
 
   return (
     <li className="border-t border-rule">
-      <Link to={spec.path} className="group block py-6">
+      <Link to={spec.path} className="group block py-4">
         <div className="flex gap-4">
           {avatar && (
             <span className="mt-1 shrink-0">
@@ -67,15 +68,30 @@ export const SpecRow = ({
               </span>
             </div>
             {line !== "" && (
-              <p className="mt-2 line-clamp-2 max-w-[44rem] font-serif text-muted">
+              <p className="mt-1.5 line-clamp-2 max-w-[44rem] font-serif text-[0.9375rem] leading-relaxed text-muted">
                 <Highlight text={line} terms={terms} />
               </p>
             )}
-            <div className="mt-3 max-w-[44rem]">
+            <div className="mt-2 max-w-[44rem]">
               {/* Plain text, not links: a row is already one link, and nesting a second is invalid.
                   Capped like the summary above it: a row is read to decide whether to open the
                   document, and no seventh kind ever changes that decision. */}
-              <SpecTags status={spec.status} kinds={spec.kinds} topics={spec.topics} max={6} />
+              <SpecTags
+                status={spec.status}
+                kinds={spec.kinds}
+                topics={spec.topics}
+                max={6}
+                lead={
+                  avatar ? (
+                    <span
+                      className="inline-block max-w-[14rem] truncate align-bottom text-xs"
+                      style={{ color: keyTextColor(spec.pubkey) }}
+                    >
+                      {authorName(author ?? null, spec.npub)}
+                    </span>
+                  ) : undefined
+                }
+              />
             </div>
           </div>
         </div>

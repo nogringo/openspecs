@@ -72,14 +72,13 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
   return (
     <Shell search={false}>
-      <main className="mx-auto max-w-5xl px-6 py-16 sm:py-24">
+      <main className="mx-auto max-w-5xl px-6 py-14 sm:py-20">
         <h1 className="max-w-3xl text-balance font-mono text-3xl font-medium leading-tight tracking-tight sm:text-4xl">
           Technical specifications, signed and public
         </h1>
         <p className="mt-6 max-w-2xl font-serif text-lg leading-relaxed text-muted">
-          Anyone can publish a protocol, a format or a convention here. Each document is a Nostr
-          event signed by its author and stored on relays: this site renders and indexes them, it
-          does not own them.
+          Nostr's NIPs, Blossom's BUDs and Cashu's NUTs, with the proposals people write around
+          them, on one shelf to read and search.
         </p>
 
         <div className="mt-10 max-w-xl">
@@ -100,7 +99,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           of your own.
         </p>
 
-        <section className="mt-20">
+        <section className="mt-14">
           <div className="flex items-baseline justify-between gap-4">
             <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">
               Recently published

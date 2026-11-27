@@ -122,21 +122,27 @@ export type SpecTagsProps = {
   linked?: boolean;
   /** Keeps a listing row scannable: past this many kinds the rest is a count. */
   max?: number;
+  /** Opens the line, in its own case: a listing row puts the author here. */
+  lead?: React.ReactNode;
 };
 
-export const SpecTags = ({ status, kinds, topics, linked = false, max }: SpecTagsProps) => {
-  if (status === null && kinds.length === 0 && topics.length === 0) return null;
+export const SpecTags = ({ status, kinds, topics, linked = false, max, lead }: SpecTagsProps) => {
+  if (lead === undefined && status === null && kinds.length === 0 && topics.length === 0) {
+    return null;
+  }
 
   const shown = max === undefined ? kinds : kinds.slice(0, max);
   // A capped list belongs to a row, which nests this inside its own link and so
   // can take neither a disclosure nor the links an index is made of.
   const indexed = max === undefined && kinds.length > INDEX_ABOVE;
-  const hasLine = status !== null || topics.length > 0 || (!indexed && kinds.length > 0);
+  const hasLine =
+    lead !== undefined || status !== null || topics.length > 0 || (!indexed && kinds.length > 0);
 
   return (
     <div className="flex flex-col gap-y-4 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
       {hasLine && (
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+          {lead !== undefined && <span className="normal-case tracking-normal">{lead}</span>}
           {status !== null && (
             <span className={STATUS_TONE[status.toLowerCase()] ?? "text-muted"}>{status}</span>
           )}
