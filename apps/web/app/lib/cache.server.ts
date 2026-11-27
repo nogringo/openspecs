@@ -107,6 +107,23 @@ export const createLoadCache = <T>(options: LoadCacheOptions<T>) => {
       evictOldest();
       return entry.value;
     },
+    /**
+     * A value this server already knows from elsewhere, held as if it had just
+     * expired: the next `get` serves it at once and loads behind it. A key that
+     * still holds something usable keeps it, and `known` is not even called.
+     */
+    seed: (key: string, known: () => T, now = Date.now()): void => {
+      const cached = entries.get(key);
+      if (cached && (cached.expiresAt > now || cached.staleUntil > now)) return;
+      const value = known();
+      touch(key, {
+        value: Promise.resolve(value),
+        expiresAt: now,
+        staleUntil: now + (options.staleMsFor?.(value) ?? options.staleMs ?? 0),
+        refreshing: false,
+      });
+      evictOldest();
+    },
     clear: () => entries.clear(),
     get size() {
       return entries.size;

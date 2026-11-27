@@ -2,16 +2,24 @@ import { authorRelays, DEFAULT_RELAYS, relaySet, writeRelaysOf } from "@openspec
 import { withDeadline } from "./cache.server";
 import { PUBLIC_RELAYS } from "./relays";
 
+/** Long enough for a lookup that is usually already cached, short enough not to be felt. */
+const DEADLINE_MS = 1000;
+
 /**
  * The author's own write relays come first: they are where their readers look.
  * The list is resolved on the server, where it is already cached, so the browser
  * is handed the addresses rather than the lookup.
  */
 export const rebroadcastRelays = async (pubkey: string): Promise<string[]> =>
-  relaySet(await writeRelaysOf([pubkey]), DEFAULT_RELAYS, PUBLIC_RELAYS);
-
-/** Long enough for a lookup that is usually already cached, short enough not to be felt. */
-const DEADLINE_MS = 1000;
+  relaySet(
+    await withDeadline(
+      writeRelaysOf([pubkey]).catch(() => []),
+      [],
+      DEADLINE_MS,
+    ),
+    DEFAULT_RELAYS,
+    PUBLIC_RELAYS,
+  );
 
 /**
  * Both sides of the document author's NIP-65 list, resolved here rather than in

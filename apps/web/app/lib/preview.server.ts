@@ -100,14 +100,21 @@ const cache = createLoadCache<LinkPreview | null>({
   max: 500,
   ttlMs: FOUND_MS,
   ttlMsFor: (preview) => (preview === null ? FAILED_MS : FOUND_MS),
+  // A card once found stays on the page while the host is asked again.
+  staleMs: FOUND_MS,
+  staleMsFor: (preview) => (preview === null ? 0 : FOUND_MS),
 });
 
 export const loadLinkPreview = (url: string): Promise<LinkPreview | null> =>
   cache.get(url, () => fetchPage(url).catch(() => null));
 
 const SHOWN = 6;
-/** How long a page waits on hosts it does not control. */
-const DEADLINE_MS = 1000;
+/**
+ * None: the cards sit below the document, so the first reader of a link does
+ * without its card rather than wait on a host this server does not control, and
+ * the fetch started for them is there for the next one.
+ */
+const DEADLINE_MS = 0;
 
 export const loadLinkPreviews = async (urls: string[]): Promise<LinkPreview[]> => {
   const previews = await Promise.all(

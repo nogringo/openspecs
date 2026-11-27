@@ -112,6 +112,46 @@ describe("createLoadCache", () => {
 
     await expect(cache.get("k", async () => "found", 2000)).resolves.toBe("found");
   });
+
+  it("serves a seeded value at once and loads behind it", async () => {
+    const cache = cacheOf<string>({ staleMs: 5000 });
+    cache.seed("k", () => "known", 0);
+
+    let release: (value: string) => void = () => {};
+    const load = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          release = resolve;
+        }),
+    );
+    await expect(cache.get("k", load, 0)).resolves.toBe("known");
+    expect(load).toHaveBeenCalledTimes(1);
+
+    release("loaded");
+    await flush();
+    await expect(cache.get("k", load, 1)).resolves.toBe("loaded");
+  });
+
+  it("does not seed over a value it can still serve", async () => {
+    const cache = cacheOf<string>({ staleMs: 5000 });
+    await cache.get("k", async () => "loaded", 0);
+    const known = vi.fn(() => "known");
+
+    cache.seed("k", known, 3000);
+    expect(known).not.toHaveBeenCalled();
+    await expect(cache.get("k", async () => "again", 3000)).resolves.toBe("loaded");
+  });
+
+  it("seeds over a value past its stale window", async () => {
+    const cache = cacheOf<string | null>({
+      staleMs: 5000,
+      staleMsFor: (value) => (value === null ? 0 : 5000),
+    });
+    await cache.get("k", async () => null, 0);
+
+    cache.seed("k", () => "known", 2000);
+    await expect(cache.get("k", async () => "loaded", 2000)).resolves.toBe("known");
+  });
 });
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));

@@ -3,12 +3,14 @@ import type { NostrEvent } from "@openspecs/nostr";
 import {
   fetchSpec,
   fetchSpecs,
+  latestByCoordinate,
   type Spec,
   type SpecKindRef,
   specPath,
   toNpub,
 } from "@openspecs/nostr";
 import { createLoadCache } from "./cache.server";
+import { corpus, hasTag } from "./corpus.server";
 import { type SpecPage, toPage } from "./spec-page";
 
 export type { SpecPage };
@@ -45,13 +47,28 @@ const cache = createLoadCache<CachedSpec | null>({
   staleMsFor: (cached) => (cached === null ? 0 : STALE_MS),
 });
 
-export const loadSpec = (pubkey: string, identifier: string): Promise<CachedSpec | null> =>
-  cache.get(`${pubkey}:${identifier}`, async () => {
-    const spec = await fetchSpec({ pubkey, identifier });
-    return spec === null
-      ? null
-      : { page: toPage(spec, { highlight: highlighter }), event: spec.event };
+const render = (spec: Spec): CachedSpec => ({
+  page: toPage(spec, { highlight: highlighter }),
+  event: spec.event,
+});
+
+/**
+ * A document the corpus holds is served from it, and the relays are asked behind
+ * the reader, the author's own included. Whichever revision is newer wins, so a
+ * relay that does not answer in time cannot turn a known document into a 404.
+ */
+export const loadSpec = (pubkey: string, identifier: string): Promise<CachedSpec | null> => {
+  void corpus.start();
+  const key = `${pubkey}:${identifier}`;
+  const known = corpus.spec(pubkey, identifier);
+  if (known !== undefined) cache.seed(key, () => render(known));
+  return cache.get(key, async () => {
+    const fetched = await fetchSpec({ pubkey, identifier });
+    const held = corpus.spec(pubkey, identifier);
+    const [spec] = latestByCoordinate([fetched, held].filter((one) => one != null));
+    return spec === undefined ? null : render(spec);
   });
+};
 
 export type SpecCard = {
   path: string;
@@ -82,7 +99,7 @@ const toCard = (spec: Spec): SpecCard => ({
 });
 
 export type SpecFilter = {
-  /** A `t` tag, which relays index, so this is asked of them rather than filtered here. */
+  /** A `t` tag, matched exactly as a relay matches it, whichever of the two answers. */
   topic?: string;
   /** A `k` tag: the event kind a document is about. */
   kind?: number;
@@ -95,25 +112,49 @@ const listings = createLoadCache<SpecCard[]>({ max: 50, ttlMs: FRESH_MS, staleMs
 /**
  * A blank document parses, because its author may simply not have written it
  * yet, but nothing worth reading is behind it. Listings are where that line is
- * drawn, so twice the documents are asked for and the empty ones dropped,
- * rather than returning a short page of placeholders.
+ * drawn, rather than returning a short page of placeholders.
  */
-export const loadSpecs = (filter: SpecFilter = {}, limit = 30): Promise<SpecCard[]> =>
-  listings.get(
-    `${limit}:${filter.topic ?? ""}:${filter.kind ?? ""}:${filter.author ?? ""}`,
-    async () => {
-      const specs = await fetchSpecs({
-        limit: limit * 2,
-        ...(filter.topic ? { topics: [filter.topic] } : {}),
-        ...(filter.kind === undefined ? {} : { covers: [filter.kind] }),
-        ...(filter.author ? { authors: [filter.author] } : {}),
-      });
-      return specs
-        .filter((spec) => !spec.isEmpty)
-        .slice(0, limit)
-        .map(toCard);
-    },
-  );
+const listingOf = (specs: Spec[], filter: SpecFilter, limit: number): SpecCard[] =>
+  specs
+    .filter(
+      (spec) =>
+        !spec.isEmpty &&
+        (!filter.topic || hasTag(spec, "t", filter.topic)) &&
+        (filter.kind === undefined || hasTag(spec, "k", String(filter.kind))) &&
+        (!filter.author || spec.pubkey === filter.author),
+    )
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, limit)
+    .map(toCard);
+
+/**
+ * Read off the corpus once it has been walked, since it holds everything the
+ * read relays would answer and more than a `limit` lets them. One author's shelf
+ * is the exception: their own relays may hold what no read relay does, so the
+ * corpus only answers until those have been asked.
+ */
+export const loadSpecs = (filter: SpecFilter = {}, limit = 30): Promise<SpecCard[]> => {
+  void corpus.start();
+  const known = corpus.specs();
+  if (known !== undefined && !filter.author)
+    return Promise.resolve(listingOf(known, filter, limit));
+
+  const key = `${limit}:${filter.topic ?? ""}:${filter.kind ?? ""}:${filter.author ?? ""}`;
+  if (known !== undefined) listings.seed(key, () => listingOf(known, filter, limit));
+  return listings.get(key, async () => {
+    // Twice what is shown, since the blank ones are dropped below.
+    const specs = await fetchSpecs({
+      limit: limit * 2,
+      ...(filter.topic ? { topics: [filter.topic] } : {}),
+      ...(filter.kind === undefined ? {} : { covers: [filter.kind] }),
+      ...(filter.author ? { authors: [filter.author] } : {}),
+    });
+    return specs
+      .filter((spec) => !spec.isEmpty)
+      .slice(0, limit)
+      .map(toCard);
+  });
+};
 
 /**
  * How far down a listing can be paged. The window is fetched whole and cut into
