@@ -159,13 +159,6 @@ const asDate = (seconds: number): string => new Date(seconds * 1000).toISOString
 const shorten = (value: string, head: number, tail: number): string =>
   value.length <= head + tail ? value : `${value.slice(0, head)}...${value.slice(-tail)}`;
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex gap-3">
-    <dt className="w-20 shrink-0 text-muted">{label}</dt>
-    <dd className="min-w-0 break-all">{children}</dd>
-  </div>
-);
-
 const Contents = ({ headings, copyCount }: { headings: MarkdownHeading[]; copyCount: number }) => (
   <nav
     aria-label="Contents"
@@ -223,23 +216,7 @@ const Masthead = ({
   spotCount: number;
 }) => (
   <header>
-    <p className="font-mono text-xs tracking-wide text-muted">
-      {spec.kind}:{spec.identifier}
-      {/* Growing sideways rather than down: this arrives after the page is on
-          screen, and text under the reader's eye must not move for it. */}
-      {copyCount > 0 && (
-        <a
-          href={`#${COPIES_ID}`}
-          title="Other keys have written this document too"
-          className="ml-3 underline decoration-rule underline-offset-2 hover:text-ink hover:decoration-current"
-        >
-          {copyCount} other {copyCount === 1 ? "copy" : "copies"}
-          {spotCount > 0 &&
-            `, differing in ${spotCount} ${spotCount === 1 ? "place" : "places"} below`}
-        </a>
-      )}
-    </p>
-    <h1 className="mt-4 font-mono text-3xl font-medium leading-tight tracking-tight sm:text-4xl">
+    <h1 className="font-mono text-3xl font-medium leading-tight tracking-tight sm:text-4xl">
       {spec.title}
     </h1>
     {/* A derived summary is the opening paragraph already sitting below, so only a written one is shown. */}
@@ -247,98 +224,145 @@ const Masthead = ({
       <p className="mt-4 max-w-2xl font-serif text-lg leading-relaxed text-muted">{spec.summary}</p>
     )}
 
-    <div className="mt-6 max-w-2xl">
+    <div className="mt-5 max-w-2xl">
       <SpecTags status={spec.status} kinds={spec.kinds} topics={spec.topics} linked />
     </div>
 
-    <div className="mt-8 inline-flex max-w-full items-start gap-4 rounded-sm border border-rule px-4 py-3.5">
-      <Link to={authorPath(spec.pubkey)} title={`Everything signed by ${spec.npub}`}>
-        <AuthorAvatar pubkey={spec.pubkey} picture={author?.picture ?? null} />
-      </Link>
-      <div className="min-w-0">
-        {/* The key gets one line rather than three: the avatar leads to the same
-            page, and the address bar is already spelling the npub out. With no
-            name published the key is written here itself, as it is everywhere
-            else on the site. */}
-        <p
-          title={author?.name || spec.npub}
-          className="mb-1.5 truncate font-mono text-sm font-medium"
-        >
-          <Link
-            to={authorPath(spec.pubkey)}
-            style={{ color: keyTextColor(spec.pubkey) }}
-            className="hover:underline"
-          >
-            {authorName(author, spec.npub)}
-          </Link>
-        </p>
-        <dl className="min-w-0 space-y-1 font-mono text-xs">
-          {spec.forkedFrom.map((source) => (
-            <Field key={source.type === "spec" ? source.path : source.url} label="forked from">
-              {source.type === "spec" ? (
-                <>
-                  <Link
-                    to={source.path}
-                    className="underline decoration-rule underline-offset-2 hover:decoration-current"
-                  >
-                    {source.identifier}
-                  </Link>{" "}
-                  <span className="text-muted">{shorten(source.npub, 10, 6)}</span>
-                </>
-              ) : (
-                <a
-                  href={source.url}
-                  rel="nofollow noopener noreferrer"
-                  className="underline decoration-rule underline-offset-2 hover:decoration-current"
-                >
-                  {source.host}
-                </a>
-              )}
-            </Field>
-          ))}
-          <Field label="published">{asDate(spec.publishedAt)}</Field>
-          {spec.revisedAt > spec.publishedAt && (
-            <Field label="revised">{asDate(spec.revisedAt)}</Field>
-          )}
-        </dl>
-      </div>
+    <div className="mt-7 flex flex-wrap items-center gap-x-10 gap-y-4">
+      <Byline spec={spec} author={author} copyCount={copyCount} spotCount={spotCount} />
+      <Actions spec={spec} canonical={canonical} relays={relays} />
     </div>
+  </header>
+);
 
-    <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
-      <LikeButton coordinate={toCoordinate(spec)} specEventId={spec.eventId} pubkey={spec.pubkey} />
-      {/* Beside the reaction, because those two are what a reader does with the
+const Byline = ({
+  spec,
+  author,
+  copyCount,
+  spotCount,
+}: {
+  spec: SpecPage;
+  author: Author | null;
+  copyCount: number;
+  spotCount: number;
+}) => (
+  <div className="flex min-w-0 items-center gap-3">
+    <Link
+      to={authorPath(spec.pubkey)}
+      title={`Everything signed by ${spec.npub}`}
+      className="shrink-0"
+    >
+      <AuthorAvatar pubkey={spec.pubkey} picture={author?.picture ?? null} size={36} />
+    </Link>
+    <div className="min-w-0 font-mono text-xs">
+      {/* With no name published the key is written here itself, as it is
+          everywhere else on the site. */}
+      <p title={author?.name || spec.npub} className="truncate text-sm font-medium">
+        <Link
+          to={authorPath(spec.pubkey)}
+          style={{ color: keyTextColor(spec.pubkey) }}
+          className="hover:underline"
+        >
+          {authorName(author, spec.npub)}
+        </Link>
+      </p>
+      <p className="mt-0.5 text-muted">
+        <span className="whitespace-nowrap">
+          published <time dateTime={asIso(spec.publishedAt)}>{asDate(spec.publishedAt)}</time>
+        </span>
+        {spec.revisedAt > spec.publishedAt && (
+          <>
+            ,{" "}
+            <span className="whitespace-nowrap">
+              revised <time dateTime={asIso(spec.revisedAt)}>{asDate(spec.revisedAt)}</time>
+            </span>
+          </>
+        )}
+        {/* Growing sideways rather than down: this arrives after the page is on
+            screen, and text under the reader's eye must not move for it. */}
+        {copyCount > 0 && (
+          <a
+            href={`#${COPIES_ID}`}
+            title="Other keys have written this document too"
+            className="ml-3 underline decoration-rule underline-offset-2 hover:text-ink hover:decoration-current"
+          >
+            {copyCount} other {copyCount === 1 ? "copy" : "copies"}
+            {spotCount > 0 &&
+              `, differing in ${spotCount} ${spotCount === 1 ? "place" : "places"} below`}
+          </a>
+        )}
+      </p>
+      {spec.forkedFrom.map((source) => (
+        <p key={source.type === "spec" ? source.path : source.url} className="mt-0.5 text-muted">
+          forked from{" "}
+          {source.type === "spec" ? (
+            <>
+              <Link
+                to={source.path}
+                className="text-ink underline decoration-rule underline-offset-2 hover:decoration-current"
+              >
+                {source.identifier}
+              </Link>{" "}
+              {shorten(source.npub, 10, 6)}
+            </>
+          ) : (
+            <a
+              href={source.url}
+              rel="nofollow noopener noreferrer"
+              className="text-ink underline decoration-rule underline-offset-2 hover:decoration-current"
+            >
+              {source.host}
+            </a>
+          )}
+        </p>
+      ))}
+    </div>
+  </div>
+);
+
+const Actions = ({
+  spec,
+  canonical,
+  relays,
+}: {
+  spec: SpecPage;
+  canonical: string;
+  relays: string[];
+}) => (
+  <div className="flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
+    <LikeButton coordinate={toCoordinate(spec)} specEventId={spec.eventId} pubkey={spec.pubkey} />
+    {/* Beside the reaction, because those two are what a reader does with the
           document itself. Everything else it has to offer is one word further on.
 
           Drawn on the server for everybody, with no session gating: the page it
           leads to offers the ways in, and a control appearing a tick after paint
           for the already connected would hide this from the readers most likely
           to have never signed anything. */}
-      <Link
-        to={specForkPath(spec.npub, spec.identifier)}
-        title="Write your own from this one"
-        className={CHROME}
-      >
-        Fork
-      </Link>
-      {/* Before the menu, though both arrive a tick after paint and push it
+    <Link
+      to={specForkPath(spec.npub, spec.identifier)}
+      title="Write your own from this one"
+      className={CHROME}
+    >
+      Fork
+    </Link>
+    {/* Before the menu, though both arrive a tick after paint and push it
           along when they do. A named action sitting after a catch-all reads as
           something that fell out of it, and that misreading is on the page for
           as long as an author is looking at their own document. */}
-      <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
-      <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
-      <More
-        target={{
-          kind: "document",
-          pubkey: spec.pubkey,
-          id: spec.eventId,
-          coordinate: toCoordinate(spec),
-          identifier: spec.identifier,
-          canonical,
-          relays,
-        }}
-      />
-    </div>
-  </header>
+    <EditLink pubkey={spec.pubkey} npub={spec.npub} identifier={spec.identifier} />
+    <Withdraw pubkey={spec.pubkey} identifier={spec.identifier} />
+    <More
+      target={{
+        kind: "document",
+        pubkey: spec.pubkey,
+        id: spec.eventId,
+        coordinate: toCoordinate(spec),
+        identifier: spec.identifier,
+        canonical,
+        relays,
+      }}
+    />
+  </div>
 );
 
 const CitedLinks = ({ previews }: { previews: LinkPreview[] }) => (
@@ -464,7 +488,7 @@ const Article = ({
         spotCount={spots.length}
       />
 
-      <div className="mt-14 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
+      <div className="mt-10 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">
         <Contents headings={shown.headings} copyCount={copies.length} />
         <div className="max-w-[40rem]">
           {shown.isEmpty ? (

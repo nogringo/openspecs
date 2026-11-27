@@ -186,6 +186,14 @@ describe("blockAnchors", () => {
     expect(anchors[1]?.rendered).toBe(true);
   });
 
+  it("marks a NIP's number and name as not rendered when together they are the title", () => {
+    const anchors = blockAnchors(
+      "NIP-59\n======\n\nGift Wrap\n---------\n\nText.",
+      "NIP-59: Gift Wrap",
+    );
+    expect(anchors.map((anchor) => anchor.rendered)).toEqual([false, false, true]);
+  });
+
   it("keeps a leading heading that says something else", () => {
     const anchors = blockAnchors("# Another Name\n\nText.", "NIP-07");
     expect(anchors[0]?.rendered).toBe(true);

@@ -46,6 +46,34 @@ describe("headings", () => {
     expect(out).toContain('<h2 id="abstract">Abstract<');
   });
 
+  it("drops a NIP's number and name when together they are the title", () => {
+    const { html: out, headings } = renderMarkdown(
+      "NIP-59\n======\n\nGift Wrap\n---------\n\n`optional`\n\n## Overview",
+      { title: "NIP-59: Gift Wrap" },
+    );
+    expect(out).not.toContain("NIP-59");
+    expect(out).not.toContain("Gift Wrap");
+    expect(headings).toEqual([{ id: "overview", depth: 2, text: "Overview" }]);
+  });
+
+  it("reads a title's code spans as the text its headings render", () => {
+    const out = html("# NIP-21\n\n## `nostr:` URI scheme\n\nBody.", {
+      title: "NIP-21: `nostr:` URI scheme",
+    });
+    expect(out).not.toContain("<h2");
+  });
+
+  it("drops only the number when the name below it is not the title's", () => {
+    const out = html("# NIP-37\n\n## Draft Wraps\n\nBody.", { title: "NIP-37: Draft Events" });
+    expect(out).not.toContain("NIP-37");
+    expect(out).toContain('<h2 id="draft-wraps">Draft Wraps<');
+  });
+
+  it("keeps an opening heading the title merely starts with", () => {
+    const out = html("# Gift\n\nBody.", { title: "Gift Wrap" });
+    expect(out).toContain('<h2 id="gift">Gift<');
+  });
+
   it("only drops the repeated title when it opens the document", () => {
     const out = html("Preamble.\n\n# NIP-XX\n\nBody.", { title: "NIP-XX" });
     expect(out).toContain("NIP-XX");

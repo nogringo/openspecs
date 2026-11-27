@@ -1,4 +1,4 @@
-import type { Element, Root } from "hast";
+import type { Element, Root, RootContent } from "hast";
 import { toString as textOf } from "hast-util-to-string";
 import rehypeAutolinkHeadings, { type Options as AutolinkOptions } from "rehype-autolink-headings";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -9,6 +9,7 @@ import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import { SKIP, visit } from "unist-util-visit";
+import { type OpeningHeading, repeatedTitleHeadings } from "./title";
 
 export type MarkdownHeading = {
   id: string;
@@ -26,8 +27,8 @@ export type RenderedMarkdown = {
 
 export type RenderOptions = {
   /**
-   * The page title. A leading level one heading repeating it is dropped, since
-   * most documents open on their own title and the page already shows it.
+   * The page title. Opening headings repeating it are dropped, since most
+   * documents open on their own title and the page already shows it.
    */
   title?: string;
   /**
@@ -46,13 +47,25 @@ export type RenderOptions = {
 
 const HEADINGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6"]);
 
-const normalizeTitle = (text: string): string => text.replace(/\s+/g, " ").trim().toLowerCase();
+const asOpeningHeading = (node: RootContent | undefined): OpeningHeading | undefined =>
+  node?.type === "element" && HEADINGS.has(node.tagName)
+    ? { depth: Number(node.tagName.slice(1)), text: textOf(node) }
+    : undefined;
 
 const dropRepeatedTitle = (tree: Root, title: string) => {
-  const first = tree.children.find((node) => node.type !== "comment" && node.type !== "doctype");
-  if (first?.type !== "element" || first.tagName !== "h1") return;
-  if (normalizeTitle(textOf(first)) !== normalizeTitle(title)) return;
-  tree.children.splice(tree.children.indexOf(first), 1);
+  // Blank text between blocks is the stringifier's line breaks, not content.
+  const blocks = tree.children.filter(
+    (node) =>
+      node.type !== "comment" &&
+      node.type !== "doctype" &&
+      !(node.type === "text" && node.value.trim() === ""),
+  );
+  const count = repeatedTitleHeadings(
+    title,
+    asOpeningHeading(blocks[0]),
+    asOpeningHeading(blocks[1]),
+  );
+  for (const node of blocks.slice(0, count)) tree.children.splice(tree.children.indexOf(node), 1);
 };
 
 const hasTopHeading = (tree: Root): boolean => {

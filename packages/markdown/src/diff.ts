@@ -3,6 +3,7 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { type MentionResolver, renderMarkdown } from "./render";
+import { repeatedTitleHeadings } from "./title";
 
 export type MarkdownDiff = {
   /** The base document rendered whole, with the other one's differences marked in place. */
@@ -374,8 +375,6 @@ export type BlockAnchor = {
   rendered: boolean;
 };
 
-const normalizeTitle = (text: string): string => text.replace(/\s+/g, " ").trim().toLowerCase();
-
 const headingText = (source: string): string =>
   source
     .replace(/^#{1,6}[ \t]*/, "")
@@ -387,8 +386,8 @@ const INVISIBLE = new Set(["definition", "footnoteDefinition", "html"]);
 
 /**
  * One entry per base block, aligned with `compareMarkdown`'s anchors, saying
- * whether the rendered page holds an element for it. The page drops a leading
- * heading that repeats the given title, renders link and footnote definitions
+ * whether the rendered page holds an element for it. The page drops the opening
+ * headings that repeat the given title, renders link and footnote definitions
  * into other places, and strips raw HTML, so counting rendered blocks up to an
  * anchor is what turns a block index into a position among the page's elements.
  */
@@ -400,15 +399,16 @@ export const blockAnchors = (content: string, title?: string): BlockAnchor[] => 
   }));
 
   if (title !== undefined) {
-    const first = blocks.findIndex((block) => !INVISIBLE.has(block.type));
-    const opening = blocks[first];
-    if (
-      opening !== undefined &&
-      opening.type === "heading" &&
-      opening.depth === 1 &&
-      normalizeTitle(headingText(opening.source)) === normalizeTitle(title)
-    ) {
-      const anchor = anchors[first];
+    const visible = blocks.flatMap((block, at) => (INVISIBLE.has(block.type) ? [] : [at]));
+    const heading = (at: number | undefined) => {
+      const block = at === undefined ? undefined : blocks[at];
+      return block?.type === "heading"
+        ? { depth: block.depth, text: headingText(block.source) }
+        : undefined;
+    };
+    const count = repeatedTitleHeadings(title, heading(visible[0]), heading(visible[1]));
+    for (const at of visible.slice(0, count)) {
+      const anchor = anchors[at];
       if (anchor !== undefined) anchor.rendered = false;
     }
   }

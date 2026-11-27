@@ -159,7 +159,9 @@ export const AnnotatedDoc = ({ html, spots }: { html: string; spots: Spot[] }) =
             aria-label={label}
             title={label}
             style={{ top }}
-            className="absolute left-full ml-1.5 rounded-sm border border-dashed border-rule px-1.5 py-0.5 font-mono text-[0.6875rem] leading-none text-muted hover:border-muted hover:text-ink aria-expanded:border-muted aria-expanded:text-ink lg:ml-5"
+            // Narrower than the column plus its margin, the mark sits in the gap
+            // above its passage instead, or it would push the page sideways.
+            className="absolute right-0 -mt-0.5 -translate-y-full rounded-sm border border-dashed border-rule bg-paper px-1.5 py-0.5 font-mono text-[0.6875rem] leading-none text-muted hover:border-muted hover:text-ink aria-expanded:border-muted aria-expanded:text-ink md:right-auto md:left-full md:mt-0 md:ml-1.5 md:translate-y-0 lg:ml-5"
           >
             ±{keys}
           </button>
