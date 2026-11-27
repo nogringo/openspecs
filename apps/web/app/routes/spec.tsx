@@ -27,6 +27,8 @@ import { hidesSpec, unblock, useBlocked } from "~/lib/blocked";
 import { keyTextColor } from "~/lib/color";
 import { type KnownCopies, useCopies } from "~/lib/copies";
 import { loadCopies } from "~/lib/copies.server";
+import type { KnownDiscussion } from "~/lib/discussion";
+import { loadDiscussion } from "~/lib/discussion.server";
 import { NOT_FOUND_HEADERS, PAGE_HEADERS } from "~/lib/http";
 import { useLiveRevision } from "~/lib/live-revision";
 import { publicOrigin } from "~/lib/origin.server";
@@ -60,25 +62,28 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   // served under more than one origin, and only this one is canonical.
   const origin = publicOrigin(request);
   const spec = cached.page;
-  const [relays, discussion, previews, author, { copies, copyAuthors }] = await Promise.all([
-    rebroadcastRelays(pubkey),
-    discussionRelays(pubkey),
-    loadLinkPreviews(spec.links),
-    loadAuthor(pubkey),
-    loadCopies(cached).then(async (copies) => ({
-      copies,
-      copyAuthors:
-        copies === null || copies.copies.length === 0
-          ? {}
-          : await loadAuthors(copies.copies.map((copy) => copy.pubkey)),
-    })),
-  ]);
+  const [relays, discussion, conversation, previews, author, { copies, copyAuthors }] =
+    await Promise.all([
+      rebroadcastRelays(pubkey),
+      discussionRelays(pubkey),
+      loadDiscussion(spec),
+      loadLinkPreviews(spec.links),
+      loadAuthor(pubkey),
+      loadCopies(cached).then(async (copies) => ({
+        copies,
+        copyAuthors:
+          copies === null || copies.copies.length === 0
+            ? {}
+            : await loadAuthors(copies.copies.map((copy) => copy.pubkey)),
+      })),
+    ]);
   return {
     spec,
     relays,
     // Where the conversation about this document is, beyond the relays every
     // client of this kind reads. Resolved here because this cache is warm.
     discussion,
+    conversation,
     previews,
     author,
     copies,
@@ -550,6 +555,7 @@ const Article = ({
   canonical,
   relays,
   discussion,
+  conversation,
   known,
   copyAuthors,
 }: {
@@ -559,6 +565,7 @@ const Article = ({
   canonical: string;
   relays: string[];
   discussion: string[];
+  conversation: KnownDiscussion | null;
   known: KnownCopies | null;
   copyAuthors: Authors;
 }) => {
@@ -644,6 +651,7 @@ const Article = ({
             pubkey={shown.pubkey}
             canonical={canonical}
             relays={discussion}
+            known={conversation}
             revisedAt={shown.revisedAt > shown.publishedAt ? shown.revisedAt : null}
           />
         </div>
@@ -653,7 +661,17 @@ const Article = ({
 };
 
 export default function Spec({ loaderData }: Route.ComponentProps) {
-  const { spec, author, previews, canonical, relays, discussion, copies, copyAuthors } = loaderData;
+  const {
+    spec,
+    author,
+    previews,
+    canonical,
+    relays,
+    discussion,
+    conversation,
+    copies,
+    copyAuthors,
+  } = loaderData;
 
   return (
     <Shell>
@@ -669,6 +687,7 @@ export default function Spec({ loaderData }: Route.ComponentProps) {
         canonical={canonical}
         relays={relays}
         discussion={discussion}
+        conversation={conversation}
         known={copies}
         copyAuthors={copyAuthors}
       />

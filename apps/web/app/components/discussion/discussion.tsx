@@ -3,7 +3,9 @@ import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useLocation } from "react-router";
 import {
   discussionState,
+  type KnownDiscussion,
   NO_RESPONSE,
+  seededDiscussion,
   serverDiscussionState,
   startDiscussion,
   stopDiscussion,
@@ -71,6 +73,8 @@ export type DiscussionProps = {
   canonical: string;
   /** The document author's own relays, resolved by the loader. */
   relays: string[];
+  /** What the server read, or null when the relays kept it waiting too long. */
+  known: KnownDiscussion | null;
   /** When the document was last edited, or null if it never was. */
   revisedAt: number | null;
 };
@@ -81,35 +85,52 @@ export const Discussion = ({
   pubkey,
   canonical,
   relays,
+  known,
   revisedAt,
 }: DiscussionProps) => {
   const session = useSyncExternalStore(subscribeSession, sessionState, serverSessionState);
   const me = session.pubkey;
   const root = { coordinate, pubkey };
+  const given = known?.coordinate === coordinate ? known : null;
 
   // The loader hands over a fresh array on every revalidation, and an array is
   // never equal to the one before it, so what the effect watches is its content.
   const relayKey = relays.join(" ");
+  const seed = given?.events;
   useEffect(() => {
-    startDiscussion({
-      coordinate,
-      specEventId,
-      relays: relayKey === "" ? [] : relayKey.split(" "),
-    });
+    startDiscussion(
+      {
+        coordinate,
+        specEventId,
+        relays: relayKey === "" ? [] : relayKey.split(" "),
+      },
+      seed,
+    );
     return stopDiscussion;
-  }, [coordinate, specEventId, relayKey]);
+  }, [coordinate, specEventId, relayKey, seed]);
 
-  const discussion = useSyncExternalStore(
+  const live = useSyncExternalStore(
     subscribeDiscussionState,
     discussionState,
     serverDiscussionState,
   );
-  const authors = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
+  const seeded = useMemo(
+    () => (given === null ? null : seededDiscussion(given, specEventId)),
+    [given, specEventId],
+  );
+  // The server's read until the store has caught up with it, which is also
+  // what the server rendered and what hydration has to find.
+  const discussion =
+    seeded !== null && (live.coordinate !== coordinate || live.status !== "ready") ? seeded : live;
+
+  const looked = useSyncExternalStore(subscribeAuthors, authorsState, serverAuthorsState);
+  const authors = useMemo(() => ({ ...given?.authors, ...looked }), [given, looked]);
 
   // Only the keys a reader ended up in front of, asked for in one batch.
   useEffect(() => {
-    wantAuthors([pubkey, ...discussion.correspondents]);
-  }, [pubkey, discussion.correspondents]);
+    const keys = [pubkey, ...discussion.correspondents];
+    wantAuthors(keys.filter((key) => given?.authors[key] === undefined));
+  }, [pubkey, discussion.correspondents, given]);
 
   // The record of another document is not this one's, and the store holds one at
   // a time: until it has caught up, this page has nothing of its own to draw.

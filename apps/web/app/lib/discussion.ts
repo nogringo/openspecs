@@ -10,7 +10,7 @@ import {
   correspondents,
   headOf,
   retractions,
-  sortDiscussion,
+  sortThread,
   subscribeDiscussion,
   subscribeReferences,
   tallyReactions,
@@ -18,6 +18,7 @@ import {
   totalSats,
 } from "@openspecs/nostr";
 import { blockedState, subscribeBlocked } from "./blocked";
+import type { Authors } from "./profile";
 
 export type DiscussionStatus = "idle" | "loading" | "ready";
 
@@ -49,6 +50,14 @@ export const EMPTY_DISCUSSION: DiscussionState = Object.freeze({
   document: NO_RESPONSE,
   byComment: {},
 });
+
+/** What the server read about a document, so the page arrives with its conversation. */
+export type KnownDiscussion = {
+  coordinate: string;
+  events: NostrEvent[];
+  /** Whoever wrote or is named in it, as far as the server knew them. */
+  authors: Authors;
+};
 
 /** Often enough to watch a conversation arrive, rarely enough not to rethread on every event. */
 const NOTIFY_MS = 150;
@@ -100,7 +109,7 @@ export const subscribeDiscussionState = (listener: () => void): (() => void) => 
 
 export const discussionState = (): DiscussionState => state;
 
-/** The server holds no conversation: it renders the document, the browser reads the rest. */
+/** This store only runs in the browser: the server renders what its loader read. */
 export const serverDiscussionState = (): DiscussionState => EMPTY_DISCUSSION;
 
 const notify = (): void => {
@@ -141,27 +150,21 @@ let paid = new Set<string>();
 
 export const invoicePaid = (invoice: string): boolean => paid.has(invoice.trim().toLowerCase());
 
-/** The state to draw, and the reaction ids the next pass has to ask about. */
-type Recomputed = { state: DiscussionState; reactions: string[] };
+type Read = { discussion: Discussion; state: Omit<DiscussionState, "status"> };
 
-const recompute = (): Recomputed => {
-  const current = pointer;
-  if (current === null) return { state: EMPTY_DISCUSSION, reactions: [] };
+const NOBODY: ReadonlySet<string> = new Set();
 
-  const all = [...events.values()];
-  const scope = { specEventId: current.specEventId };
-  // Sorted twice, because a reply naming no document is only admitted once the
-  // comments that do name it are known, and the first pass is what finds them.
-  const named = sortDiscussion(all, current.coordinate, scope);
-  const sorted = sortDiscussion(all, current.coordinate, {
-    ...scope,
-    threadIds: new Set(named.comments.map((comment) => comment.id)),
-  });
+const read = (
+  all: NostrEvent[],
+  current: DiscussionPointer,
+  deleting: ReadonlySet<string>,
+  hidden: ReadonlySet<string>,
+): Read => {
+  const sorted = sortThread(all, current);
 
   // A blocked key's comments stay in the record, collapsed where they are drawn
   // so the replies under them keep their place. Their reactions and zaps have
   // no place to keep, so they leave the tallies here.
-  const hidden = blockedState().pubkeys;
   const discussion = {
     ...sorted,
     comments: sorted.comments.filter((comment) => !deleting.has(comment.id)),
@@ -173,19 +176,15 @@ const recompute = (): Recomputed => {
     zaps: sorted.zaps.filter((zap) => zap.zapper === null || !hidden.has(zap.zapper)),
   };
 
-  paid = new Set(discussion.zaps.map((zap) => zap.bolt11.trim().toLowerCase()));
-
   const byComment: Record<string, Response> = {};
   for (const comment of discussion.comments) {
     byComment[comment.id] = responseTo(discussion, { id: comment.id, coordinate: null });
   }
 
   return {
+    discussion,
     state: {
       coordinate: current.coordinate,
-      // Ready means the record can be read, not that events stopped arriving:
-      // the relays have listed what they hold, and nothing in it was retracted.
-      status: pointer === null ? "idle" : listed && settled ? "ready" : "loading",
       roots: threadComments(discussion.comments, {
         retracted: discussion.retracted,
         retractions: retractions(discussion.deletions),
@@ -198,6 +197,38 @@ const recompute = (): Recomputed => {
       }),
       byComment,
     },
+  };
+};
+
+/**
+ * The same read over the events the server sent, so the page this browser
+ * hydrates is the page the server rendered. Nobody is hidden: who a reader
+ * blocked is only known to their browser, which collapses them once it runs.
+ */
+export const seededDiscussion = (known: KnownDiscussion, specEventId: string): DiscussionState => ({
+  ...read(known.events, { coordinate: known.coordinate, specEventId }, NOBODY, NOBODY).state,
+  status: "ready",
+});
+
+/** The state to draw, and the reaction ids the next pass has to ask about. */
+type Recomputed = { state: DiscussionState; reactions: string[] };
+
+const recompute = (): Recomputed => {
+  const current = pointer;
+  if (current === null) return { state: EMPTY_DISCUSSION, reactions: [] };
+
+  const { discussion, state } = read(
+    [...events.values()],
+    current,
+    deleting,
+    blockedState().pubkeys,
+  );
+  paid = new Set(discussion.zaps.map((zap) => zap.bolt11.trim().toLowerCase()));
+
+  return {
+    // Ready means the record can be read, not that events stopped arriving:
+    // the relays have listed what they hold, and nothing in it was retracted.
+    state: { ...state, status: listed && settled ? "ready" : "loading" },
     reactions: discussion.reactions.map((reaction) => reaction.id),
   };
 };
@@ -315,8 +346,12 @@ const close = (): void => {
  * open the conversation twice. Coming back to the same document keeps what has
  * already arrived rather than blanking the page to fetch it again; a different
  * document forgets the one before it.
+ *
+ * `seed` is what the server already read, retractions included, so the record
+ * stands from the start and the relays only add to it. Without one, nothing is
+ * drawn until they have said what they hold.
  */
-export const startDiscussion = (next: DiscussionPointer): void => {
+export const startDiscussion = (next: DiscussionPointer, seed?: NostrEvent[]): void => {
   if (typeof window === "undefined") return;
   unwatch ??= subscribeBlocked(publishSoon);
   if (subscriptions.length > 0 && pointer?.coordinate === next.coordinate) return;
@@ -326,22 +361,26 @@ export const startDiscussion = (next: DiscussionPointer): void => {
     events = new Map();
     state = { ...EMPTY_DISCUSSION, coordinate: next.coordinate, status: "loading" };
   }
+  for (const event of seed ?? []) events.set(event.id, event);
   // Cleared even when the events are kept: the subscriptions watching these ids
   // were just closed, and nothing would reopen them.
   asked = new Set();
-  listed = false;
-  settled = false;
+  listed = seed !== undefined;
+  settled = seed !== undefined;
   awaiting = 0;
   pointer = next;
 
-  // A relay that never answers must not be able to keep the record hidden.
   for (const pending of [settling, quieting]) if (pending !== null) clearTimeout(pending);
   quieting = null;
-  settling = setTimeout(() => {
-    settling = null;
-    settled = true;
-    publish();
-  }, SETTLE_MS);
+  settling = null;
+  // A relay that never answers must not be able to keep the record hidden.
+  if (!settled) {
+    settling = setTimeout(() => {
+      settling = null;
+      settled = true;
+      publish();
+    }, SETTLE_MS);
+  }
 
   notify();
 

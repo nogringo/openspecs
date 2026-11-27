@@ -227,50 +227,85 @@ const queryAll = (
       );
 
 /**
- * One round trip, for a caller that wants the conversation as it stands rather
- * than as it happens. The second pass is included: a reaction to a comment is
- * part of the discussion, and it cannot be asked for until the comment is here.
+ * Sorted twice, because a reply naming no document is only admitted once the
+ * comments that do name it are known, and the first sort is what finds them.
+ */
+export const sortThread = (events: NostrEvent[], pointer: DiscussionPointer): Discussion => {
+  const scope = { specEventId: pointer.specEventId };
+  const named = sortDiscussion(events, pointer.coordinate, scope);
+  return sortDiscussion(events, pointer.coordinate, {
+    ...scope,
+    threadIds: new Set(named.comments.map((comment) => comment.id)),
+  });
+};
+
+/**
+ * Comments answering a comment, reactions to a reaction's retraction: each pass
+ * can only ask about ids the one before it found, and a long thread goes a few
+ * levels deep at most.
+ */
+const MAX_REFERENCE_PASSES = 4;
+
+/**
+ * The ids a reference pass asks about. A missing parent is asked about too: a
+ * deletion naming it is what tells a comment its author took back from one no
+ * relay happened to hold.
+ */
+const referencedIds = (discussion: Discussion): string[] => [
+  ...[...discussion.comments, ...discussion.retracted].flatMap((comment) =>
+    comment.parentId === null ? [comment.id] : [comment.id, comment.parentId],
+  ),
+  ...discussion.reactions.map((reaction) => reaction.id),
+];
+
+/**
+ * The events a conversation is made of, read to the end of every reference pass,
+ * for a caller that hands them to a reader who sorts them itself. A comment
+ * matched by a tag it only mentions is left out here, where it costs nothing.
  *
  * The author's relays are resolved alongside the known ones rather than before
  * them, the way `fetchSpecs` does it: the lookup is worth making, and it is not
  * worth putting on the critical path of the relays that would have answered
  * anyway.
  */
+export const fetchDiscussionEvents = async (
+  pointer: DiscussionPointer,
+  options: DiscussionOptions = {},
+): Promise<NostrEvent[]> => {
+  const known = relaysFor(pointer, options);
+  const outbox = outboxOf(pointer, options);
+  const ask = async (filters: Filter[]): Promise<NostrEvent[]> => {
+    const [fromKnown, fromOutbox] = await Promise.all([
+      queryAll(known, filters, options),
+      outbox.then((relays) => queryAll(without(relays, known), filters, options)),
+    ]);
+    return [...fromKnown, ...fromOutbox];
+  };
+
+  let events = await ask(discussionFilters(pointer.coordinate, pointer.specEventId));
+  const asked = new Set<string>();
+  for (let pass = 0; pass < MAX_REFERENCE_PASSES; pass += 1) {
+    const ids = referencedIds(sortThread(events, pointer)).filter((id) => !asked.has(id));
+    if (ids.length === 0) break;
+    for (const id of ids) asked.add(id);
+    events = [...events, ...(await ask(referenceFilters(ids)))];
+  }
+
+  const sorted = sortThread(events, pointer);
+  const comments = new Set([...sorted.comments, ...sorted.retracted].map((comment) => comment.id));
+  const seen = new Set<string>();
+  return events.filter((event) => {
+    if (seen.has(event.id)) return false;
+    seen.add(event.id);
+    return event.kind !== COMMENT_KIND || comments.has(event.id);
+  });
+};
+
+/** The same conversation, sorted, for a caller that only wants to read it. */
 export const fetchDiscussion = async (
   pointer: DiscussionPointer,
   options: DiscussionOptions = {},
-): Promise<Discussion> => {
-  const known = relaysFor(pointer, options);
-  const outbox = outboxOf(pointer, options);
-  const filters = discussionFilters(pointer.coordinate, pointer.specEventId);
-
-  const [fromKnown, fromOutbox] = await Promise.all([
-    queryAll(known, filters, options),
-    outbox.then((relays) => queryAll(without(relays, known), filters, options)),
-  ]);
-
-  const events = [...fromKnown, ...fromOutbox];
-  const scope = { specEventId: pointer.specEventId };
-  const discussion = sortDiscussion(events, pointer.coordinate, scope);
-
-  const threadIds = new Set(discussion.comments.map((comment) => comment.id));
-  const ids = [...threadIds, ...discussion.reactions.map((reaction) => reaction.id)];
-  if (ids.length === 0) return discussion;
-
-  const references = referenceFilters(ids);
-  const second = await Promise.all([
-    queryAll(known, references, options),
-    outbox.then((relays) => queryAll(without(relays, known), references, options)),
-  ]);
-
-  // Sorted once over both passes rather than merged after: a reply is returned
-  // by the first pass for its coordinate and by the second for its parent's id,
-  // and one pass over everything is what makes that one comment rather than two.
-  return sortDiscussion([...events, ...second.flat()], pointer.coordinate, {
-    ...scope,
-    threadIds,
-  });
-};
+): Promise<Discussion> => sortThread(await fetchDiscussionEvents(pointer, options), pointer);
 
 export type DiscussionSubscription = Subscription;
 

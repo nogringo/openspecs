@@ -7,13 +7,14 @@ import {
   DISCUSSION_RELAYS,
   discussionFilters,
   fetchDiscussion,
+  fetchDiscussionEvents,
   referenceFilters,
   sortDiscussion,
   subscribeDiscussion,
 } from "../src/discussion";
 import { SPEC_KIND } from "../src/event";
 import { buildComment, COMMENT_KIND, threadComments } from "../src/nip22";
-import { buildReaction, REACTION_KIND } from "../src/nip25";
+import { buildReaction, DELETION_KIND, REACTION_KIND } from "../src/nip25";
 import { clearRelayListCache } from "../src/nip65";
 import { relaySet } from "../src/pool";
 import { DEFAULT_RELAYS } from "../src/relay";
@@ -311,11 +312,34 @@ describe("fetchDiscussion", () => {
     readerKey,
     40,
   );
+  /** Names the reaction, so it is a pass further away than the reaction itself. */
+  const unliked = sign(
+    {
+      kind: DELETION_KIND,
+      content: "",
+      tags: [
+        ["e", onComment.id],
+        ["k", String(REACTION_KIND)],
+      ],
+    },
+    authorKey,
+    50,
+  );
+  /** Answers the parent, and is about another document. */
+  const elsewhere = sign(
+    buildComment({
+      root: { coordinate: OTHER, pubkey: author },
+      parent: { id: parent.id, pubkey: parent.pubkey },
+      content: "about something else",
+    }),
+    readerKey,
+    60,
+  );
 
   beforeAll(async () => {
     relay = createMockRelay();
     await relay.start();
-    relay.seed([parent, reply, onComment, onDocument]);
+    relay.seed([parent, reply, onComment, onDocument, unliked, elsewhere]);
     pool = new SimplePool();
   });
 
@@ -350,6 +374,27 @@ describe("fetchDiscussion", () => {
       comment: { id: parent.id },
       replies: [{ comment: { id: reply.id } }],
     });
+  });
+
+  it("keeps asking until a pass finds nothing new, so a retracted reaction is known", async () => {
+    const events = await fetchDiscussionEvents(
+      { coordinate: ROOT.coordinate, specEventId: SPEC_EVENT_ID },
+      { pool, relays: [relay.url ?? ""], timeoutMs: 1500, outbox: false },
+    );
+
+    expect(events.map((event) => event.id)).toContain(unliked.id);
+  });
+
+  it("leaves out a comment that answers this thread from another document", async () => {
+    const events = await fetchDiscussionEvents(
+      { coordinate: ROOT.coordinate, specEventId: SPEC_EVENT_ID },
+      { pool, relays: [relay.url ?? ""], timeoutMs: 1500, outbox: false },
+    );
+
+    expect(events.map((event) => event.id)).not.toContain(elsewhere.id);
+    expect(events.map((event) => event.id).sort()).toEqual(
+      [parent.id, reply.id, onComment.id, onDocument.id, unliked.id].sort(),
+    );
   });
 });
 

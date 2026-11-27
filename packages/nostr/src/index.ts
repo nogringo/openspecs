@@ -54,8 +54,10 @@ export {
   discussionFilters,
   EMPTY_DISCUSSION,
   fetchDiscussion,
+  fetchDiscussionEvents,
   referenceFilters,
   sortDiscussion,
+  sortThread,
   subscribeDiscussion,
   subscribeReferences,
 } from "./discussion";

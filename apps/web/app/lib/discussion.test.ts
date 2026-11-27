@@ -17,6 +17,7 @@ import {
   clearDiscussion,
   discussionState,
   invoicePaid,
+  seededDiscussion,
   setDeleting,
   startDiscussion,
   subscribeDiscussionState,
@@ -182,6 +183,49 @@ describe("what the record waits for", () => {
     await vi.advanceTimersByTimeAsync(5000);
     expect(discussionState().status).toBe("ready");
     expect(discussionState().count).toBe(1);
+  });
+});
+
+/** The server waited on the relays already, so the browser has nothing to wait for. */
+describe("a conversation the server already read", () => {
+  it("is ready before any relay has answered", () => {
+    startDiscussion(POINTER, [comment("read by the server", 10)]);
+
+    expect(discussionState()).toMatchObject({ status: "ready", count: 1 });
+  });
+
+  it("is ready when the server found nothing, without waiting for the relays to go quiet", () => {
+    startDiscussion(POINTER, []);
+
+    expect(discussionState()).toMatchObject({ status: "ready", count: 0 });
+  });
+
+  it("still asks the relays, and shows what they add as it arrives", async () => {
+    const said = comment("read by the server", 10);
+    startDiscussion(POINTER, [said]);
+    main.send(said);
+    main.send(comment("written since", 20));
+    await settleTimers();
+
+    expect(discussionState().count).toBe(2);
+    expect(references).not.toHaveLength(0);
+  });
+
+  it("draws what the server read the way the store reads it", () => {
+    const said = comment("read by the server", 10);
+    const taken = comment("taken back", 11);
+    const known = {
+      coordinate: ROOT.coordinate,
+      events: [said, taken, deletion(taken.id, 12)],
+      authors: {},
+    };
+    startDiscussion(POINTER, known.events);
+
+    const { status: _, ...seeded } = seededDiscussion(known, SPEC_EVENT_ID);
+    const { status, ...stored } = discussionState();
+    expect(status).toBe("ready");
+    expect(seeded).toEqual(stored);
+    expect(seeded.count).toBe(1);
   });
 });
 
