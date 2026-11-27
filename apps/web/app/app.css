@@ -94,6 +94,13 @@ html {
     scroll-margin-top: 2rem;
   }
 
+  /* Below lg the contents bar is pinned over the top of the column. */
+  @media (width < 64rem) {
+    .doc :is(h2, h3, h4, h5, h6) {
+      scroll-margin-top: 4.5rem;
+    }
+  }
+
   .doc h2 {
     margin-top: 2.75rem;
     padding-top: 1.5rem;

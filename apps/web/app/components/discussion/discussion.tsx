@@ -146,7 +146,10 @@ export const Discussion = ({
   }, [hash, ready]);
 
   return (
-    <section id={DISCUSSION_ID} className="mt-16 border-t border-rule pt-8">
+    <section
+      id={DISCUSSION_ID}
+      className="mt-16 scroll-mt-12 border-t border-rule pt-8 lg:scroll-mt-0"
+    >
       <Heading />
       {ready && discussion.count > 0 && (
         <Docket

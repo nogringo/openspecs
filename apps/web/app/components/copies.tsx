@@ -58,7 +58,7 @@ export const Copies = ({
   if (copies.length === 0) return null;
 
   return (
-    <section id={COPIES_ID} className="mt-16 border-t border-rule pt-8">
+    <section id={COPIES_ID} className="mt-16 scroll-mt-12 border-t border-rule pt-8 lg:scroll-mt-0">
       <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted">
         Other copies
       </h2>
