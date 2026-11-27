@@ -143,17 +143,79 @@ jobs:
 
   # A separate job rather than conditional steps: `needs` makes the gate
   # structural, so an image that failed the boot probe cannot be published.
+  #
+  # One native runner per architecture, never QEMU: node under emulation hung
+  # the arm64 build more than once, until the six hour limit cut it. Each leg
+  # pushes an image nobody can pull yet, addressed by digest, and the manifest
+  # that ties them under a tag is written once both have landed.
   publish:
     needs: [checks, docker]
     if: github.event_name == 'push'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+
+      - id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/Dockerfile
+          platforms: linux/${{ matrix.arch }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=web-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=web-${{ matrix.arch }}
+
+      - name: Hand the digest to the manifest job
+        run: |
+          mkdir -p /tmp/digests
+          digest='${{ steps.build.outputs.digest }}'
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web-digest-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-manifest:
+    needs: publish
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: docker/setup-qemu-action@v4
+      - uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: web-digest-*
+          merge-multiple: true
 
       - uses: docker/setup-buildx-action@v4
 
@@ -174,30 +236,28 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
 
-      - uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: infra/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Tie both architectures under the tags
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.IMAGE }}@sha256:%s ' *)
+
+      - name: Show what was published
+        run: docker buildx imagetools inspect ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}
 
   # Published apart from the site, and gated only on the crawler's own jobs: a
   # relay mirror has no reason to wait on a web build, and whoever runs one has
   # no reason to run the other.
   #
-  # One runner per architecture rather than the site's single emulated build:
-  # this image compiles a Rust crate and then an ahead of time executable, which
-  # QEMU would drag out for the better part of an hour. Each leg pushes an image
-  # nobody can pull yet, addressed by digest, and the manifest that ties them
-  # under a tag is written once both have landed.
+  # Built per architecture like the site, and for speed as well: this image
+  # compiles a Rust crate and then an ahead of time executable, which QEMU would
+  # drag out for the better part of an hour.
   publish-crawler:
     needs: [crawler, crawler-docker]
     if: github.event_name == 'push'
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
@@ -253,6 +313,7 @@ jobs:
   publish-crawler-manifest:
     needs: publish-crawler
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
